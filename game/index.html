@@ -468,7 +468,9 @@ details p { margin: 6px 0 0; }
     $('plLead').textContent = `${p.gross} MW ${p.type} · ${pt.intensity} t CO₂ per MWh · funds ${money(S.funds)} · game paused`;
     let h = '';
     if (p.build) {
-      const what = { new: 'Being built', convert: `Converting to ${p.build.toType}`, tech: `Installing ${M.TECHS[p.build.tech].short}`, deep: 'Upgrading to 99 %' }[p.build.kind];
+      const k = p.build.kind;
+      const what = k === 'new' ? 'Being built' : k === 'convert' ? `Converting to ${p.build.toType}`
+        : k === 'deep' ? 'Upgrading to 99 %' : `Installing ${M.TECHS[p.build.tech].short}`;
       h += `<div class="opt"><div class="row"><span class="nm">${what}</span><span class="chip warn">${p.build.left} mo left</span></div></div>`;
     }
     if (!p.build || (p.build.kind !== 'new' && p.build.kind !== 'convert')) {
