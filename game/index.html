@@ -149,6 +149,14 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 
 /* lab */
 .lab-list { display: grid; gap: 8px; }
+.drops { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.drops span { font-size: 11.5px; font-family: var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--muted); }
+.drops span.got { color: var(--good); border-color: #2F5B3A; }
+.find { text-align: center; }
+.find .stars { font-size: 40px; letter-spacing: 6px; color: var(--gold); margin: 6px 0 2px; animation: pop .6s ease-out; }
+.find h3 { font-size: 26px; }
+@keyframes pop { 0% { transform: scale(.3); opacity: 0; } 70% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .find .stars { animation: none; } }
 .rbtn { display: grid; gap: 1px; text-align: left; flex: 1 1 140px; }
 .rbtn small { font-weight: 500; font-size: 12px; opacity: .85; }
 .proj { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
@@ -207,6 +215,7 @@ details p { margin: 6px 0 0; }
 .choice .ce { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
 /* tips: a small card at the bottom that pauses the game */
+.lab-tag { color: var(--gold); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; }
 .tipov { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px; background: rgba(5, 10, 20, .55); }
 .tip { width: min(460px, 100%); background: #FFF8E1; color: #2A1C02; border-radius: 16px; padding: 16px 18px; box-shadow: 0 16px 50px var(--shadow); display: grid; gap: 12px; }
 .tip b { display: block; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #8A5A00; }
@@ -348,6 +357,18 @@ details p { margin: 6px 0 0; }
   </div>
 </div>
 
+<div class="overlay" id="ovFind" hidden>
+  <div class="sheet find" role="dialog" aria-modal="true" aria-labelledby="findName">
+    <div class="lab-tag" id="findHow">Discovery · game paused</div>
+    <div class="stars" id="findStars"></div>
+    <h3 id="findName"></h3>
+    <p class="lead" id="findPitch"></p>
+    <p class="fact" id="findFact" style="text-align:left"></p>
+    <p class="src" id="findSrc" style="text-align:left"></p>
+    <div class="btn-row" style="justify-content:center"><button class="btn" id="findOk">Install it from any plant</button></div>
+  </div>
+</div>
+
 <div class="overlay" id="ovEnd" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="endTitle">
     <h3 id="endTitle">Game over</h3>
@@ -378,7 +399,7 @@ details p { margin: 6px 0 0; }
   let toastN = 0, toastTimer = null;
   const MS_PER_MONTH = 800;
   // any open sheet or tip pauses the clock
-  const paused = () => ['ovPlant', 'ovBuild', 'ovEvent', 'tip'].some(id => !$(id).hidden);
+  const paused = () => ['ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'tip'].some(id => !$(id).hidden);
 
   // ---------- persistence (best score, per viewer) ----------
   const BEST_KEY = 'cc2050-best-v4';
@@ -485,7 +506,7 @@ details p { margin: 6px 0 0; }
       : `<span class="chip warn" title="Monthly odds of a start-up failure until 24 months of operation">new · ${fmt(mt.risk * 100, 1)} %/mo risk</span>`;
     let action;
     if (p.tech === id) action = `<span class="ready">Installed ✓</span>`;
-    else if (!S.unlocked[id]) action = `<span class="src">Research it in the lab${S.research[id] != null ? ' (' + S.research[id] + ' mo left)' : ''}</span>`;
+    else if (!S.unlocked[id]) action = `<span class="src">${M.DROPS[id] ? 'Find it by solvent screening in the lab' : 'Run the pilot test in the lab'}${S.research[id] != null ? ' (' + S.research[id] + ' mo left)' : ''}</span>`;
     else action = `<button class="btn ${t.star ? 'gold' : ''}" data-inst="${id}" ${chk.ok ? '' : 'disabled'}>${p.tech ? 'Switch' : 'Install'} · $${fmt(M.installCost(S, p, id))}M · ${M.installMonths(p)} mo</button>${chk.ok ? '' : `<span class="src">${chk.why}</span>`}`;
     return `<div class="opt ${t.star ? 'star' : ''}">
       <div class="row"><span class="nm" style="color:${t.color}">${t.name}</span>${stage}</div>
@@ -572,7 +593,7 @@ details p { margin: 6px 0 0; }
     const busy = Object.keys(S.research).length > 0;
     const notes = [];
     if (S.resCut > 0) notes.push(`<span class="hot">US funding cut: research costs +50 % for ${S.resCut} more months.</span>`);
-    notes.push('New solvents: <b>lab experiments</b> are slow but usually work; <b>computer screening</b> (QM + MD, like our GHGT-18 poster) is fast and cheap but can miss, and every miss improves the next screen.');
+    notes.push('<b>Lab experiments</b> are slow but usually find a solvent; <b>computer screening</b> (QM + MD, like our GHGT-18 poster) is fast and cheap but can come up empty, and every empty screen improves the next.');
     $('labNote').innerHTML = notes.join(' ');
     $('lab').innerHTML = M.LAB_ORDER.map(id => {
       const pr = M.project(id);
@@ -580,25 +601,46 @@ details p { margin: 6px 0 0; }
       const tries = (S.tries && S.tries[id]) || 0;
       const methods = pr.process ? ['exp'] : ['exp', 'comp'];
       let right;
-      if (S.unlocked[id]) right = '<div class="acts"><span class="ready">Ready ✓</span></div>';
+      const allFound = id === 'screen' && !M.canResearch(S, 'screen', 'exp').ok && M.canResearch(S, 'screen', 'exp').why === 'Every solvent found';
+      if (S.unlocked[id] || allFound) right = `<div class="acts"><span class="ready">${allFound ? 'Every solvent found ✓' : 'Ready ✓'}</span></div>`;
       else if (left != null) {
         const mt = S.resMethod[id] || 'exp';
         right = `<div class="acts"><span class="ready" style="color:var(--amine)">${mt === 'comp' ? 'Screening' : pr.process ? 'Pilot test' : 'Experiments'} · ${left} mo · ${Math.round(M.researchOdds(S, id, mt) * 100)} %</span></div>`;
       } else {
         right = '<div class="acts">' + methods.map(mt => {
           const cost = M.researchCost(S, id, mt), months = M.researchMonths(S, id, mt), odds = Math.round(M.researchOdds(S, id, mt) * 100);
-          const label = pr.process ? 'Pilot test' : mt === 'comp' ? 'Computer screen' : 'Lab experiments';
+          const label = id !== 'screen' ? 'Pilot test' : mt === 'comp' ? 'Computer screen' : 'Lab experiments';
           return `<button class="btn rbtn ${mt === 'comp' ? 'ghost' : pr.star ? 'gold' : ''}" data-res="${id}" data-mt="${mt}" ${busy || S.funds < cost ? 'disabled' : ''}><b>${busy ? 'Lab busy' : label}</b><small>$${cost}M · ${months} mo · ${odds} % success</small></button>`;
         }).join('') + '</div>';
       }
       const total = left != null ? Math.max(left, M.researchMonths(S, id, S.resMethod[id])) : 1;
       const prog = left != null ? `<div class="prog" style="grid-column:1/-1"><i style="width:${Math.round(100 * (1 - left / total))}%"></i></div>` : '';
       return `<div class="proj ${pr.star ? 'star' : ''}">
-        <div><div class="t">${pr.name}</div><div class="d">${pr.desc}${tries ? ` · ${tries} failed attempt${tries > 1 ? 's' : ''}` : ''}</div></div>
+        <div><div class="t">${pr.name}</div><div class="d">${pr.desc}${tries ? ` · ${tries} empty screen${tries > 1 ? 's' : ''} so far` : ''}</div>${id === 'screen'
+          ? '<div class="drops">' + Object.keys(M.DROPS).map(k => `<span class="${S.unlocked[k] ? 'got' : ''}">${S.unlocked[k] ? '✓ ' : ''}${M.TECHS[k].short} ${'★'.repeat(M.DROPS[k].stars)}</span>`).join('') + '</div>' : ''}</div>
         ${right}${prog}</div>`;
     }).join('');
     $('lab').querySelectorAll('[data-res]').forEach(b => b.onclick = () => { M.startResearch(S, b.dataset.res, b.dataset.mt); renderAll(); });
   }
+
+  // ---------- discovery reveal (screening found a solvent) ----------
+  let findN = 0;
+  const RARITY = ['', '', 'common', 'uncommon', 'rare'];
+  function openFind() {
+    const d = S.discovery;
+    if (!d || d.n === findN) return false;
+    findN = d.n;
+    const t = M.TECHS[d.id], st = M.DROPS[d.id].stars;
+    $('findHow').textContent = (d.method === 'comp' ? 'Computer screening' : 'Lab experiments') + ' found · ' + RARITY[st];
+    $('findStars').textContent = '★'.repeat(st);
+    $('findName').textContent = t.name;
+    $('findPitch').textContent = t.pitch;
+    $('findFact').textContent = t.fact;
+    $('findSrc').textContent = t.src;
+    $('ovFind').hidden = false;
+    return true;
+  }
+  $('findOk').onclick = () => { $('ovFind').hidden = true; };
 
   // ---------- decision cards ----------
   function openEvent() {
@@ -668,7 +710,9 @@ details p { margin: 6px 0 0; }
     if (L) {
       $('sFund').textContent = (L.profit >= 0 ? '+' : '−') + '$' + fmt(Math.abs(L.profit), 1) + 'M / month';
       $('vGrid').textContent = fmt(L.netCap) + ' MW';
-      $('sGrid').textContent = 'demand ' + fmt(L.demand) + ' MW' + (L.sold > 1 ? ` · selling ${fmt(L.sold)}` : '') + (L.imported > 1 ? ` · importing ${fmt(L.imported)}` : '');
+      const sf = M.SEASON[S.region][(S.m + 11) % 12];   // L is last month's dispatch
+      const tag = sf >= 1.1 ? (S.region === 'norway' ? ' · winter peak' : ' · summer peak') : sf <= 0.9 ? ' · low season' : '';
+      $('sGrid').textContent = 'demand ' + fmt(L.demand) + ' MW' + tag + (L.sold > 1 ? ` · selling ${fmt(L.sold)}` : '') + (L.imported > 1 ? ` · importing ${fmt(L.imported)}` : '');
       $('mGrid').classList.toggle('danger', L.unservedFrac > 0.01);
       $('profit').textContent = (L.profit >= 0 ? 'profit +$' : 'loss −$') + fmt(Math.abs(L.profit), 1) + 'M/mo';
       $('co2rate').textContent = 'CO₂ ' + fmt(L.emitted * 12 / 1e6, 1) + ' Mt/yr';
@@ -768,7 +812,7 @@ details p { margin: 6px 0 0; }
     playing = false;
   }
   $('startBtn').onclick = () => {
-    S = M.newGame(undefined, region); particles.length = 0; toastN = 0; lastGas = null;
+    S = M.newGame(undefined, region); particles.length = 0; toastN = 0; lastGas = null; findN = 0;
     $('ovIntro').hidden = true; renderAll(); setSpeed(1); playing = true;
   };
   showIntro();
@@ -970,7 +1014,7 @@ details p { margin: 6px 0 0; }
         if (ticked) { renderAll(); showToast(); }
         if (S.over) showEnd();
         else if (S.pending) { acc = 0; openEvent(); }
-        else if (ticked && maybeTip()) acc = 0;
+        else if (ticked && (openFind() || maybeTip())) acc = 0;
       }
       drawScene(dt);
     } catch (e) {
@@ -998,7 +1042,7 @@ details p { margin: 6px 0 0; }
         $('ovIntro').hidden = true; playing = true;
         for (let i = 0; i < n && !S.over && !S.pending; i++) M.step(S);
         renderAll(); showToast();
-        if (S.over) showEnd(); else if (S.pending) openEvent();
+        if (S.over) showEnd(); else if (S.pending) openEvent(); else openFind();
         return S.m;
       },
       tip() { return maybeTip(); },

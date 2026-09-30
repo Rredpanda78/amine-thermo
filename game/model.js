@@ -1,4 +1,4 @@
-/* Capture City 2050 \u2014 game model v5 (pure logic, no DOM).
+/* Capture City 2050 \u2014 game model v6 (pure logic, no DOM).
  * Used by index.html in the browser and by sim_test.js under node for balancing.
  *
  * Technology numbers come from Lin Research Group papers where the paper reports them;
@@ -18,7 +18,9 @@
  *
  * Game rules that are NOT from papers: plant sizes and prices, fuel prices, the CO2 limit path,
  * event odds, start-up failure odds, research costs and times, the gas-capture penalty,
- * and the three regions (simplified settings inspired by Taiwan, Europe and Texas, not forecasts).
+ * and the three regions (simplified settings inspired by Taiwan, Norway and Texas, not forecasts).
+ * Monthly demand shapes follow the usual seasonal pattern of each grid (Taiwan: summer air-conditioning peak;
+ * Norway: winter electric-heating peak; Texas/ERCOT: strong summer peak, smaller winter peak), rounded.
  */
 (function (root) {
   'use strict';
@@ -32,22 +34,35 @@
   // Regions: what people accept to pay, demand growth, fuel, carbon price or credit, the limit, grid links, hazards
   const REGIONS = {
     taiwan: {
-      label: 'Taiwan', hint: 'standard', stars: [2500, 3000], base: 1150, fair: 100, growth: 0.02, gas: 50, gasSwing: 0.16, tax: { from: 2030, base: 30, step: 4 },
+      label: 'Taiwan', hint: 'standard', stars: [2500, 3000], base: 1150, peak: 'heat', fair: 100, growth: 0.02, gas: 50, gasSwing: 0.16, tax: { from: 2030, base: 30, step: 4 },
       credit: 0, limitMul: 1.0, imports: 0, wholesale: 70, typhoon: true, lng: true, winter: false, heat: 1,
       blurb: 'Island grid, no imports. Gas arrives as LNG by ship and storage is only days deep. Typhoons. A carbon fee starts in 2030.',
     },
-    europe: {
-      label: 'Europe', hint: 'easier', stars: [2900, 3150], base: 950, fair: 120, growth: 0.005, gas: 45, gasSwing: 0.24, tax: { from: 2027, base: 60, step: 4 },
-      credit: 0, limitMul: 0.85, imports: 300, wholesale: 75, typhoon: false, lng: false, winter: false, heat: 1,
-      blurb: 'A high carbon price from 2027 and a stricter limit, but people pay more for clean power and neighbours lend up to 300 MW in a shortage.',
+    norway: {
+      label: 'Norway', hint: 'easier', stars: [2900, 3150], base: 1250, fair: 120, growth: 0.01, gas: 45, gasSwing: 0.24, tax: { from: 2027, base: 60, step: 4 },
+      credit: 0, capexMul: 0.75, limitMul: 0.85, imports: 300, wholesale: 75, typhoon: false, lng: false, winter: false, heat: 1, peak: 'cold',
+      blurb: 'Home of offshore CO\u2082 storage and a high CO\u2082 tax. The state pays a quarter of every capture unit (like Longship). Electric heating makes winter the peak; Nordic neighbours lend up to 300 MW.',
     },
     texas: {
-      label: 'Texas', hint: 'harder', stars: [3150, 3450], base: 1300, fair: 75, growth: 0.022, gas: 28, gasSwing: 0.2, tax: null,
+      label: 'Texas', hint: 'harder', stars: [3150, 3450], base: 1300, peak: 'heat', fair: 75, growth: 0.022, gas: 28, gasSwing: 0.2, tax: null,
       credit: 15, limitMul: 1.15, imports: 0, wholesale: 55, typhoon: false, lng: false, winter: true, heat: 2,
       blurb: 'No carbon tax: a federal credit pays $15 for every tonne you store (like the US 45Q credit). Cheap shale gas, low prices, fast demand growth, heat waves and winter storms. Its grid is an island too.',
     },
   };
   const RG = state => REGIONS[state.region] || REGIONS.taiwan;
+  // monthly demand shape (Jan..Dec, mean 1): the usual seasonal swing of each grid, rounded
+  const SEASON = (() => {
+    const raw = {
+      taiwan: [0.90, 0.86, 0.93, 0.95, 1.02, 1.08, 1.15, 1.15, 1.08, 1.00, 0.95, 0.93],
+      norway: [1.30, 1.25, 1.15, 1.00, 0.88, 0.80, 0.78, 0.80, 0.88, 1.00, 1.12, 1.24],
+      texas:  [0.97, 0.90, 0.88, 0.88, 0.98, 1.10, 1.20, 1.22, 1.08, 0.95, 0.90, 0.95],
+    };
+    const out = {};
+    for (const [k, v] of Object.entries(raw)) { const m = v.reduce((a, b) => a + b, 0) / 12; out[k] = v.map(x => x / m); }
+    return out;
+  })();
+  const seasonOf = state => (SEASON[state.region] || SEASON.taiwan)[state.m % 12];
+  const peakSeason = state => Math.max(...(SEASON[state.region] || SEASON.taiwan));
   const SURPLUS_SHARE = 0.25;         // industrial / wholesale buyers take up to 25 % of demand at the wholesale price
   const BANKRUPT = -500;              // $M
   const MAX_PLANTS = 10;
@@ -124,14 +139,18 @@
   };
   const TECH_ORDER = ['mea90', 'afs', 'cesar1', 'pz', 'ampnmp', 'pe2eg'];
   // how a new solvent is found: lab experiments (slow, likely to work) or computer screening (fast, riskier)
+  // Solvent screening: each campaign discovers ONE random solvent you do not have yet (rarer = better/newer).
+  // Lab experiments are slow but usually find something; computer screening (QM + MD) is fast and cheap but can come
+  // up empty, and every empty screen teaches the next one.
   const METHODS = {
-    exp: { label: 'Lab experiments', costMul: 1.0, timeMul: 1.0 },
-    comp: { label: 'Computer screening (QM + MD)', costMul: 0.5, timeMul: 0.4, learn: 0.15 },
+    exp: { label: 'Lab experiments', cost: 120, months: 18, odds: 0.9 },
+    comp: { label: 'Computer screening (QM + MD)', cost: 50, months: 6, odds: 0.5, learn: 0.15 },
   };
+  const DROPS = { cesar1: { weight: 40, stars: 2 }, pz: { weight: 30, stars: 3 }, ampnmp: { weight: 20, stars: 3 }, pe2eg: { weight: 15, stars: 4 } };
 
   // research projects that are not a capture technology
   const PROJECTS = {};
-  const LAB_ORDER = ['afs', 'cesar1', 'pz', 'ampnmp', 'pe2eg'];
+  const LAB_ORDER = ['screen', 'afs'];   // one screening campaign or the advanced-stripper pilot, one at a time
 
   // ---- technology helpers -----------------------------------------------------
   function eff(techId, deep, type) {
@@ -159,12 +178,14 @@
     const full = capexFull(plant, techId);
     let c = plant.tech ? 0.35 * full : full;   // an existing capture unit is retrofitted with a new solvent
     if (state.subsidy > 0) c *= 0.7;
+    c *= RG(state).capexMul || 1;
     return Math.round(c);
   }
   function installMonths(plant) { return plant.tech ? 3 : 9; }
   function upgradeCost(state, plant) {
     let c = (TECHS[plant.tech].deepEasy ? 0.45 : DEEP.costFrac) * capexFull(plant, plant.tech);
     if (state.subsidy > 0) c *= 0.7;
+    c *= RG(state).capexMul || 1;
     return Math.round(c);
   }
   function taxFor(region, year) {
@@ -205,25 +226,34 @@
 
   // research projects: capture technologies (TECHS[id].research) and PROJECTS
   function project(id) {
+    if (id === 'screen') return { id, name: 'Solvent screening', short: 'screening', cost: METHODS.exp.cost, months: METHODS.exp.months,
+      desc: 'Finds one new solvent you do not have yet. Rarer finds are newer and better.' };
     if (PROJECTS[id]) return Object.assign({ id }, PROJECTS[id]);
     const t = TECHS[id];
     return { id, name: t.name, short: t.short, cost: t.research.cost, months: t.research.months, star: t.star,
       desc: t.pitch, solvent: t.solvent, process: !!t.research.process };
   }
-  const methodOf = (id, method) => (TECHS[id] && TECHS[id].research.process) ? 'exp' : (METHODS[method] ? method : 'exp');
+  const methodOf = (id, method) => id !== 'screen' ? 'exp' : (METHODS[method] ? method : 'exp');
+  const undiscovered = state => Object.keys(DROPS).filter(k => !state.unlocked[k]);
   function researchCost(state, id, method) {
-    const m = METHODS[methodOf(id, method)];
-    return Math.round(project(id).cost * m.costMul * (state.resCut > 0 ? 1.5 : 1));
+    const base = id === 'screen' ? METHODS[methodOf(id, method)].cost : project(id).cost;
+    return Math.round(base * (state.resCut > 0 ? 1.5 : 1));
   }
-  function researchMonths(state, id, method) { return Math.max(3, Math.ceil(project(id).months * METHODS[methodOf(id, method)].timeMul)); }
+  function researchMonths(state, id, method) { return id === 'screen' ? METHODS[methodOf(id, method)].months : project(id).months; }
   // chance that the project finds a working solvent (every failed computer screen teaches the next one)
   function researchOdds(state, id, method) {
-    const r = TECHS[id].research;
-    if (r.process) return 1;
+    if (id !== 'screen') return 1;
     const mt = methodOf(id, method);
-    const base = mt === 'comp' ? r.comp : r.exp;
-    const learned = mt === 'comp' ? METHODS.comp.learn * ((state.tries && state.tries[id]) || 0) : 0;
-    return Math.min(0.95, base + learned);
+    const learned = mt === 'comp' ? METHODS.comp.learn * ((state.tries && state.tries.screen) || 0) : 0;
+    return Math.min(0.95, METHODS[mt].odds + learned);
+  }
+  // draw one solvent from what is still undiscovered, weighted by rarity
+  function drawSolvent(state, R) {
+    const pool = undiscovered(state);
+    const total = pool.reduce((a, k) => a + DROPS[k].weight, 0);
+    let x = R() * total;
+    for (const k of pool) { x -= DROPS[k].weight; if (x <= 0) return k; }
+    return pool[pool.length - 1];
   }
 
   // small deterministic RNG so a seed replays the same events
@@ -253,10 +283,12 @@
       greenhouse: 0, maxDebt: 0, rate: 0, recent: [], overMonths: 0, wasOver: false,
       over: null, subsidy: 0, resCut: 0, usCut: false, captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
       warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0,
-      plants: [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas')],
-      nextId: 3, unlocked, research: {}, resMethod: {}, tries: {}, exp: {},  // research[id] = months left; exp[tech] = months in operation
+      plants: REGIONS[region].peak === 'cold' || region === 'texas'
+        ? [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas'), makePlant('D', 'gas')]
+        : [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas')],
+      nextId: REGIONS[region].peak === 'cold' || region === 'texas' ? 4 : 3, unlocked, research: {}, resMethod: {}, tries: {}, exp: {},  // research[id] = months left; exp[tech] = months in operation
       demandMult: 1, demandMonths: 0, gasMult: 1, gasMonths: 0, gasIndex: 1,
-      pending: null, flash: null, flashN: 0, seen: {}, fails: 0, blackouts: 0,
+      pending: null, flash: null, flashN: 0, seen: {}, fails: 0, blackouts: 0, discovery: null,
       news: [{ m: 0, kind: 'info', text: 'You run the power utility of Capture City. Keep the lights on until 2050 and stay under the CO\u2082 limit.' }],
       last: null, techUsed: {},
     };
@@ -266,7 +298,9 @@
   function monthName(state) {
     return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][state.m % 12];
   }
-  function demand(state) { return RG(state).base * Math.pow(1 + RG(state).growth, state.m / 12) * state.demandMult; }
+  function trendDemand(state) { return RG(state).base * Math.pow(1 + RG(state).growth, state.m / 12); }
+  function demand(state) { return trendDemand(state) * seasonOf(state) * state.demandMult; }
+  function peakDemand(state) { return trendDemand(state) * peakSeason(state); }
   function addNews(state, kind, text) {
     state.news.unshift({ m: state.m, kind, text });
     if (state.news.length > 30) state.news.pop();
@@ -366,7 +400,8 @@
     return chk;
   }
   function canResearch(state, id, method) {
-    if (!TECHS[id] || !TECHS[id].research) return { ok: false, why: 'Nothing to research' };
+    if (id === 'screen') { if (!undiscovered(state).length) return { ok: false, why: 'Every solvent found' }; }
+    else if (!TECHS[id] || !TECHS[id].research) return { ok: false, why: 'Nothing to research' };
     if (state.unlocked[id] || state.research[id] != null) return { ok: false, why: 'Already done' };
     if (Object.keys(state.research).length) return { ok: false, why: 'Lab busy: one project at a time' };
     const cost = researchCost(state, id, method);
@@ -380,7 +415,9 @@
     state.funds -= chk.cost;
     state.research[id] = researchMonths(state, id, mt);
     state.resMethod[id] = mt;
-    addNews(state, 'lab', `${pr.process ? 'Pilot test' : METHODS[mt].label} on ${pr.short} funded ($${chk.cost}M, ${state.research[id]} months, ${Math.round(researchOdds(state, id, mt) * 100)} % chance).`);
+    addNews(state, 'lab', id === 'screen'
+      ? `${METHODS[mt].label} started ($${chk.cost}M, ${state.research[id]} months, ${Math.round(researchOdds(state, id, mt) * 100)} % chance to find a solvent).`
+      : `Pilot test of the ${pr.short} funded ($${chk.cost}M, ${state.research[id]} months).`);
     return chk;
   }
   function setPrice(state, price) { state.price = Math.max(40, Math.min(220, Math.round(price))); }
@@ -409,7 +446,12 @@
     const up = state.plants.filter(online);
     const pool = [];
     const rg = RG(state);
-    if (up.length) { for (let k = 0; k < rg.heat; k++) pool.push('heat'); if (rg.typhoon) pool.push('typhoon'); }
+    const mo = state.m % 12;
+    const peakMonths = rg.peak === 'cold' ? [11, 0, 1] : [5, 6, 7, 8];
+    if (up.length) {
+      if (peakMonths.includes(mo)) for (let k = 0; k < rg.heat; k++) pool.push('heat');
+      if (rg.typhoon && mo >= 6 && mo <= 9) pool.push('typhoon');
+    }
     if (cap.length && state.captureOff <= 0 && (state.seen.storage || 0) < 2) pool.push('storage');
     if (amine.length && !state.seen.wash) pool.push('wash');
     if (!pool.length) return;
@@ -417,14 +459,15 @@
     state.seen[id] = (state.seen[id] || 0) + 1;
     if (id === 'heat') {
       state.demandMult = 1.12; state.demandMonths = 3;
+      const cold = rg.peak === 'cold';
       if (!cap.length || state.captureOff > 0) {
-        addNews(state, 'event', 'Heat wave! Air-conditioners push demand up 12 % for 3 months.');
-        flash(state, 'event', 'Heat wave! Demand +12 % for 3 months.');
+        addNews(state, 'event', cold ? 'Cold snap! Electric heaters push demand up 12 % for 3 months.' : 'Heat wave! Air-conditioners push demand up 12 % for 3 months.');
+        flash(state, 'event', cold ? 'Cold snap! Demand +12 % for 3 months.' : 'Heat wave! Demand +12 % for 3 months.');
         return;
       }
       const mw = cap.reduce((a, p) => a + p.gross * penalty(p, p.tech), 0);
       state.pending = {
-        id, title: 'Heat wave!', text: 'Air-conditioners push demand up 12 % for 3 months. Capture eats steam that could make power.',
+        id, title: cold ? 'Cold snap!' : 'Heat wave!', text: `${cold ? 'Electric heaters' : 'Air-conditioners'} push demand up 12 % for 3 months. Capture eats steam that could make power.`,
         opts: [
           { label: 'Pause capture for 2 months', effect: `+${Math.round(mw)} MW \u00b7 ${offText(state, 2)}` },
           { label: 'Keep capturing', effect: 'Risk blackouts' },
@@ -484,7 +527,8 @@
     const hasGas = state.plants.some(p => p.type === 'gas' && online(p));
     const pool = ['subsidy'];
     const rg = RG(state);
-    if (hasGas) { pool.push('gas'); if (rg.lng) pool.push('lng', 'lng'); if (rg.winter) pool.push('winter', 'winter'); }
+    const mo = state.m % 12;
+    if (hasGas) { pool.push('gas'); if (rg.lng) pool.push('lng', 'lng'); if (rg.winter && (mo === 11 || mo <= 1)) pool.push('winter', 'winter', 'winter'); }
     if (state.rate > 6) pool.push('health');
     if (!state.usCut && state.m >= 18) pool.push('uscut');
     const k = pool[Math.floor(R() * pool.length)];
@@ -549,17 +593,23 @@
         const odds = researchOdds(state, id, mt);
         delete state.research[id];
         const pr = project(id);
-        if (R() < odds) {
+        if (id !== 'screen') {
           state.unlocked[id] = true;
           addNews(state, 'lab', `Breakthrough! ${pr.name} is ready to install.`);
           flash(state, 'lab', `Research done: ${pr.name}.`);
+        } else if (R() < odds && undiscovered(state).length) {
+          const found = drawSolvent(state, R);
+          state.unlocked[found] = true;
+          state.tries.screen = 0;
+          state.discovery = { n: (state.discovery ? state.discovery.n : 0) + 1, id: found, method: mt };
+          addNews(state, 'lab', `Discovery! ${mt === 'comp' ? 'Computer screening' : 'Lab experiments'} found ${TECHS[found].name} (${'\u2605'.repeat(DROPS[found].stars)}).`);
         } else {
-          state.tries[id] = (state.tries[id] || 0) + 1;
+          state.tries.screen = (state.tries.screen || 0) + 1;
           const why = mt === 'comp'
-            ? `the computer screen picked a candidate that failed in the lab. Screening again learns from it (+${Math.round(METHODS.comp.learn * 100)} % odds)`
-            : 'the experiments hit a dead end. Try again';
-          addNews(state, 'event', `${pr.short} research failed: ${why}.`);
-          flash(state, 'event', `${pr.short} research failed. Try again.`);
+            ? `the predicted candidates failed in the lab. The next screen learns from it (+${Math.round(METHODS.comp.learn * 100)} % odds)`
+            : 'the experiments hit a dead end';
+          addNews(state, 'event', `Screening came up empty: ${why}.`);
+          flash(state, 'event', 'Screening came up empty. Try again.');
         }
       }
     }
@@ -690,7 +740,7 @@
     }
     state.maxDebt = Math.max(state.maxDebt, state.greenhouse);       // worst breach, %
 
-    const baseRate = rgn.base * HOURS * 0.95;           // t/month if all-coal, no capture
+    const baseRate = rgn.base * HOURS * 0.95;           // t/month if all-coal, no capture (smog scale)
     const smog = emitted / baseRate;
     const FAIR = rgn.fair;
     let dA = 7 * Math.max(0, (state.price - FAIR) / FAIR)
@@ -748,12 +798,12 @@
 
   const api = {
     HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE,
-    BREACH, breachStep, REGIONS, SURPLUS_SHARE, SHIP, METHODS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG, STARS,
+    BREACH, breachStep, REGIONS, SEASON, SURPLUS_SHARE, SHIP, METHODS, DROPS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG, STARS,
     newGame, step, choose, offCost, online,
     install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost,
     convert, canConvert, buildPlant, canBuildPlant, demolish, canDemolish,
     startResearch, canResearch, researchCost, researchMonths, researchOdds, project, maturity,
-    setPrice, penalty, eff, workPerTonne, carbonTax, taxFor, limit, limitAt, limitFor, fairPrice, gasFuel, demand, year, monthName, score, stars,
+    setPrice, penalty, eff, workPerTonne, carbonTax, taxFor, limit, limitAt, limitFor, fairPrice, gasFuel, demand, peakDemand, seasonOf, year, monthName, score, stars,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CCModel = api;
