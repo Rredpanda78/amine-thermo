@@ -193,6 +193,13 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .opt .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .opt .nm { font-weight: 700; font-size: 16px; }
 .opt .pitch { font-size: 13.5px; }
+.bars { display: grid; grid-template-columns: 7.2em 1fr 5.6em; gap: 3px 8px; align-items: center; font-size: 12px; }
+.bars .k { color: var(--muted); white-space: nowrap; }
+.bars .tr { height: 8px; background: #0F1B2D; border-radius: 4px; overflow: hidden; min-width: 40px; }
+.bars .tr i { display: block; height: 100%; border-radius: 4px; background: #E07A5F; }
+.bars .tr i.go { background: var(--good); }
+.bars .v { font-family: var(--mono); text-align: right; white-space: nowrap; }
+.barkey { font-size: 12px; color: var(--muted); }
 .mini { display: flex; flex-wrap: wrap; gap: 6px; }
 .mini span { font-family: var(--mono); font-size: 12px; background: #0F1B2D; border-radius: 6px; padding: 3px 8px; }
 .mini span b { color: var(--fg); }
@@ -494,6 +501,21 @@ details p { margin: 6px 0 0; }
   function closePlant() { $('ovPlant').hidden = true; curPlant = null; }
   $('plClose').onclick = closePlant;
   $('ovPlant').addEventListener('click', e => { if (e.target === $('ovPlant')) closePlant(); });
+  // compare bars: every solvent on the same scale for this plant (speed: log 0.1x to 10x)
+  function bars(p, id) {
+    const t = M.TECHS[id], e = M.eff(id, false, p.type);
+    const lost = x => M.penalty(p, x, false) * p.gross, cost = x => M.installCost(S, p, x), run = x => M.eff(x, false, p.type).opex;
+    // scaled from the best to the worst solvent so small gaps stay visible (numbers on the right are exact)
+    const rel = (f, x) => { const a = M.TECH_ORDER.map(f), lo = Math.min(...a), hi = Math.max(...a); return 0.12 + 0.88 * (f(x) - lo) / ((hi - lo) || 1); };
+    const w = v => Math.max(4, Math.min(100, v * 100)).toFixed(0);
+    const row = (k, v, frac, go) => `<span class="k">${k}</span><span class="tr"><i class="${go ? 'go' : ''}" style="width:${w(frac)}%"></i></span><span class="v">${v}</span>`;
+    return '<div class="bars">'
+      + row('Absorbs CO₂', t.rate + '× MEA', (Math.log10(t.rate) + 1) / 2, true)
+      + row('Power lost', '−' + fmt(lost(id)) + ' MW', rel(lost, id), false)
+      + row('Build cost', '$' + fmt(cost(id)) + 'M', rel(cost, id), false)
+      + row('Running cost', '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
+      + '</div>';
+  }
   function techRow(p, id) {
     const t = M.TECHS[id];
     const pen = M.penalty(p, id, false);
@@ -511,8 +533,8 @@ details p { margin: 6px 0 0; }
     return `<div class="opt ${t.star ? 'star' : ''}">
       <div class="row"><span class="nm" style="color:${t.color}">${t.name}</span>${stage}</div>
       <div class="pitch">${t.pitch}</div>
-      <div class="mini"><span>captures <b>90 %</b></span><span>output <b>−${Math.round(pen * 100)} %</b></span><span>running <b>$${fmt(e.opex, 1)}/t</b>${est('opex')}</span></div>
-      <details><summary>Details</summary><p>Regeneration ${fmt(e.duty, 1)} GJ/t${est('duty')}${t.est && t.est.includes('capex') ? ' · build cost is a game estimate' : ''}${p.type === 'gas' ? ' (gas flue gas is dilute, so +15 %)' : ''}. ${t.fact}</p><p class="src">${t.src}</p></details>
+      ${bars(p, id)}
+      <details><summary>Details</summary><p>Absorbs ${t.rate}× as fast as MEA; a slower solvent needs a taller absorber, so it costs more to build. Regeneration ${fmt(e.duty, 1)} GJ/t${est('duty')}${t.est && t.est.includes('capex') ? ' · build cost is a game estimate' : ''}${p.type === 'gas' ? ' (gas flue gas is dilute, so +15 %)' : ''}. ${t.fact}</p><p class="src">${t.src}</p></details>
       <div class="row">${action}</div>
     </div>`;
   }
@@ -542,6 +564,7 @@ details p { margin: 6px 0 0; }
       } else if (p.deep) {
         h += '<div class="opt up"><div class="row"><span class="nm" style="color:var(--good)">Capturing 99 % ✓</span></div></div>';
       }
+      h += '<div class="barkey">Bars run from the best to the worst solvent for this plant: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.</div>';
       h += M.TECH_ORDER.map(id => techRow(p, id)).join('') + '</div>';
     }
     const cv = M.canConvert(S, p);

@@ -87,17 +87,20 @@
   const CONVERT = { gas: { cost: 200, months: 4 }, coal: { cost: 450, months: 18 } };   // keyed by the new fuel
 
   // capture: fraction captured; duty: regeneration GJ/t; capex: $M per MW gross (coal basis); opex: $/t captured
+  // rate: CO2 absorption speed relative to MEA. Build cost = half absorber + half the rest; packed height goes
+  // roughly as 1/sqrt(rate) (fast pseudo-first-order regime), floored at 0.5 because the tower still needs gas contact
+  // and a water wash. The rest: advanced stripper 1.3, viscous 2PE-EG 1.1 (bigger pumps and exchangers), else 1.0.
   // stage: how far the technology has been scaled up; startup: monthly failure odds until proven; risk: forever
   const TECHS = {
     mea90: {
-      name: 'MEA', short: 'MEA', capture: 0.90, duty: 3.5, capex: 1.00, opex: 10,
+      name: 'MEA', short: 'MEA', capture: 0.90, duty: 3.5, capex: 1.00, opex: 10, rate: 1,
       unlocked: true, color: '#5B8DEF', stage: 'Commercial', startup: 0,
       pitch: 'Proven and available now, but uses the most steam.',
       fact: '30 wt% MEA, the industry benchmark. Regeneration \u2248 3.5 GJ per tonne CO\u2082.',
       src: 'Chen, Wu & Lin, Chem. Eng. J. 2026',
     },
     afs: {
-      name: 'MEA + advanced stripper', short: 'MEA-AS', capture: 0.90, duty: 2.8, capex: 1.15, opex: 10,
+      name: 'MEA + advanced stripper', short: 'MEA-AS', capture: 0.90, duty: 2.8, capex: 1.15, opex: 10, rate: 1,
       unlocked: false, research: { cost: 80, months: 12, process: true }, color: '#2BB3C0', stage: 'Pilot-tested', startup: 0.012,
       fail: 'the new stripper would not hold steady',
       pitch: 'Same MEA, smarter heat recovery: less steam, safe bet, pricier to build.',
@@ -105,36 +108,36 @@
       src: 'Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025',
     },
     ampnmp: {
-      name: 'AMP\u2013NMP (semi-aqueous)', short: 'AMP-NMP', capture: 0.90, duty: 3.0, capex: 1.10, opex: 8,
-      unlocked: false, research: { cost: 100, months: 18, exp: 0.9, comp: 0.6 }, color: '#0E9F6E', est: ['duty', 'opex'], stage: 'Lab scale',
+      name: 'AMP\u2013NMP (semi-aqueous)', short: 'AMP-NMP', capture: 0.90, duty: 3.0, capex: 1.45, opex: 6, rate: 0.3,
+      unlocked: false, research: { cost: 100, months: 18, exp: 0.9, comp: 0.6 }, color: '#0E9F6E', est: ['duty', 'opex', 'capex'], stage: 'Lab scale',
       startup: 0.025, risk: 0.006, solvent: true, fail: 'AMP carbamate precipitated and clogged a line',
-      pitch: 'Quick to research and cheapest to run, but it can clog at any time.',
-      fact: 'NMP does not react with CO\u2082; it makes the hindered amine AMP 3\u00d7 faster than in water, and AMP holds about twice the CO\u2082 of MEA, so less solvent has to circulate. Catch: AMP carbamate can precipitate at high loading and clog lines, even years after start-up.',
+      pitch: 'Cheapest to run, but it absorbs slowly: the tallest absorber, the priciest to build, and it can clog.',
+      fact: 'NMP does not react with CO\u2082; it makes the hindered amine AMP 3\u00d7 faster than in water, and AMP holds about twice the CO\u2082 of MEA, so only half the solvent has to circulate: smaller pumps and less make-up, the cheapest to run. Catch: AMP carbamate can precipitate at high loading and clog lines, even years after start-up.',
       src: 'Cheng, Chen & Lin, Chem. Eng. J. 2025',
     },
     pe2eg: {
-      name: '2PE\u2013EG (water-lean)', short: '2PE-EG', capture: 0.90, duty: 2.9, capex: 1.00, opex: 9,
+      name: '2PE\u2013EG (water-lean)', short: '2PE-EG', capture: 0.90, duty: 2.9, capex: 0.80, opex: 9, rate: 4.5,
       unlocked: false, research: { cost: 180, months: 24, exp: 0.85, comp: 0.5 }, color: '#E2A93B', est: ['capex'], star: true, stage: 'Lab scale',
       startup: 0.035, solvent: true, fail: 'the viscous solvent overloaded the heat exchanger',
-      pitch: 'Longest research and shaky first years, then the best all-rounder.',
+      pitch: 'The rarest find and shaky first years, then fast, compact and efficient: the best all-rounder.',
       fact: 'Ethylene glycol reacts: it turns the carbamate into alkyl carbonate and frees the amine again, so 2-piperidineethanol gets both 4.5\u00d7 faster reaction and 2.8\u00d7 cyclic capacity vs MEA; regeneration 128 kJ/mol (\u2248 2.9 GJ/t). Catch: 15\u00d7 more viscous than MEA.',
       src: 'Chen, Wu & Lin, Chem. Eng. J. 2026',
     },
   };
   TECHS.pz = {
-    name: 'Piperazine (PZ) + advanced stripper', short: 'PZ', capture: 0.90, duty: 2.45, capex: 1.20, opex: 11,
+    name: 'Piperazine (PZ) + advanced stripper', short: 'PZ', capture: 0.90, duty: 2.45, capex: 0.90, opex: 11, rate: 9.5,
     unlocked: false, research: { cost: 90, months: 18, exp: 0.95, comp: 0.7 }, color: '#8E7CC3', est: ['capex', 'opex'],
     stage: 'Pilot-tested', startup: 0.015, risk: 0.003, gasOK: true, solvent: true, fail: 'solid piperazine froze out in a cold line',
-    pitch: 'Least steam in pilot plants, even on dilute gas-plant flue gas; pricier, and PZ can freeze out when cold.',
+    pitch: 'Least steam in pilot plants, even on dilute gas-plant flue gas, and so fast the absorber is short; PZ is costly to buy and can freeze out when cold.',
     fact: 'Piperazine is the second-generation benchmark: fast, thermally stable, high capacity. With the advanced stripper, pilot plants measured a net 2.45 GJ per tonne CO\u2082 at 90 % capture, the same at 4 % (gas) and 12 % (coal) CO\u2082. Prof. Yu-Jeng Lin pilot-tested this stripper during his PhD. Catch: solid PZ can precipitate if the solvent gets too cold.',
     src: 'Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016',
   };
   TECHS.cesar1 = {
-    name: 'CESAR1 (AMP + PZ blend)', short: 'CESAR1', capture: 0.90, duty: 3.1, capex: 1.05, opex: 9,
+    name: 'CESAR1 (AMP + PZ blend)', short: 'CESAR1', capture: 0.90, duty: 3.1, capex: 0.90, opex: 9, rate: 1.5,
     unlocked: false, research: { cost: 60, months: 12, exp: 0.95, comp: 0.75 }, color: '#B08968', est: ['capex', 'opex'],
     stage: 'Pilot-tested', startup: 0.008, deepEasy: true, solvent: true, fail: 'the blend foamed during start-up',
     pitch: 'The European benchmark blend: a safe step up from MEA, very stable, and the cheapest way to 99 %.',
-    fact: 'CESAR1 mixes AMP (3 M) with piperazine (1.5 M). Pilot plants report about 3.0\u20133.1 GJ per tonne CO\u2082, roughly 10 % less than MEA, with much less solvent degradation, and campaigns have run it at 98\u201399.95 % capture.',
+    fact: 'CESAR1 mixes AMP (3 M) with piperazine (1.5 M). Pilot plants report about 3.0\u20133.1 GJ per tonne CO\u2082, roughly 10 % less than MEA, with much less solvent degradation and a shorter absorber (piperazine speeds up the slow AMP), and campaigns have run it at 98\u201399.95 % capture.',
     src: 'CESAR1 pilot campaigns (Technology Centre Mongstad; Niederaussem)',
   };
   const TECH_ORDER = ['mea90', 'afs', 'cesar1', 'pz', 'ampnmp', 'pe2eg'];
