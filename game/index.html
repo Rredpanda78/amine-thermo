@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Capture City 2050</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a utility control room. Live town scene on top, meters pinned above it,
+   operator panels (price, plants, lab, news) below — one column on phones, two on desktop. */
+:root {
+  --bg: #0F1A2B;
+  --panel: #16243A;
+  --panel-2: #1C2E49;
+  --line: #2B4163;
+  --fg: #E9EFF7;
+  --muted: #9DB0CB;
+  --amine: #2EC4B6;
+  --co2: #F4B740;
+  --anger: #EF6351;
+  --good: #7BD389;
+  --nthu: #E2A93B;
+  --shadow: rgba(3, 8, 18, 0.55);
+  --display: 'Bungee', 'Arial Black', Impact, sans-serif;
+  --body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.45 var(--body); }
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 28px; display: grid; gap: 12px; }
+
+/* top bar */
+.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { font-family: var(--display); font-size: clamp(20px, 4.4vw, 30px); letter-spacing: 0.5px; line-height: 1; margin: 0; }
+.brand small { font-family: var(--body); font-size: 12px; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; display: block; margin-top: 4px; }
+.clock { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.date { font-family: var(--mono); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 88px; text-align: right; }
+.speed { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.speed button { background: var(--panel); border: 0; padding: 8px 11px; min-width: 42px; cursor: pointer; font-family: var(--mono); font-size: 13px; }
+.speed button + button { border-left: 1px solid var(--line); }
+.speed button[aria-pressed="true"] { background: var(--amine); color: #062320; font-weight: 600; }
+.speed button:focus-visible, .btn:focus-visible, input:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
+
+/* meters */
+.meters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 8px; }
+.meter { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.meter .lab { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+.meter .val { font-family: var(--mono); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; }
+.meter .val small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.meter .sub { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { height: 7px; border-radius: 4px; background: #0B1422; overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; width: 0; border-radius: 4px; transition: width .4s; }
+.m-ang .bar i { background: linear-gradient(90deg, #F29B6B, var(--anger)); }
+.danger .val { color: var(--anger); }
+
+/* CO2 meter: the green box is the legal limit (it shrinks every year), the fill is what you emit now */
+.m-gh .top-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.m-gh .lim { font-family: var(--mono); font-size: 12px; color: var(--good); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.limbar { position: relative; height: 16px; border-radius: 5px; background: #0B1422; margin-top: 4px; overflow: hidden; }
+.limbar b { position: absolute; left: 0; top: 0; bottom: 0; border: 2px solid var(--good); border-radius: 5px; background: rgba(123, 211, 137, .12); transition: width .5s; }
+.limbar i { position: absolute; left: 0; top: 4px; bottom: 4px; border-radius: 3px; background: linear-gradient(90deg, var(--co2), #F0903A); transition: width .4s; }
+.limbar em { position: absolute; top: 4px; bottom: 4px; background: repeating-linear-gradient(135deg, var(--anger) 0 6px, #B23B2C 6px 12px); border-radius: 0 3px 3px 0; transition: left .4s, width .4s; }
+.debt { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 6px; font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.debt .bar { margin-top: 0; height: 6px; }
+.debt .bar i { background: var(--anger); }
+.m-gh.over .limbar { box-shadow: 0 0 0 1px var(--anger); }
+.m-gh.over .val { color: var(--anger); }
+
+/* main grid */
+.main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.col { display: grid; gap: 12px; min-width: 0; }
+.scene { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #7EC8F0; }
+.scene canvas { display: block; width: 100%; height: auto; }
+.toast { position: absolute; left: 10px; right: 10px; top: 10px; background: rgba(15, 26, 43, .92); border: 1px solid var(--line); border-left: 4px solid var(--co2); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; font-weight: 700; box-shadow: 0 6px 20px var(--shadow); }
+.toast.event { border-left-color: var(--anger); }
+.toast.good { border-left-color: var(--good); }
+.toast.lab { border-left-color: var(--nthu); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+.card h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h2 b { font-family: var(--mono); color: var(--fg); letter-spacing: 0; text-transform: none; font-size: 14px; }
+
+/* price */
+.price-row { display: flex; align-items: center; gap: 12px; }
+.price-val { font-family: var(--mono); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 92px; }
+.price-val span { font-size: 12px; color: var(--muted); font-weight: 500; }
+input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 32px; }
+.hint { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.hint .hot { color: var(--anger); font-weight: 700; }
+.hint .ok { color: var(--good); font-weight: 700; }
+
+/* plants */
+.plants { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.plant { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 6px; min-width: 0; }
+.plant.down { border-color: #6B3E33; }
+.plant .ph { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.plant .nm { font-weight: 700; }
+.chip { font-size: 11px; font-family: var(--mono); padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.coal { color: #F0A58A; border-color: #6B3E33; }
+.chip.gas { color: #9CC7F2; border-color: #33506F; }
+.chip.bad { color: var(--anger); border-color: #6B3E33; }
+.chip.warn { color: var(--co2); border-color: #6B5B2E; }
+.chip.ok { color: var(--good); border-color: #2F5B3A; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.kv { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kv b { color: var(--fg); font-weight: 600; }
+.tech-tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #0B1422; }
+.prog { height: 6px; background: #0B1422; border-radius: 3px; overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--amine); }
+.btn { background: var(--amine); color: #062320; border: 0; border-radius: 8px; padding: 9px 12px; font-weight: 700; cursor: pointer; min-height: 40px; }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+.btn.gold { background: var(--nthu); color: #2A1C02; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* lab */
+.lab-list { display: grid; gap: 8px; }
+.proj { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.proj.star { border-color: #7A5B1E; background: linear-gradient(180deg, #2A2616, var(--panel-2)); }
+.proj .t { font-weight: 700; }
+.proj .d { font-size: 12px; color: var(--muted); }
+.proj .ready { color: var(--good); font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.lab-note { font-size: 12px; color: var(--muted); margin: -2px 0 8px; }
+.lab-note .hot { color: var(--anger); font-weight: 700; }
+
+/* news */
+.news { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 190px; overflow: auto; }
+.news li { font-size: 13px; padding-left: 10px; border-left: 3px solid var(--line); }
+.news li time { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-right: 6px; }
+.news li.policy { border-color: var(--co2); }
+.news li.event { border-color: var(--anger); }
+.news li.good { border-color: var(--good); }
+.news li.lab { border-color: var(--nthu); }
+.news li.build { border-color: var(--amine); }
+
+.credits { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.credits b { color: var(--fg); }
+
+/* overlays */
+.overlay { position: fixed; inset: 0; background: rgba(5, 10, 20, 0.72); display: grid; place-items: center; padding: 16px; z-index: 20; }
+.sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; width: min(640px, 100%); max-height: min(88vh, 900px); overflow: auto; padding: 18px; box-shadow: 0 20px 60px var(--shadow); }
+.sheet h3 { margin: 0 0 4px; font-family: var(--display); font-size: 22px; font-weight: 400; letter-spacing: .3px; }
+.sheet .lead { color: var(--muted); margin: 0 0 12px; }
+.opts { display: grid; gap: 10px; }
+.opt { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--panel-2); display: grid; gap: 6px; }
+.opt.star { border-color: #7A5B1E; }
+.opt.up { border-color: var(--good); }
+.opt .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.opt .nm { font-weight: 700; font-size: 16px; }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700; letter-spacing: .3px; }
+.badge.com { background: #22354F; color: #BFD3EE; }
+.badge.lab { background: #16403B; color: #8FE6DC; }
+.badge.nthu { background: #4A3610; color: #F7CF7A; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.stat { background: #0F1B2D; border-radius: 8px; padding: 6px 8px; min-width: 0; }
+.stat .k { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+.stat .v { font-family: var(--mono); font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
+.stage { font-size: 12.5px; }
+.stage b { color: var(--co2); }
+.stage .ok { color: var(--good); font-weight: 700; }
+.fact { font-size: 13px; }
+.src { font-size: 11.5px; color: var(--muted); font-style: italic; }
+.est { color: var(--co2); font-style: normal; }
+.close-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+/* decision card */
+.ev .tag { color: var(--anger); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; }
+.choice { display: grid; gap: 2px; text-align: left; width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; min-height: 56px; }
+.choice:hover { border-color: var(--amine); }
+.choice:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
+.choice .cl { font-weight: 700; font-size: 16px; }
+.choice .ce { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+.intro ul { padding-left: 18px; margin: 8px 0 14px; display: grid; gap: 6px; }
+.intro .big { font-family: var(--display); font-size: clamp(28px, 7vw, 40px); line-height: 1; margin: 0 0 6px; font-weight: 400; }
+.intro .tag { color: var(--amine); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; }
+.result-stars { font-size: 34px; letter-spacing: 4px; color: var(--nthu); margin: 4px 0 8px; }
+.result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .main { display: flex; flex-direction: column; align-items: stretch; }
+  .col { display: contents; }
+  .o-scene { order: 1; } .o-price { order: 2; } .o-plants { order: 3; } .o-lab { order: 4; } .o-news { order: 5; } .o-credits { order: 6; }
+  .meters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .m-gh { grid-column: 1 / -1; }
+}
+@media (max-width: 420px) {
+  .plants { grid-template-columns: minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .date { font-size: 16px; min-width: 78px; }
+  .meter .val { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) { .bar i, .limbar b, .limbar i, .limbar em { transition: none; } }
+</style>
+
+<div class="wrap" id="app">
+  <div class="top">
+    <h1 class="brand">Capture City 2050<small>A CO₂ capture game · Lin Research Group, NTHU</small></h1>
+    <div class="clock">
+      <div class="date" id="date">Jan 2026</div>
+      <div class="speed" role="group" aria-label="Game speed">
+        <button id="sp0" aria-pressed="false" title="Pause">❚❚</button>
+        <button id="sp1" aria-pressed="true">1×</button>
+        <button id="sp2" aria-pressed="false">2×</button>
+        <button id="sp4" aria-pressed="false">4×</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="meters">
+    <div class="meter m-gh" id="mGh">
+      <div class="lab"><span>CO₂ vs legal limit</span><span class="lim" id="gLim">limit — Mt/yr</span></div>
+      <div class="top-row"><div class="val" id="vGh">—<small> Mt/yr</small></div><div class="sub" id="gNext"></div></div>
+      <div class="limbar" role="img" id="gBar" aria-label="CO2 emissions against the legal limit"><b id="gCap"></b><i id="gFill"></i><em id="gOver"></em></div>
+      <div class="debt"><span>CO₂ debt</span><span class="bar"><i id="bDebt"></i></span><span id="vDebt">0.0 / 2.5 Mt</span></div>
+    </div>
+    <div class="meter m-ang" id="mAng"><div class="lab"><span>Public anger</span></div><div class="val" id="vAng">10%</div><div class="bar"><i id="bAng"></i></div></div>
+    <div class="meter" id="mFund"><div class="lab"><span>Funds</span></div><div class="val" id="vFund">$700M</div><div class="sub" id="sFund">± $0M / month</div></div>
+    <div class="meter" id="mGrid"><div class="lab"><span>Grid</span></div><div class="val" id="vGrid">— MW</div><div class="sub" id="sGrid">demand — MW</div></div>
+  </div>
+
+  <div class="main">
+    <div class="col">
+      <div class="scene o-scene"><canvas id="cv" aria-label="The town and its power plants"></canvas><div class="toast" id="toast" role="status" hidden></div></div>
+      <div class="card o-price">
+        <h2>Electricity price <b id="profit">profit —</b></h2>
+        <div class="price-row">
+          <div class="price-val" id="priceVal">$100<span>/MWh</span></div>
+          <input type="range" id="price" min="40" max="220" step="5" value="100" aria-label="Electricity price in dollars per MWh">
+        </div>
+        <div class="hint" id="priceHint">People accept up to $100/MWh. Higher prices fund capture but make people angry.</div>
+      </div>
+      <div class="card o-news">
+        <h2>News</h2>
+        <ul class="news" id="news"></ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card o-plants">
+        <h2>Power plants <b id="co2rate">CO₂ — Mt/yr</b></h2>
+        <div class="plants" id="plants"></div>
+      </div>
+      <div class="card o-lab">
+        <h2>Research lab <b>one project at a time</b></h2>
+        <div class="lab-note" id="labNote"></div>
+        <div class="lab-list" id="lab"></div>
+      </div>
+      <div class="card credits o-credits">
+        <b>Where the numbers come from.</b> Capture technologies use values reported in Lin Research Group papers
+        (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Fluid Phase Equilib. 2026; Sep. Purif. Technol. 2025) and
+        our GHGT-18 poster. Values marked <span class="est">est.</span> are game estimates where a paper gives no number.
+        Plants, prices, running costs, the CO₂ limit, start-up failure odds and events are simplified for play and are not forecasts.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovIntro">
+  <div class="sheet intro">
+    <div class="tag">GHGT-18 · Perth 2026</div>
+    <h3 class="big">Capture City 2050</h3>
+    <p class="lead">You run the power company of a coal-and-gas town. Keep the lights on until December 2050.</p>
+    <ul>
+      <li><b>CO₂ limit.</b> The bar shows how much CO₂ you emit per year; the green box is the legal limit, and it <b>shrinks every year</b> toward net zero. Every tonne above it adds to your <b>CO₂ debt</b>. A full debt bar ends the game.</li>
+      <li><b>Public anger</b> rises with high prices, blackouts and smog. At 100 % you are voted out.</li>
+      <li>Your <b>funds</b> come from electricity bills. Below −$500M you go bankrupt.</li>
+      <li>Tap a plant to add <b>CO₂ capture</b>. Capture costs money and steam, so plants deliver less power. 90 % capture will not be enough by the 2040s.</li>
+      <li>The <b>research lab</b> unlocks NTHU solvents, one project at a time. New solvents can fail during their first 2 years of operation.</li>
+      <li>Some events ask you to <b>decide</b>. The game pauses until you choose.</li>
+    </ul>
+    <div class="btn-row">
+      <button class="btn" id="startBtn">Start 2026</button>
+      <button class="btn ghost" id="fastBtn">Start at 2× speed</button>
+    </div>
+    <p class="src" id="best" style="margin-top:10px"></p>
+  </div>
+</div>
+
+<div class="overlay" id="ovTech" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="techTitle">
+    <h3 id="techTitle">Capture options</h3>
+    <p class="lead" id="techLead"></p>
+    <div class="opts" id="techOpts"></div>
+    <div class="close-row"><button class="btn ghost" id="techClose">Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovEvent" hidden>
+  <div class="sheet ev" role="dialog" aria-modal="true" aria-labelledby="evTitle">
+    <div class="tag">Decision · game paused</div>
+    <h3 id="evTitle"></h3>
+    <p class="lead" id="evText"></p>
+    <div class="opts" id="evOpts"></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovEnd" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+    <h3 id="endTitle">Game over</h3>
+    <div class="result-stars" id="endStars"></div>
+    <p class="lead" id="endLead"></p>
+    <div class="result-grid" id="endGrid"></div>
+    <p class="fact" id="endLab"></p>
+    <div class="btn-row"><button class="btn" id="againBtn">Play again</button></div>
+  </div>
+</div>
+
+<script src="model.js" charset="utf-8"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.CCModel;
+  const $ = id => document.getElementById(id);
+  const fmt = (v, d = 0) => v.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+  const money = v => (v < 0 ? '−$' : '$') + fmt(Math.abs(v)) + 'M';
+  const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let S = M.newGame();
+  let speed = 1, playing = false, acc = 0, lastT = 0, modalPause = false;
+  let toastN = 0, toastTimer = null;
+  const MS_PER_MONTH = 800;
+
+  // ---------- persistence (best score, per viewer) ----------
+  const BEST_KEY = 'cc2050-best-v2';
+  function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY) || 'null'); } catch (e) { return null; } }
+  function saveBest(b) { try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch (e) { /* storage unavailable */ } }
+
+  // ---------- speed ----------
+  function setSpeed(v) {
+    speed = v;
+    [['sp0', 0], ['sp1', 1], ['sp2', 2], ['sp4', 4]].forEach(([id, n]) => $(id).setAttribute('aria-pressed', String(n === v)));
+  }
+  $('sp0').onclick = () => setSpeed(0);
+  $('sp1').onclick = () => setSpeed(1);
+  $('sp2').onclick = () => setSpeed(2);
+  $('sp4').onclick = () => setSpeed(4);
+
+  // ---------- price ----------
+  $('price').addEventListener('input', e => { M.setPrice(S, +e.target.value); renderPrice(); });
+  function renderPrice() {
+    $('price').value = S.price;
+    $('priceVal').innerHTML = '$' + S.price + '<span>/MWh</span>';
+    const d = S.price - M.FAIR_PRICE;
+    $('priceHint').innerHTML = d > 0
+      ? `<span class="hot">+${d} above what people accept.</span> Anger rises every month at this price.`
+      : d < 0 ? `<span class="ok">${-d} below the accepted price.</span> People calm down, but income drops.`
+      : 'People accept up to $100/MWh. Higher prices fund capture but make people angry.';
+  }
+
+  // ---------- plants ----------
+  function techLabel(p) {
+    const t = M.TECHS[p.tech];
+    return `<span class="tech-tag" style="color:${t.color}">${t.short}${p.deep ? ' · 99 %' : ''}</span>`;
+  }
+  function plantHTML(p) {
+    const pen = p.tech ? M.penalty(p, p.tech) : 0;
+    const net = p.gross * (1 - pen);
+    const u = S.last && S.last.units.find(x => x.id === p.id);
+    const tags = [];
+    tags.push(p.tech ? techLabel(p) : '<span class="tech-tag" style="color:var(--muted)">No capture</span>');
+    if (p.down > 0) tags.push(`<span class="chip bad">${p.downWhy === 'tripped' ? 'tripped' : 'typhoon'} · ${p.down} mo</span>`);
+    if (p.tech && p.outage > 0) tags.push(`<span class="chip bad">capture offline · ${p.outage} mo</span>`);
+    if (p.tech && S.captureOff > 0) tags.push(`<span class="chip bad">${S.captureOffWhy} · ${S.captureOff} mo</span>`);
+    if (p.tech) {
+      const mt = M.maturity(S, p.tech);
+      if (!mt.proven) tags.push(`<span class="chip warn" title="Start-up failures possible until 24 months of operation">start-up ${mt.exp}/${mt.needs} mo</span>`);
+    }
+    let build = '';
+    if (p.build) {
+      const bt = M.TECHS[p.build.tech];
+      const done = 1 - p.build.left / p.build.total;
+      build = `<div class="kv">Building <b>${bt.short}${p.build.deep ? ' · 99 %' : ''}</b> · ${p.build.left} mo left</div><div class="prog"><i style="width:${Math.round(done * 100)}%"></i></div>`;
+    }
+    const load = u ? Math.round(100 * u.run / Math.max(1, u.netCap)) : 0;
+    return `<div class="plant ${p.down > 0 ? 'down' : ''}">
+      <div class="ph"><span class="nm">${p.name}</span><span class="chip ${p.type}">${p.gross} MW ${M.PLANT_TYPES[p.type].label.toLowerCase()}</span></div>
+      <div class="tags">${tags.join('')}</div>
+      <div class="kv">Output <b>${p.down > 0 ? 0 : fmt(net)}</b> MW${pen > 0 ? ` <span style="color:var(--co2)">(−${Math.round(pen * 100)} %)</span>` : ''} · load <b>${load}%</b></div>
+      ${build}
+      <button class="btn ghost" data-plant="${p.id}" ${p.build ? 'disabled' : ''}>${p.tech ? 'Change / upgrade capture' : 'Add CO₂ capture'}</button>
+    </div>`;
+  }
+  function lotHTML() {
+    const L = S.lot;
+    if (L.built) return '';
+    if (L.build) {
+      const done = 1 - L.build.left / L.build.total;
+      return `<div class="plant"><div class="ph"><span class="nm">Gas Plant D</span><span class="chip gas">400 MW gas</span></div>
+        <div class="kv">Under construction · ${L.build.left} mo left</div><div class="prog"><i style="width:${Math.round(done * 100)}%"></i></div></div>`;
+    }
+    return `<div class="plant"><div class="ph"><span class="nm">Empty lot</span><span class="chip">+400 MW</span></div>
+      <div class="kv">Capture eats power, plants trip, typhoons hit. Demand grows 1 % a year.</div>
+      <button class="btn ghost" id="buildGas" ${S.funds < L.cost ? 'disabled' : ''}>Build gas plant · $${L.cost}M</button></div>`;
+  }
+  function renderPlants() {
+    $('plants').innerHTML = S.plants.map(plantHTML).join('') + lotHTML();
+    $('plants').querySelectorAll('[data-plant]').forEach(b => b.onclick = () => openTech(b.dataset.plant));
+    const bg = $('buildGas');
+    if (bg) bg.onclick = () => { M.buildGasPlant(S); renderAll(); };
+  }
+
+  // ---------- lab ----------
+  function renderLab() {
+    const busy = Object.keys(S.research).length > 0;
+    const notes = [];
+    if (S.resCut > 0) notes.push(`<span class="hot">US funding cut: research costs +50 % for ${S.resCut} more months.</span>`);
+    if (S.unlocked.screen) notes.push('QM + MD screening active: solvent research −30 % time, start-up failures halved.');
+    $('labNote').innerHTML = notes.join(' ');
+    $('lab').innerHTML = M.LAB_ORDER.map(id => {
+      const pr = M.project(id);
+      const left = S.research[id];
+      const cost = M.researchCost(S, id);
+      const months = M.researchMonths(S, id);
+      let right;
+      if (S.unlocked[id]) right = '<span class="ready">Ready ✓</span>';
+      else if (left != null) right = `<span class="ready" style="color:var(--amine)">${left} mo</span>`;
+      else right = `<button class="btn ${pr.star ? 'gold' : ''}" data-res="${id}" ${busy || S.funds < cost ? 'disabled' : ''}>${busy ? 'Lab busy' : 'Fund $' + cost + 'M'}</button>`;
+      const total = left != null ? Math.max(left, months) : months;
+      const prog = left != null ? `<div class="prog" style="grid-column:1/-1"><i style="width:${Math.round(100 * (1 - left / total))}%"></i></div>` : '';
+      const badge = id === 'screen' ? ' <span class="badge nthu">our poster</span>' : (pr.star ? ' <span class="badge nthu">NTHU</span>' : '');
+      return `<div class="proj ${pr.star ? 'star' : ''}">
+        <div><div class="t">${pr.name}${badge}</div><div class="d">${pr.desc} · ${months} months</div></div>
+        ${right}${prog}</div>`;
+    }).join('');
+    $('lab').querySelectorAll('[data-res]').forEach(b => b.onclick = () => { M.startResearch(S, b.dataset.res); renderAll(); });
+  }
+
+  // ---------- tech sheet ----------
+  let techPlant = null;
+  function openTech(id) {
+    techPlant = id;
+    modalPause = true;
+    renderTech();
+    $('ovTech').hidden = false;
+  }
+  function closeTech() { $('ovTech').hidden = true; modalPause = false; techPlant = null; }
+  $('techClose').onclick = closeTech;
+  $('ovTech').addEventListener('click', e => { if (e.target === $('ovTech')) closeTech(); });
+  function stageHTML(id) {
+    const t = M.TECHS[id];
+    const mt = M.maturity(S, id);
+    if (!t.startup) return `<div class="stage">${t.stage}: no start-up risk.</div>`;
+    if (mt.proven) return `<div class="stage">${t.stage} · <span class="ok">proven in your fleet ✓</span></div>`;
+    return `<div class="stage">${t.stage}: <b>${fmt(mt.risk * 100, 1)} % per month</b> start-up failure per plant (trip + 3 months without capture) until ${mt.needs} months of operation${mt.exp ? ` (now ${mt.exp})` : ''}.</div>`;
+  }
+  function upgradeHTML(p) {
+    const t = p.tech ? M.TECHS[p.tech] : null;
+    if (!t || !t.deepable || p.deep) return '';
+    const chk = M.canUpgrade(S, p);
+    const e = M.eff(p.tech, true);
+    const pen = M.penalty(p, p.tech, true);
+    const cost = M.upgradeCost(S, p);
+    const pr = M.PROJECTS.deep;
+    const action = S.unlocked.deep
+      ? `<button class="btn" data-up="1" ${chk.ok ? '' : 'disabled'}>Upgrade · $${fmt(cost)}M · 3 mo</button>${chk.ok ? '' : `<span class="src">${chk.why}</span>`}`
+      : `<span class="src">Locked · fund “99 % capture design” in the research lab${S.research.deep != null ? ' (' + S.research.deep + ' mo left)' : ''}</span>`;
+    return `<div class="opt up">
+      <div class="row"><span class="nm" style="color:var(--good)">Upgrade ${t.short} to 99 % capture</span><span class="badge lab">Lab research</span></div>
+      <div class="stats">
+        <div class="stat"><div class="k">Captures</div><div class="v">99 %</div></div>
+        <div class="stat"><div class="k">Regeneration</div><div class="v">${fmt(e.duty, 1)} GJ/t <span class="est">est.</span></div></div>
+        <div class="stat"><div class="k">Output loss</div><div class="v">−${Math.round(pen * 100)} %</div></div>
+      </div>
+      <div class="fact">${pr.fact}</div>
+      <div class="src">${pr.src}</div>
+      <div class="row">${action}</div>
+    </div>`;
+  }
+  function renderTech() {
+    const p = S.plants.find(x => x.id === techPlant);
+    if (!p) return;
+    $('techTitle').textContent = 'Capture options · ' + p.name;
+    const inten = M.PLANT_TYPES[p.type].intensity;
+    $('techLead').textContent = `${p.gross} MW ${p.type} plant, ${inten} t CO₂ per MWh. Game is paused while you choose. Funds: ${money(S.funds)}.`;
+    const opts = M.TECH_ORDER.map(id => {
+      const t = M.TECHS[id];
+      const pen = M.penalty(p, id, false);
+      const cost = M.installCost(S, p, id);
+      const months = M.installMonths(p, id);
+      const chk = M.canInstall(S, p, id);
+      const badge = t.star ? '<span class="badge nthu">NTHU lab</span>' : (t.research ? '<span class="badge lab">Lab research</span>' : '<span class="badge com">Available now</span>');
+      const est = k => (t.est && t.est.includes(k)) ? ' <span class="est">est.</span>' : '';
+      const energy = t.elec ? `${fmt(t.elec * 1000)} kWh/t` : `${fmt(t.duty, 1)} GJ/t${est('duty')}`;
+      let action;
+      if (p.tech === id) action = `<span class="ready">Installed ✓${p.deep ? ' (99 %)' : ''}</span>`;
+      else if (!S.unlocked[id]) action = `<span class="src">Locked · fund it in the research lab${S.research[id] != null ? ' (' + S.research[id] + ' mo left)' : ''}</span>`;
+      else action = `<button class="btn ${t.star ? 'gold' : ''}" data-inst="${id}" ${chk.ok ? '' : 'disabled'}>Install · $${fmt(cost)}M${est('capex')} · ${months} mo</button>`;
+      return `<div class="opt ${t.star ? 'star' : ''}">
+        <div class="row"><span class="nm" style="color:${t.color}">${t.name}</span>${badge}</div>
+        <div class="stats">
+          <div class="stat"><div class="k">Captures</div><div class="v">${Math.round(t.capture * 100)} %</div></div>
+          <div class="stat"><div class="k">${t.elec ? 'Electricity' : 'Regeneration'}</div><div class="v">${energy}</div></div>
+          <div class="stat"><div class="k">Output loss</div><div class="v">−${Math.round(pen * 100)} %</div></div>
+          <div class="stat"><div class="k">Running cost</div><div class="v">$${t.opex}/t</div></div>
+        </div>
+        ${stageHTML(id)}
+        <div class="fact">${t.fact}</div>
+        <div class="src">${t.src}</div>
+        <div class="row">${action}${chk.ok || p.tech === id || !S.unlocked[id] ? '' : `<span class="src">${chk.why}</span>`}</div>
+      </div>`;
+    });
+    $('techOpts').innerHTML = upgradeHTML(p) + opts.join('');
+    $('techOpts').querySelectorAll('[data-inst]').forEach(b => b.onclick = () => {
+      M.install(S, techPlant, b.dataset.inst);
+      closeTech();
+      renderAll();
+    });
+    const up = $('techOpts').querySelector('[data-up]');
+    if (up) up.onclick = () => { M.upgrade(S, techPlant); closeTech(); renderAll(); };
+  }
+
+  // ---------- decision cards ----------
+  function openEvent() {
+    const ev = S.pending;
+    if (!ev) return;
+    modalPause = true;
+    $('evTitle').textContent = ev.title;
+    $('evText').textContent = ev.text;
+    $('evOpts').innerHTML = ev.opts.map((o, i) =>
+      `<button class="choice" data-ch="${i}"><span class="cl">${o.label}</span><span class="ce">${o.effect}</span></button>`).join('');
+    $('evOpts').querySelectorAll('[data-ch]').forEach(b => b.onclick = () => {
+      M.choose(S, +b.dataset.ch);
+      $('ovEvent').hidden = true;
+      modalPause = false;
+      renderAll();
+    });
+    $('ovEvent').hidden = false;
+    const first = $('evOpts').querySelector('button');
+    if (first) first.focus();
+  }
+  function showToast() {
+    const f = S.flash;
+    if (!f || f.n === toastN) return;
+    toastN = f.n;
+    const el = $('toast');
+    el.className = 'toast ' + (f.kind || '');
+    el.textContent = f.text;
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, 3800);
+  }
+
+  // ---------- news + meters ----------
+  function renderNews() {
+    $('news').innerHTML = S.news.slice(0, 12).map(n => {
+      const y = M.START_YEAR + Math.floor(n.m / 12), mo = MONTH[n.m % 12];
+      return `<li class="${n.kind}"><time>${mo} ${y}</time>${n.text}</li>`;
+    }).join('');
+  }
+  // square-root scale keeps a small late-game limit visible on a phone
+  const wOf = v => Math.sqrt(Math.max(0, Math.min(v, M.LIMIT_SCALE)) / M.LIMIT_SCALE) * 100;
+  function renderMeters() {
+    const m = Math.min(S.m, M.MONTHS - 1);
+    $('date').textContent = MONTH[m % 12] + ' ' + (M.START_YEAR + Math.floor(m / 12));
+    const lim = M.limit(S);
+    const rate = S.last ? S.rate : 0;
+    const over = rate > lim;
+    $('gLim').textContent = 'limit ' + fmt(lim, 1) + ' Mt/yr';
+    $('vGh').innerHTML = (S.last ? fmt(rate, 1) : '—') + '<small> Mt/yr</small>';
+    const y = M.START_YEAR + Math.floor(m / 12);
+    const nextY = y < 2050 ? Math.min(2050, (Math.floor(y / 5) + 1) * 5) : null;
+    $('gNext').textContent = nextY ? `limit ${nextY}: ${fmt(M.limitAt(nextY), 1)}` : 'net zero year';
+    $('gCap').style.width = wOf(lim) + '%';
+    $('gFill').style.width = wOf(Math.min(rate, lim)) + '%';
+    $('gOver').style.left = wOf(lim) + '%';
+    $('gOver').style.width = (over ? wOf(rate) - wOf(lim) : 0) + '%';
+    $('gBar').setAttribute('aria-label', `Emitting ${fmt(rate, 1)} Mt per year, legal limit ${fmt(lim, 1)} Mt per year`);
+    $('mGh').classList.toggle('over', over);
+    $('bDebt').style.width = S.greenhouse + '%';
+    $('vDebt').textContent = fmt(S.debt, 1) + ' / ' + fmt(M.DEBT_MAX, 1) + ' Mt';
+    $('vAng').textContent = Math.round(S.anger) + '%';
+    $('bAng').style.width = S.anger + '%';
+    $('mAng').classList.toggle('danger', S.anger > 75);
+    $('vFund').textContent = money(S.funds);
+    $('mFund').classList.toggle('danger', S.funds < 0);
+    const L = S.last;
+    if (L) {
+      $('sFund').textContent = (L.profit >= 0 ? '+' : '−') + '$' + fmt(Math.abs(L.profit), 1) + 'M / month';
+      $('vGrid').textContent = fmt(L.netCap) + ' MW';
+      $('sGrid').textContent = 'demand ' + fmt(L.demand) + ' MW';
+      $('mGrid').classList.toggle('danger', L.unservedFrac > 0.01);
+      $('profit').textContent = (L.profit >= 0 ? 'profit +$' : 'loss −$') + fmt(Math.abs(L.profit), 1) + 'M/mo';
+      $('co2rate').textContent = 'CO₂ ' + fmt(L.emitted * 12 / 1e6, 1) + ' Mt/yr';
+    }
+  }
+  function renderAll() {
+    renderMeters(); renderPrice(); renderPlants(); renderLab(); renderNews();
+    if (!$('ovTech').hidden) renderTech();
+  }
+
+  // ---------- end ----------
+  function showEnd() {
+    playing = false;
+    const s = S, win = s.over.win;
+    const why = { greenhouse: 'Your CO₂ debt hit the maximum. The government revoked your operating licence.',
+      anger: 'Protesters filled the streets. The city council voted your company out.',
+      bankrupt: 'Your utility ran out of money and was taken over.',
+      survived: 'You kept the lights on and stayed within the CO₂ limit until December 2050.' }[s.over.why];
+    const st = M.stars(s);
+    const sc = M.score(s);
+    $('endTitle').textContent = win ? 'You made it to 2050!' : 'Game over · ' + (M.START_YEAR + Math.floor((s.m - 1) / 12));
+    $('endStars').textContent = win ? '★'.repeat(st) + '☆'.repeat(3 - st) : '';
+    $('endLead').textContent = why;
+    const cells = [
+      ['CO₂ captured', fmt(s.captured, 1) + ' Mt'],
+      ['CO₂ emitted', fmt(s.cumCO2, 1) + ' Mt'],
+      ['Worst CO₂ debt', fmt(s.maxDebt, 1) + ' / ' + fmt(M.DEBT_MAX, 1) + ' Mt'],
+      ['Start-up failures', String(s.fails)],
+      ['Public anger', Math.round(s.anger) + ' %'],
+      ['Funds', money(s.funds)],
+      ['Blackout months', String(s.blackouts)],
+      ['Score', fmt(sc)],
+    ];
+    $('endGrid').innerHTML = cells.map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+    const used = Object.keys(s.techUsed).filter(id => M.TECHS[id].research);
+    let tip;
+    if (s.over.why === 'greenhouse' && s.m > 150) tip = 'Tip: the limit keeps shrinking. Fund “99 % capture design” (or switch to MEA 99 %) before the 2040s.';
+    else if (s.over.why === 'greenhouse') tip = 'Tip: the limit bites from about 2029. Get capture running on a coal plant early, even plain MEA.';
+    else if (s.fails >= 3) tip = 'Tip: QM + MD screening (our poster) halves start-up failures of new solvents.';
+    else tip = 'Tip: 2PE–EG (NTHU) is cheap to build and to run once it is proven.';
+    $('endLab').innerHTML = (used.length
+      ? `You deployed lab technology: <b>${used.map(id => M.TECHS[id].name).join(', ')}</b>. These come from Lin Research Group papers at National Tsing Hua University. `
+      : '') + tip;
+    if (win) {
+      const best = loadBest();
+      if (!best || sc > best.score) saveBest({ score: sc, stars: st });
+    }
+    $('ovEnd').hidden = false;
+  }
+  $('againBtn').onclick = () => { $('ovEnd').hidden = true; S = M.newGame(); particles.length = 0; toastN = 0; renderAll(); setSpeed(1); playing = true; };
+
+  // ---------- intro ----------
+  const best = loadBest();
+  if (best) $('best').textContent = `Your best: ${best.score} points (${'★'.repeat(best.stars)})`;
+  $('startBtn').onclick = () => { $('ovIntro').hidden = true; setSpeed(1); playing = true; };
+  $('fastBtn').onclick = () => { $('ovIntro').hidden = true; setSpeed(2); playing = true; };
+
+  // ---------- scene ----------
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    const box = cv.parentElement.getBoundingClientRect();
+    W = Math.round(box.width);
+    H = Math.round(Math.max(210, Math.min(360, W * (W < 520 ? 0.66 : 0.5))));
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    cv.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function mix(c1, c2, t) {
+    const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+    const r = Math.round(lerp(a >> 16, b >> 16, t)), g = Math.round(lerp((a >> 8) & 255, (b >> 8) & 255, t)), bl = Math.round(lerp(a & 255, b & 255, t));
+    return `rgb(${r},${g},${bl})`;
+  }
+
+  const particles = [];
+  const people = Array.from({ length: 14 }, (_, i) => ({ x: Math.random(), v: (Math.random() < .5 ? -1 : 1) * (0.02 + Math.random() * 0.03), sign: i % 3 === 0, phase: Math.random() * 6 }));
+  const houses = Array.from({ length: 7 }, (_, i) => ({ w: 0.07 + (i % 3) * 0.012, h: 0.16 + ((i * 37) % 5) * 0.035, hue: ['#D9C6A5', '#C9D6E3', '#E3C9C9', '#CFE3CF', '#E6DDB8'][i % 5] }));
+
+  function plantSlots() {
+    // x position (fraction of width) for each plant id
+    return { A: 0.54, B: 0.66, C: 0.79, D: 0.91 };
+  }
+
+  function drawScene(dt) {
+    // sky dirt follows today's emissions (10.5 Mt/yr ≈ fully hazy)
+    const g = S.last ? Math.max(0, Math.min(1, (S.rate - 0.5) / 10)) : 0.85;
+    const L = S.last;
+    const horizon = H * 0.74;
+    // sky
+    const sky = ctx.createLinearGradient(0, 0, 0, horizon);
+    sky.addColorStop(0, mix('#6FB6EA', '#7C7466', g));
+    sky.addColorStop(1, mix('#D6EEFB', '#C7AE86', g));
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, horizon);
+    // sun
+    const sx = W * 0.12, sy = H * 0.2, sr = Math.max(14, W * 0.035);
+    const glow = ctx.createRadialGradient(sx, sy, sr * 0.3, sx, sy, sr * 3);
+    glow.addColorStop(0, mix('#FFF4C2', '#FFB36B', g)); glow.addColorStop(1, 'rgba(255,220,150,0)');
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(sx, sy, sr * 3, 0, 7); ctx.fill();
+    ctx.fillStyle = mix('#FFE680', '#FF9A4D', g); ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 7); ctx.fill();
+    // hills + ground
+    ctx.fillStyle = mix('#8FC99A', '#8E8A64', g);
+    ctx.beginPath(); ctx.moveTo(0, horizon);
+    for (let x = 0; x <= W; x += 20) ctx.lineTo(x, horizon - 18 - 10 * Math.sin(x / W * 5.5));
+    ctx.lineTo(W, horizon); ctx.fill();
+    ctx.fillStyle = mix('#6DB36F', '#8C7B4F', g); ctx.fillRect(0, horizon, W, H - horizon);
+    ctx.fillStyle = mix('#5E6B73', '#4A4A46', g); ctx.fillRect(0, horizon + (H - horizon) * 0.42, W * 0.5, (H - horizon) * 0.18); // street
+
+    // town (left half)
+    const blackout = L && L.unservedFrac > 0.01;
+    let hx = W * 0.02;
+    houses.forEach((h, i) => {
+      const hw = h.w * W, hh = h.h * H;
+      const y = horizon - hh + 4;
+      ctx.fillStyle = h.hue; ctx.fillRect(hx, y, hw, hh);
+      ctx.fillStyle = '#7A4E3C'; ctx.beginPath(); ctx.moveTo(hx - 3, y); ctx.lineTo(hx + hw / 2, y - hh * 0.28); ctx.lineTo(hx + hw + 3, y); ctx.fill();
+      ctx.fillStyle = blackout ? '#2B2F38' : '#FFE08A';
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) ctx.fillRect(hx + hw * (0.18 + c * 0.42), y + hh * (0.22 + r * 0.36), hw * 0.22, hh * 0.18);
+      hx += hw + W * 0.012;
+    });
+    // power line
+    ctx.strokeStyle = 'rgba(40,40,40,.55)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(W * 0.46, horizon - H * 0.2);
+    ctx.quadraticCurveTo(W * 0.5, horizon - H * 0.14, W * 0.54, horizon - H * 0.2); ctx.stroke();
+    ctx.fillStyle = '#444'; ctx.fillRect(W * 0.46 - 1, horizon - H * 0.2, 2, H * 0.2);
+
+    // people
+    const ang = S.anger / 100;
+    const streetY = horizon + (H - horizon) * 0.5;
+    people.forEach((p, i) => {
+      if (playing && speed > 0) p.x += p.v * dt * 0.001 * (1 + speed * 0.3);
+      if (p.x < 0.01 || p.x > 0.48) p.v *= -1;
+      p.x = Math.max(0.01, Math.min(0.48, p.x));
+      const x = p.x * W, bob = Math.sin((performance.now() / 180) + p.phase) * 1.5;
+      const angry = ang > 0.35 && (i / people.length) < ang;
+      ctx.fillStyle = angry ? '#E0533C' : '#2F3E57';
+      ctx.fillRect(x - 2, streetY - 10 + bob, 4, 9);
+      ctx.beginPath(); ctx.arc(x, streetY - 13 + bob, 3, 0, 7); ctx.fillStyle = '#F2C9A0'; ctx.fill();
+      if (angry && p.sign) {
+        ctx.fillStyle = '#FFF'; ctx.fillRect(x + 3, streetY - 26 + bob, 16, 9);
+        ctx.fillStyle = '#C0392B'; ctx.font = 'bold 8px sans-serif'; ctx.fillText(ang > 0.7 ? 'OUT!' : '$$!', x + 4, streetY - 19 + bob);
+        ctx.strokeStyle = '#555'; ctx.beginPath(); ctx.moveTo(x + 3, streetY - 17 + bob); ctx.lineTo(x + 3, streetY - 6 + bob); ctx.stroke();
+      }
+    });
+
+    // plants (right half)
+    const slots = plantSlots();
+    const ps = S.plants.slice();
+    if (S.lot.build) ps.push({ id: 'D', type: 'gas', gross: 400, building: true });
+    ps.forEach(p => {
+      const cx = slots[p.id] * W;
+      const bw = W * 0.085, bh = H * (p.type === 'coal' ? 0.2 : 0.15);
+      const by = horizon - bh + 6;
+      if (p.building) {
+        ctx.fillStyle = 'rgba(244,183,64,.55)'; ctx.fillRect(cx - bw / 2, by, bw, bh);
+        ctx.strokeStyle = '#6B5B2E'; ctx.lineWidth = 1;
+        for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.moveTo(cx - bw / 2 + k * bw / 4, by); ctx.lineTo(cx - bw / 2 + k * bw / 4 - 6, by + bh); ctx.stroke(); }
+        ctx.strokeStyle = '#E2A93B'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx + bw * 0.6, horizon); ctx.lineTo(cx + bw * 0.6, by - bh); ctx.lineTo(cx - bw * 0.3, by - bh); ctx.stroke();
+        return;
+      }
+      const down = p.down > 0;
+      // building
+      ctx.fillStyle = down ? '#4A4A4A' : (p.type === 'coal' ? '#6E3F33' : '#5A6E86');
+      ctx.fillRect(cx - bw / 2, by, bw, bh);
+      ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(cx - bw / 2, by, bw, 3);
+      // chimney(s)
+      const chimneys = p.type === 'coal' ? [cx - bw * 0.22, cx + bw * 0.15] : [cx + bw * 0.1];
+      const chH = p.type === 'coal' ? H * 0.28 : H * 0.18;
+      chimneys.forEach(chx => {
+        ctx.fillStyle = p.type === 'coal' ? '#8C8C8C' : '#9EAAB8';
+        ctx.fillRect(chx - 4, horizon - chH, 8, chH);
+        ctx.fillStyle = '#C0392B'; ctx.fillRect(chx - 4, horizon - chH + 6, 8, 3);
+      });
+      // capture unit
+      const t = p.tech ? M.TECHS[p.tech] : null;
+      if (t || p.build) {
+        const col = t ? t.color : '#E2A93B';
+        const ax = cx + bw / 2 + 4, aw = Math.max(6, W * 0.014), ah = H * (p.deep ? 0.32 : 0.26);
+        ctx.fillStyle = col; ctx.fillRect(ax, horizon - ah, aw, ah);
+        ctx.fillRect(ax + aw + 2, horizon - ah * 0.7, aw * 0.8, ah * 0.7);
+        ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(ax + 1, horizon - ah, 2, ah);
+        if (p.build) { ctx.strokeStyle = '#E2A93B'; ctx.setLineDash([3, 3]); ctx.strokeRect(ax - 2, horizon - ah - 2, aw * 2 + 6, ah + 2); ctx.setLineDash([]); }
+        // CO2 pipe to storage
+        if (t && p.outage <= 0 && !down && S.captureOff <= 0) {
+          ctx.strokeStyle = 'rgba(46,196,182,.7)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(ax + aw / 2, horizon); ctx.lineTo(ax + aw / 2, H - 8); ctx.stroke();
+          const ph = (performance.now() / 300) % 1;
+          ctx.fillStyle = '#2EC4B6';
+          for (let k = 0; k < 3; k++) { const yy = horizon + ((ph + k / 3) % 1) * (H - 8 - horizon); ctx.beginPath(); ctx.arc(ax + aw / 2, yy, 2, 0, 7); ctx.fill(); }
+        }
+      }
+      // label
+      ctx.fillStyle = 'rgba(15,26,43,.8)'; ctx.fillRect(cx - bw / 2, by + bh - 14, bw, 14);
+      ctx.fillStyle = down ? '#EF6351' : '#E9EFF7'; ctx.font = `600 ${Math.max(9, Math.min(12, W * 0.018))}px 'IBM Plex Mono', monospace`;
+      ctx.textAlign = 'center'; ctx.fillText(p.id + (down ? ' · DOWN' : (t ? ' · ' + t.short : '')), cx, by + bh - 3); ctx.textAlign = 'left';
+      if (down) return;
+
+      // smoke emission rate for this plant
+      const u = L && L.units.find(x => x.id === p.id);
+      const load = u ? u.run / Math.max(1, u.netCap) : 1;
+      const cap = u ? u.c : 0;
+      const intensity = p.type === 'coal' ? 1 : 0.45;
+      const rate = (playing && speed > 0 ? 1 : 0.35) * load * intensity * (1 - cap) * (REDUCED ? 0.3 : 1);
+      chimneys.forEach(chx => {
+        if (Math.random() < rate * dt * 0.02) particles.push({ x: chx, y: horizon - chH - 2, vx: 6 + Math.random() * 8, vy: -14 - Math.random() * 10, r: 3 + Math.random() * 3, life: 1, dark: p.type === 'coal' });
+        if (cap > 0 && Math.random() < load * dt * 0.006) particles.push({ x: chx, y: horizon - chH - 2, vx: 4 + Math.random() * 4, vy: -10, r: 2 + Math.random() * 2, life: 0.6, steam: true });
+      });
+    });
+
+    // particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const q = particles[i];
+      q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000; q.r += dt / 1000 * (q.steam ? 3 : 5); q.life -= dt / 1000 * (q.steam ? 0.6 : 0.22);
+      if (q.life <= 0 || q.y < -20) { particles.splice(i, 1); continue; }
+      ctx.fillStyle = q.steam ? `rgba(255,255,255,${0.5 * q.life})` : (q.dark ? `rgba(55,50,48,${0.55 * q.life})` : `rgba(140,140,140,${0.45 * q.life})`);
+      ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 7); ctx.fill();
+    }
+    if (particles.length > 400) particles.splice(0, particles.length - 400);
+
+    // haze overlay
+    if (g > 0.05) { ctx.fillStyle = `rgba(150,120,80,${0.28 * g})`; ctx.fillRect(0, 0, W, H); }
+    // storage label
+    ctx.fillStyle = 'rgba(15,26,43,.75)'; ctx.fillRect(W - 128, H - 22, 122, 16);
+    ctx.fillStyle = S.captureOff > 0 ? '#EF6351' : '#8FE6DC'; ctx.font = "600 10px 'IBM Plex Mono', monospace";
+    ctx.fillText(S.captureOff > 0 ? 'Storage closed' : 'CO₂ stored ' + fmt(S.captured, 1) + ' Mt', W - 122, H - 10);
+  }
+
+  // ---------- main loop ----------
+  function frame(t) {
+    const dt = Math.min(100, t - (lastT || t)); lastT = t;
+    if (playing && !modalPause && speed > 0 && !S.over && !S.pending) {
+      acc += dt * speed;
+      let ticked = false;
+      while (acc >= MS_PER_MONTH && !S.over && !S.pending) { acc -= MS_PER_MONTH; M.step(S); ticked = true; }
+      if (ticked) { renderAll(); showToast(); }
+      if (S.over) showEnd();
+      else if (S.pending) { acc = 0; openEvent(); }
+    }
+    drawScene(dt);
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- test hook: ?debug exposes a month stepper ----------
+  if (/[?&]debug(&|=|$)/.test(location.search)) {
+    window.__cc = {
+      get state() { return S; },
+      step(n) {
+        $('ovIntro').hidden = true;
+        for (let i = 0; i < n && !S.over && !S.pending; i++) M.step(S);
+        renderAll(); showToast();
+        if (S.over) showEnd(); else if (S.pending) openEvent();
+        return S.m;
+      },
+    };
+  }
+
+  // ---------- boot (keeps the game running across republishes) ----------
+  function start(data) {
+    if (data && data.state && data.state.exp) { S = data.state; $('ovIntro').hidden = true; playing = true; if (S.pending) openEvent(); }
+    resize(); renderAll(); requestAnimationFrame(frame);
+  }
+  if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ state: S }));
+  if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
+  else start((window.claude && window.claude.hot && window.claude.hot.data) || {});
+})();
+</script>
