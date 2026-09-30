@@ -1,4 +1,4 @@
-/* Capture City 2050 \u2014 game model v4 (pure logic, no DOM).
+/* Capture City 2050 \u2014 game model v5 (pure logic, no DOM).
  * Used by index.html in the browser and by sim_test.js under node for balancing.
  *
  * Technology numbers come from Lin Research Group papers where the paper reports them;
@@ -12,6 +12,9 @@
  *                                       25.8 cP vs 1.7 cP for MEA -> start-up trouble in the heat exchanger)
  *   99 % capture needs 20\u201330 m packing  Chang, Chou & Lin, Sep. Purif. Technol. 2025 (+9 % duty is est.)
  *   QM + MD screening, 28 amines ...... Chien, Wu & Lin, GHGT-18 (2026): reaction \u0394G MAE 3.6 kJ/mol
+ *   PZ + advanced stripper 2.45 GJ/t .. Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021 (net, 90 % capture,
+ *                                       same at 4 % and 12 % CO2); stripper pilot: Lin, Chen & Rochelle, Faraday Discuss. 2016
+ *   CESAR1 (AMP + PZ) ~3.1 GJ/t ....... pilot campaigns (TCM, Niederaussem); ~10 % below MEA, low degradation
  *
  * Game rules that are NOT from papers: plant sizes and prices, fuel prices, the CO2 limit path,
  * event odds, start-up failure odds, research costs and times, the gas-capture penalty,
@@ -29,17 +32,17 @@
   // Regions: what people accept to pay, demand growth, fuel, carbon price or credit, the limit, grid links, hazards
   const REGIONS = {
     taiwan: {
-      label: 'Taiwan', hint: 'standard', stars: [2500, 3000], fair: 100, growth: 0.02, gas: 50, gasSwing: 0.16, tax: { from: 2030, base: 30, step: 4 },
+      label: 'Taiwan', hint: 'standard', stars: [2500, 3000], base: 1150, fair: 100, growth: 0.02, gas: 50, gasSwing: 0.16, tax: { from: 2030, base: 30, step: 4 },
       credit: 0, limitMul: 1.0, imports: 0, wholesale: 70, typhoon: true, lng: true, winter: false, heat: 1,
       blurb: 'Island grid, no imports. Gas arrives as LNG by ship and storage is only days deep. Typhoons. A carbon fee starts in 2030.',
     },
     europe: {
-      label: 'Europe', hint: 'easier', stars: [2900, 3150], fair: 120, growth: 0.005, gas: 45, gasSwing: 0.24, tax: { from: 2027, base: 60, step: 4 },
+      label: 'Europe', hint: 'easier', stars: [2900, 3150], base: 950, fair: 120, growth: 0.005, gas: 45, gasSwing: 0.24, tax: { from: 2027, base: 60, step: 4 },
       credit: 0, limitMul: 0.85, imports: 300, wholesale: 75, typhoon: false, lng: false, winter: false, heat: 1,
       blurb: 'A high carbon price from 2027 and a stricter limit, but people pay more for clean power and neighbours lend up to 300 MW in a shortage.',
     },
     texas: {
-      label: 'Texas', hint: 'harder', stars: [3150, 3450], fair: 75, growth: 0.022, gas: 28, gasSwing: 0.2, tax: null,
+      label: 'Texas', hint: 'harder', stars: [3150, 3450], base: 1300, fair: 75, growth: 0.022, gas: 28, gasSwing: 0.2, tax: null,
       credit: 15, limitMul: 1.15, imports: 0, wholesale: 55, typhoon: false, lng: false, winter: true, heat: 2,
       blurb: 'No carbon tax: a federal credit pays $15 for every tonne you store (like the US 45Q credit). Cheap shale gas, low prices, fast demand growth, heat waves and winter storms. Its grid is an island too.',
     },
@@ -80,7 +83,7 @@
     },
     afs: {
       name: 'MEA + advanced stripper', short: 'MEA-AS', capture: 0.90, duty: 2.8, capex: 1.15, opex: 10,
-      unlocked: false, research: { cost: 80, months: 12 }, color: '#2BB3C0', stage: 'Pilot-tested', startup: 0.012,
+      unlocked: false, research: { cost: 80, months: 12, process: true }, color: '#2BB3C0', stage: 'Pilot-tested', startup: 0.012,
       fail: 'the new stripper would not hold steady',
       pitch: 'Same MEA, smarter heat recovery: less steam, safe bet, pricier to build.',
       fact: 'A heat-integrated stripper cuts MEA regeneration to \u2248 2.8 GJ/t.',
@@ -88,7 +91,7 @@
     },
     ampnmp: {
       name: 'AMP\u2013NMP (semi-aqueous)', short: 'AMP-NMP', capture: 0.90, duty: 3.0, capex: 1.10, opex: 8,
-      unlocked: false, research: { cost: 100, months: 12 }, color: '#0E9F6E', est: ['duty', 'opex'], stage: 'Lab scale',
+      unlocked: false, research: { cost: 100, months: 18, exp: 0.9, comp: 0.6 }, color: '#0E9F6E', est: ['duty', 'opex'], stage: 'Lab scale',
       startup: 0.025, risk: 0.006, solvent: true, fail: 'AMP carbamate precipitated and clogged a line',
       pitch: 'Quick to research and cheapest to run, but it can clog at any time.',
       fact: 'NMP does not react with CO\u2082; it makes the hindered amine AMP 3\u00d7 faster than in water, and AMP holds about twice the CO\u2082 of MEA, so less solvent has to circulate. Catch: AMP carbamate can precipitate at high loading and clog lines, even years after start-up.',
@@ -96,25 +99,39 @@
     },
     pe2eg: {
       name: '2PE\u2013EG (water-lean)', short: '2PE-EG', capture: 0.90, duty: 2.9, capex: 1.00, opex: 9,
-      unlocked: false, research: { cost: 180, months: 24 }, color: '#E2A93B', est: ['capex'], star: true, stage: 'Lab scale',
+      unlocked: false, research: { cost: 180, months: 24, exp: 0.85, comp: 0.5 }, color: '#E2A93B', est: ['capex'], star: true, stage: 'Lab scale',
       startup: 0.035, solvent: true, fail: 'the viscous solvent overloaded the heat exchanger',
       pitch: 'Longest research and shaky first years, then the best all-rounder.',
       fact: 'Ethylene glycol reacts: it turns the carbamate into alkyl carbonate and frees the amine again, so 2-piperidineethanol gets both 4.5\u00d7 faster reaction and 2.8\u00d7 cyclic capacity vs MEA; regeneration 128 kJ/mol (\u2248 2.9 GJ/t). Catch: 15\u00d7 more viscous than MEA.',
       src: 'Chen, Wu & Lin, Chem. Eng. J. 2026',
     },
   };
-  const TECH_ORDER = ['mea90', 'afs', 'ampnmp', 'pe2eg'];
+  TECHS.pz = {
+    name: 'Piperazine (PZ) + advanced stripper', short: 'PZ', capture: 0.90, duty: 2.45, capex: 1.20, opex: 11,
+    unlocked: false, research: { cost: 90, months: 18, exp: 0.95, comp: 0.7 }, color: '#8E7CC3', est: ['capex', 'opex'],
+    stage: 'Pilot-tested', startup: 0.015, risk: 0.003, gasOK: true, solvent: true, fail: 'solid piperazine froze out in a cold line',
+    pitch: 'Least steam in pilot plants, even on dilute gas-plant flue gas; pricier, and PZ can freeze out when cold.',
+    fact: 'Piperazine is the second-generation benchmark: fast, thermally stable, high capacity. With the advanced stripper, pilot plants measured a net 2.45 GJ per tonne CO\u2082 at 90 % capture, the same at 4 % (gas) and 12 % (coal) CO\u2082. Prof. Yu-Jeng Lin pilot-tested this stripper during his PhD. Catch: solid PZ can precipitate if the solvent gets too cold.',
+    src: 'Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016',
+  };
+  TECHS.cesar1 = {
+    name: 'CESAR1 (AMP + PZ blend)', short: 'CESAR1', capture: 0.90, duty: 3.1, capex: 1.05, opex: 9,
+    unlocked: false, research: { cost: 60, months: 12, exp: 0.95, comp: 0.75 }, color: '#B08968', est: ['capex', 'opex'],
+    stage: 'Pilot-tested', startup: 0.008, deepEasy: true, solvent: true, fail: 'the blend foamed during start-up',
+    pitch: 'The European benchmark blend: a safe step up from MEA, very stable, and the cheapest way to 99 %.',
+    fact: 'CESAR1 mixes AMP (3 M) with piperazine (1.5 M). Pilot plants report about 3.0\u20133.1 GJ per tonne CO\u2082, roughly 10 % less than MEA, with much less solvent degradation, and campaigns have run it at 98\u201399.95 % capture.',
+    src: 'CESAR1 pilot campaigns (Technology Centre Mongstad; Niederaussem)',
+  };
+  const TECH_ORDER = ['mea90', 'afs', 'cesar1', 'pz', 'ampnmp', 'pe2eg'];
+  // how a new solvent is found: lab experiments (slow, likely to work) or computer screening (fast, riskier)
+  const METHODS = {
+    exp: { label: 'Lab experiments', costMul: 1.0, timeMul: 1.0 },
+    comp: { label: 'Computer screening (QM + MD)', costMul: 0.5, timeMul: 0.4, learn: 0.15 },
+  };
 
   // research projects that are not a capture technology
-  const PROJECTS = {
-    screen: {
-      name: 'QM + MD solvent screening', short: 'QM+MD', cost: 60, months: 12,
-      desc: 'solvent research \u221230 % time \u00b7 half the start-up failures',
-      fact: 'Quantum chemistry and molecular dynamics predict the reaction \u0394G and \u0394H of 28 amines (MAE 3.6 kJ/mol) before a single experiment.',
-      src: 'Chien, Wu & Lin, GHGT-18 (2026)',
-    },
-  };
-  const LAB_ORDER = ['screen', 'afs', 'ampnmp', 'pe2eg'];
+  const PROJECTS = {};
+  const LAB_ORDER = ['afs', 'cesar1', 'pz', 'ampnmp', 'pe2eg'];
 
   // ---- technology helpers -----------------------------------------------------
   function eff(techId, deep, type) {
@@ -123,7 +140,8 @@
     const pt = PLANT_TYPES[type || 'coal'];
     const e = { capture: t.capture, duty: t.duty, opex: t.opex };
     if (deep) { e.capture = DEEP.capture; e.duty *= DEEP.dutyMul; e.opex += DEEP.opexAdd; }
-    e.duty *= pt.dutyMul; e.opex *= pt.opexMul;
+    if (!t.gasOK) e.duty *= pt.dutyMul;   // PZ + advanced stripper performs the same on dilute gas-plant flue gas
+    e.opex *= pt.opexMul;
     return e;
   }
   // energy (MWh_e) lost per tonne CO2 captured
@@ -145,7 +163,7 @@
   }
   function installMonths(plant) { return plant.tech ? 3 : 9; }
   function upgradeCost(state, plant) {
-    let c = DEEP.costFrac * capexFull(plant, plant.tech);
+    let c = (TECHS[plant.tech].deepEasy ? 0.45 : DEEP.costFrac) * capexFull(plant, plant.tech);
     if (state.subsidy > 0) c *= 0.7;
     return Math.round(c);
   }
@@ -181,7 +199,7 @@
     const t = TECHS[techId];
     const exp = state.exp[techId] || 0;
     const proven = !t.startup || exp >= PROVEN_MONTHS;
-    const risk = proven ? 0 : t.startup * (state.unlocked.screen ? SCREEN_RISK : 1);
+    const risk = proven ? 0 : t.startup;
     return { stage: t.stage, exp, proven, risk, needs: PROVEN_MONTHS };
   }
 
@@ -190,12 +208,22 @@
     if (PROJECTS[id]) return Object.assign({ id }, PROJECTS[id]);
     const t = TECHS[id];
     return { id, name: t.name, short: t.short, cost: t.research.cost, months: t.research.months, star: t.star,
-      desc: t.pitch, solvent: t.solvent };
+      desc: t.pitch, solvent: t.solvent, process: !!t.research.process };
   }
-  function researchCost(state, id) { return Math.round(project(id).cost * (state.resCut > 0 ? 1.5 : 1)); }
-  function researchMonths(state, id) {
-    const p = project(id);
-    return p.solvent && state.unlocked.screen ? Math.ceil(p.months * SCREEN_TIME) : p.months;
+  const methodOf = (id, method) => (TECHS[id] && TECHS[id].research.process) ? 'exp' : (METHODS[method] ? method : 'exp');
+  function researchCost(state, id, method) {
+    const m = METHODS[methodOf(id, method)];
+    return Math.round(project(id).cost * m.costMul * (state.resCut > 0 ? 1.5 : 1));
+  }
+  function researchMonths(state, id, method) { return Math.max(3, Math.ceil(project(id).months * METHODS[methodOf(id, method)].timeMul)); }
+  // chance that the project finds a working solvent (every failed computer screen teaches the next one)
+  function researchOdds(state, id, method) {
+    const r = TECHS[id].research;
+    if (r.process) return 1;
+    const mt = methodOf(id, method);
+    const base = mt === 'comp' ? r.comp : r.exp;
+    const learned = mt === 'comp' ? METHODS.comp.learn * ((state.tries && state.tries[id]) || 0) : 0;
+    return Math.min(0.95, base + learned);
   }
 
   // small deterministic RNG so a seed replays the same events
@@ -226,7 +254,7 @@
       over: null, subsidy: 0, resCut: 0, usCut: false, captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
       warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0,
       plants: [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas')],
-      nextId: 3, unlocked, research: {}, exp: {},  // research[id] = months left; exp[tech] = months in operation
+      nextId: 3, unlocked, research: {}, resMethod: {}, tries: {}, exp: {},  // research[id] = months left; exp[tech] = months in operation
       demandMult: 1, demandMonths: 0, gasMult: 1, gasMonths: 0, gasIndex: 1,
       pending: null, flash: null, flashN: 0, seen: {}, fails: 0, blackouts: 0,
       news: [{ m: 0, kind: 'info', text: 'You run the power utility of Capture City. Keep the lights on until 2050 and stay under the CO\u2082 limit.' }],
@@ -238,7 +266,7 @@
   function monthName(state) {
     return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][state.m % 12];
   }
-  function demand(state) { return 1150 * Math.pow(1 + RG(state).growth, state.m / 12) * state.demandMult; }
+  function demand(state) { return RG(state).base * Math.pow(1 + RG(state).growth, state.m / 12) * state.demandMult; }
   function addNews(state, kind, text) {
     state.news.unshift({ m: state.m, kind, text });
     if (state.news.length > 30) state.news.pop();
@@ -337,20 +365,22 @@
     addNews(state, 'build', `${p.name} demolished ($${DEMOLISH_COST}M).`);
     return chk;
   }
-  function canResearch(state, id) {
+  function canResearch(state, id, method) {
+    if (!TECHS[id] || !TECHS[id].research) return { ok: false, why: 'Nothing to research' };
     if (state.unlocked[id] || state.research[id] != null) return { ok: false, why: 'Already done' };
     if (Object.keys(state.research).length) return { ok: false, why: 'Lab busy: one project at a time' };
-    const cost = researchCost(state, id);
+    const cost = researchCost(state, id, method);
     if (state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
     return { ok: true, cost };
   }
-  function startResearch(state, id) {
-    const chk = canResearch(state, id);
+  function startResearch(state, id, method) {
+    const chk = canResearch(state, id, method);
     if (!chk.ok) return chk;
-    const pr = project(id);
+    const pr = project(id), mt = methodOf(id, method);
     state.funds -= chk.cost;
-    state.research[id] = researchMonths(state, id);
-    addNews(state, 'lab', `Lab research on ${pr.short} funded ($${chk.cost}M, ${state.research[id]} months).`);
+    state.research[id] = researchMonths(state, id, mt);
+    state.resMethod[id] = mt;
+    addNews(state, 'lab', `${pr.process ? 'Pilot test' : METHODS[mt].label} on ${pr.short} funded ($${chk.cost}M, ${state.research[id]} months, ${Math.round(researchOdds(state, id, mt) * 100)} % chance).`);
     return chk;
   }
   function setPrice(state, price) { state.price = Math.max(40, Math.min(220, Math.round(price))); }
@@ -510,18 +540,27 @@
     }
 
     // gas market drifts every month (imported LNG)
-    state.gasIndex = Math.max(0.75, Math.min(1.6, state.gasIndex + 0.2 * (1 - state.gasIndex) + (R() - 0.5) * rgn.gasSwing));
 
     // research progress
     for (const id of Object.keys(state.research)) {
       state.research[id] -= 1;
       if (state.research[id] <= 0) {
+        const mt = state.resMethod[id] || 'exp';
+        const odds = researchOdds(state, id, mt);
         delete state.research[id];
-        state.unlocked[id] = true;
         const pr = project(id);
-        if (id === 'screen') addNews(state, 'lab', 'QM + MD screening is running: solvent research is 30 % faster and start-ups fail half as often.');
-        else addNews(state, 'lab', `Breakthrough! ${pr.name} is ready to install.`);
-        flash(state, 'lab', `Research done: ${pr.name}.`);
+        if (R() < odds) {
+          state.unlocked[id] = true;
+          addNews(state, 'lab', `Breakthrough! ${pr.name} is ready to install.`);
+          flash(state, 'lab', `Research done: ${pr.name}.`);
+        } else {
+          state.tries[id] = (state.tries[id] || 0) + 1;
+          const why = mt === 'comp'
+            ? `the computer screen picked a candidate that failed in the lab. Screening again learns from it (+${Math.round(METHODS.comp.learn * 100)} % odds)`
+            : 'the experiments hit a dead end. Try again';
+          addNews(state, 'event', `${pr.short} research failed: ${why}.`);
+          flash(state, 'event', `${pr.short} research failed. Try again.`);
+        }
       }
     }
     // construction progress
@@ -651,7 +690,7 @@
     }
     state.maxDebt = Math.max(state.maxDebt, state.greenhouse);       // worst breach, %
 
-    const baseRate = 1150 * HOURS * 0.95;               // t/month if all-coal, no capture
+    const baseRate = rgn.base * HOURS * 0.95;           // t/month if all-coal, no capture
     const smog = emitted / baseRate;
     const FAIR = rgn.fair;
     let dA = 7 * Math.max(0, (state.price - FAIR) / FAIR)
@@ -709,11 +748,11 @@
 
   const api = {
     HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE,
-    BREACH, breachStep, REGIONS, SURPLUS_SHARE, SHIP, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG, STARS,
+    BREACH, breachStep, REGIONS, SURPLUS_SHARE, SHIP, METHODS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG, STARS,
     newGame, step, choose, offCost, online,
     install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost,
     convert, canConvert, buildPlant, canBuildPlant, demolish, canDemolish,
-    startResearch, canResearch, researchCost, researchMonths, project, maturity,
+    startResearch, canResearch, researchCost, researchMonths, researchOdds, project, maturity,
     setPrice, penalty, eff, workPerTonne, carbonTax, taxFor, limit, limitAt, limitFor, fairPrice, gasFuel, demand, year, monthName, score, stars,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
