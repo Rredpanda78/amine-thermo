@@ -97,6 +97,8 @@ button { font: inherit; color: inherit; }
 .col { display: grid; gap: 12px; min-width: 0; }
 .scene { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #7EC8F0; }
 .scene canvas { display: block; width: 100%; height: auto; }
+.paused-badge { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(15, 26, 43, .45); border: 0; color: #FFF; font: 700 18px var(--body); letter-spacing: 1px; cursor: pointer; }
+.paused-badge span { background: rgba(15, 26, 43, .9); border: 1px solid var(--line); border-radius: 999px; padding: 10px 18px; }
 .toast { position: absolute; left: 10px; right: 10px; top: 10px; background: rgba(15, 26, 43, .92); border: 1px solid var(--line); border-left: 4px solid var(--co2); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; font-weight: 700; box-shadow: 0 6px 20px var(--shadow); }
 .toast.event { border-left-color: var(--anger); }
 .toast.good { border-left-color: var(--good); }
@@ -200,7 +202,7 @@ details p { margin: 6px 0 0; }
 .choice .ce { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
 /* tips: a small card at the bottom that pauses the game */
-.tip { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(520px, calc(100% - 32px)); background: #FFF8E1; color: #2A1C02; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 40px var(--shadow); z-index: 25; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.tip { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(520px, calc(100% - 32px)); background: #FFF8E1; color: #2A1C02; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 40px var(--shadow); z-index: 25; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
 .tip b { display: block; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #8A5A00; }
 .tip p { margin: 2px 0 0; font-size: 14.5px; }
 .tip .btn { background: #2A1C02; color: #FFF8E1; }
@@ -259,7 +261,7 @@ details p { margin: 6px 0 0; }
 
   <div class="main">
     <div class="col">
-      <div class="scene o-scene"><canvas id="cv" aria-label="The town and its power plants"></canvas><div class="toast" id="toast" role="status" hidden></div></div>
+      <div class="scene o-scene"><canvas id="cv" aria-label="The town and its power plants"></canvas><button class="paused-badge" id="pausedBadge" hidden><span>❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div></div>
       <div class="card o-price">
         <h2>Electricity price <b id="profit">profit —</b></h2>
         <div class="price-row">
@@ -380,8 +382,10 @@ details p { margin: 6px 0 0; }
   function setSpeed(v) {
     speed = v;
     [['sp0', 0], ['sp1', 1], ['sp2', 2], ['sp4', 4]].forEach(([id, n]) => $(id).setAttribute('aria-pressed', String(n === v)));
+    $('pausedBadge').hidden = v !== 0;
   }
   $('sp0').onclick = () => setSpeed(0);
+  $('pausedBadge').onclick = () => setSpeed(1);
   $('sp1').onclick = () => setSpeed(1);
   $('sp2').onclick = () => setSpeed(2);
   $('sp4').onclick = () => setSpeed(4);
@@ -403,7 +407,8 @@ details p { margin: 6px 0 0; }
     $('tip').hidden = false;
     return true;
   }
-  $('tipOk').onclick = () => { $('tip').hidden = true; };
+  $('tipOk').onclick = e => { e.stopPropagation(); $('tip').hidden = true; };
+  $('tip').addEventListener('click', () => { $('tip').hidden = true; });
 
   // ---------- price ----------
   $('price').addEventListener('input', e => { M.setPrice(S, +e.target.value); renderPrice(); });
@@ -935,7 +940,7 @@ details p { margin: 6px 0 0; }
       q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000; q.r += dt / 1000 * (q.steam ? 3 : 5); q.life -= dt / 1000 * (q.steam ? 0.6 : 0.22);
       if (q.life <= 0 || q.y < -20) { particles.splice(i, 1); continue; }
       ctx.fillStyle = q.steam ? `rgba(255,255,255,${0.5 * q.life})` : (q.dark ? `rgba(55,50,48,${0.55 * q.life})` : `rgba(140,140,140,${0.45 * q.life})`);
-      ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(0.5, q.r), 0, 7); ctx.fill();
     }
     if (particles.length > 400) particles.splice(0, particles.length - 400);
 
@@ -948,18 +953,27 @@ details p { margin: 6px 0 0; }
   }
 
   // ---------- main loop ----------
+  let loopErrors = 0;
   function frame(t) {
-    const dt = Math.min(100, t - (lastT || t)); lastT = t;
-    if (playing && speed > 0 && !S.over && !S.pending && !paused()) {
-      acc += dt * speed;
-      let ticked = false;
-      while (acc >= MS_PER_MONTH && !S.over && !S.pending) { acc -= MS_PER_MONTH; M.step(S); ticked = true; }
-      if (ticked) { renderAll(); showToast(); }
-      if (S.over) showEnd();
-      else if (S.pending) { acc = 0; openEvent(); }
-      else if (ticked && maybeTip()) acc = 0;
+    try {
+      const dt = Math.max(0, Math.min(100, t - (lastT || t))); lastT = t;   // a backwards jump must not stall the clock
+      // a decision that lost its card (e.g. after an error) gets its card back instead of freezing the clock
+      if (playing && S.pending && $('ovEvent').hidden) openEvent();
+      if (playing && speed > 0 && !S.over && !S.pending && !paused()) {
+        acc = Math.max(0, acc) + dt * speed;
+        let ticked = false;
+        while (acc >= MS_PER_MONTH && !S.over && !S.pending) { acc -= MS_PER_MONTH; M.step(S); ticked = true; }
+        if (ticked) { renderAll(); showToast(); }
+        if (S.over) showEnd();
+        else if (S.pending) { acc = 0; openEvent(); }
+        else if (ticked && maybeTip()) acc = 0;
+      }
+      drawScene(dt);
+    } catch (e) {
+      // never let one bad frame stop the clock; keep a note for debugging
+      loopErrors += 1;
+      if (loopErrors < 5 && window.console) console.error('Capture City frame error', e);
     }
-    drawScene(dt);
     requestAnimationFrame(frame);
   }
 
@@ -967,6 +981,15 @@ details p { margin: 6px 0 0; }
   if (/[?&]debug(&|=|$)/.test(location.search)) {
     window.__cc = {
       get state() { return S; },
+      // drive the real loop with synthetic 100 ms frames, auto-answering cards and tips (tests only)
+      run(frames, pick) {
+        for (let i = 0; i < frames && !S.over; i++) {
+          frame((lastT || performance.now()) + 100);
+          if (!$('ovEvent').hidden) { const b = $('evOpts').querySelector('button'); if (b) b.click(); }
+          if (!$('tip').hidden) $('tipOk').click();
+        }
+        return { m: S.m, over: S.over, errors: loopErrors };
+      },
       step(n) {
         $('ovIntro').hidden = true; playing = true;
         for (let i = 0; i < n && !S.over && !S.pending; i++) M.step(S);
