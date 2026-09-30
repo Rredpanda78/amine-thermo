@@ -230,7 +230,7 @@
   // research projects: capture technologies (TECHS[id].research) and PROJECTS
   function project(id) {
     if (id === 'screen') return { id, name: 'Solvent screening', short: 'screening', cost: METHODS.exp.cost, months: METHODS.exp.months,
-      desc: 'Finds one new solvent you do not have yet. Rarer finds are newer and better.' };
+      desc: 'Finds one new solvent you do not have yet (rarer = better). Experiments are slow but reliable; QM + MD computer screening, like our GHGT-18 poster, is fast and cheap but can miss, and every miss improves the next.' };
     if (PROJECTS[id]) return Object.assign({ id }, PROJECTS[id]);
     const t = TECHS[id];
     return { id, name: t.name, short: t.short, cost: t.research.cost, months: t.research.months, star: t.star,
@@ -273,7 +273,7 @@
 
   function makePlant(id, type) {
     return { id, name: `${PLANT_TYPES[type].label} Plant ${id}`, type, gross: PLANT_TYPES[type].size,
-      tech: null, deep: false, build: null, outage: 0, down: 0, downWhy: '', washed: false };
+      tech: null, deep: false, build: null, queue: [], outage: 0, down: 0, downWhy: '', washed: false };
   }
   function newGame(seed, region) {
     region = REGIONS[region] ? region : 'taiwan';
@@ -284,7 +284,7 @@
       seed: seed || Math.floor(Math.random() * 1e9),
       region, m: 0, funds: 700, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
       greenhouse: 0, maxDebt: 0, rate: 0, recent: [], overMonths: 0, wasOver: false,
-      over: null, subsidy: 0, resCut: 0, usCut: false, captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
+      over: null, subsidy: 0, resCut: 0, opexCut: 0, usCut: false, headline: null, headlineN: 0, labQueue: [], captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
       warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0,
       plants: REGIONS[region].peak === 'cold' || region === 'texas'
         ? [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas'), makePlant('D', 'gas')]
@@ -316,58 +316,186 @@
   const findPlant = (state, id) => state.plants.find(x => x.id === id);
 
   // ---- player actions -------------------------------------------------------
-  function canInstall(state, plant, techId) {
+  // `paid` = the job was already paid for when it was queued, so skip the funds check and the charge
+  function canInstall(state, plant, techId, paid) {
     if (!state.unlocked[techId]) return { ok: false, why: 'Research it first' };
     if (plant.build) return { ok: false, why: 'Construction in progress' };
     if (plant.tech === techId) return { ok: false, why: 'Already installed' };
     const cost = installCost(state, plant, techId);
-    if (state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
+    if (!paid && state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
     return { ok: true, cost, months: installMonths(plant) };
   }
-  function install(state, plantId, techId) {
+  function install(state, plantId, techId, paid) {
     const p = findPlant(state, plantId);
     if (!p) return { ok: false, why: 'No such plant' };
-    const chk = canInstall(state, p, techId);
+    const chk = canInstall(state, p, techId, paid != null);
     if (!chk.ok) return chk;
-    state.funds -= chk.cost;
-    p.build = { kind: 'tech', tech: techId, deep: false, left: chk.months, total: chk.months };
-    addNews(state, 'build', `${p.name}: ${TECHS[techId].short} capture construction started ($${chk.cost}M).`);
+    const cost = paid != null ? paid : chk.cost;
+    if (paid == null) state.funds -= cost;
+    p.build = { kind: 'tech', tech: techId, deep: false, left: chk.months, total: chk.months, paid: cost };
+    addNews(state, 'build', `${p.name}: ${TECHS[techId].short} capture construction started ($${cost}M).`);
     return chk;
   }
-  function canUpgrade(state, plant) {
+  function canUpgrade(state, plant, paid) {
     if (!plant.tech) return { ok: false, why: 'Add capture first' };
     if (plant.deep) return { ok: false, why: 'Already at 99 %' };
     if (plant.build) return { ok: false, why: 'Construction in progress' };
     const cost = upgradeCost(state, plant);
-    if (state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
+    if (!paid && state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
     return { ok: true, cost, months: DEEP.months };
   }
-  function upgrade(state, plantId) {
+  function upgrade(state, plantId, paid) {
     const p = findPlant(state, plantId);
     if (!p) return { ok: false, why: 'No such plant' };
-    const chk = canUpgrade(state, p);
+    const chk = canUpgrade(state, p, paid != null);
     if (!chk.ok) return chk;
-    state.funds -= chk.cost;
-    p.build = { kind: 'deep', tech: p.tech, deep: true, left: DEEP.months, total: DEEP.months };
-    addNews(state, 'build', `${p.name}: 99 % capture upgrade started ($${chk.cost}M).`);
+    const cost = paid != null ? paid : chk.cost;
+    if (paid == null) state.funds -= cost;
+    p.build = { kind: 'deep', tech: p.tech, deep: true, left: DEEP.months, total: DEEP.months, paid: cost };
+    addNews(state, 'build', `${p.name}: 99 % capture upgrade started ($${cost}M).`);
     return chk;
   }
-  function canConvert(state, plant) {
+  function canConvert(state, plant, paid) {
     const to = plant.type === 'coal' ? 'gas' : 'coal';
     const c = CONVERT[to];
     if (plant.build) return { ok: false, why: 'Construction in progress', to };
-    if (state.funds < c.cost) return { ok: false, why: 'Not enough funds', to, cost: c.cost };
+    if (!paid && state.funds < c.cost) return { ok: false, why: 'Not enough funds', to, cost: c.cost };
     return { ok: true, to, cost: c.cost, months: c.months };
   }
-  function convert(state, plantId) {
+  function convert(state, plantId, paid) {
     const p = findPlant(state, plantId);
     if (!p) return { ok: false, why: 'No such plant' };
-    const chk = canConvert(state, p);
+    const chk = canConvert(state, p, paid != null);
+    if (!chk.ok) return chk;
+    const cost = paid != null ? paid : chk.cost;
+    if (paid == null) state.funds -= cost;
+    p.build = { kind: 'convert', toType: chk.to, left: chk.months, total: chk.months, paid: cost };
+    addNews(state, 'build', `${p.name}: conversion to ${chk.to} started ($${cost}M, offline ${chk.months} months).`);
+    return chk;
+  }
+
+  // ---- work queues (like training units in a strategy game): paid when queued, refunded when cancelled ----
+  const QUEUE_MAX = 5;
+  const qOf = p => p.queue || (p.queue = []);
+  // the plant as it will be once its current job and everything queued behind it are finished
+  function planned(plant) {
+    const v = { type: plant.type, gross: plant.gross, tech: plant.tech, deep: plant.deep };
+    const apply = job => {
+      if (!job) return;
+      if (job.kind === 'tech') { v.tech = job.tech; v.deep = false; }
+      else if (job.kind === 'deep') v.deep = true;
+      else if (job.kind === 'convert') { v.type = job.toType; v.gross = PLANT_TYPES[job.toType].size; }
+    };
+    apply(plant.build);
+    qOf(plant).forEach(apply);
+    return v;
+  }
+  // what a job would cost if queued now (checked against the planned plant, not today's)
+  function canQueue(state, plant, job) {
+    if (plant.build && plant.build.kind === 'new') return { ok: false, why: 'Plant still being built' };
+    if (qOf(plant).length >= QUEUE_MAX) return { ok: false, why: `Queue full (${QUEUE_MAX})` };
+    const v = planned(plant);
+    let cost, months, to;
+    if (job.kind === 'tech') {
+      if (!TECHS[job.tech]) return { ok: false, why: 'Unknown technology' };
+      if (!state.unlocked[job.tech]) return { ok: false, why: TECHS[job.tech].solvent ? 'Find it by solvent screening' : 'Run the pilot test first' };
+      if (v.tech === job.tech) return { ok: false, why: plant.tech === job.tech && !plant.build && !qOf(plant).length ? 'Already installed' : 'Already queued' };
+      cost = installCost(state, v, job.tech); months = installMonths(v);
+    } else if (job.kind === 'deep') {
+      if (!v.tech) return { ok: false, why: 'Add capture first' };
+      if (v.deep) return { ok: false, why: plant.deep && !plant.build ? 'Already at 99 %' : 'Already queued' };
+      cost = upgradeCost(state, v); months = DEEP.months;
+    } else if (job.kind === 'convert') {
+      to = v.type === 'coal' ? 'gas' : 'coal';
+      cost = CONVERT[to].cost; months = CONVERT[to].months;
+    } else return { ok: false, why: 'Unknown job' };
+    if (state.funds < cost) return { ok: false, why: 'Not enough funds', cost, months, to };
+    return { ok: true, cost, months, to };
+  }
+  function enqueue(state, plantId, job) {
+    const p = findPlant(state, plantId);
+    if (!p) return { ok: false, why: 'No such plant' };
+    const chk = canQueue(state, p, job);
     if (!chk.ok) return chk;
     state.funds -= chk.cost;
-    p.build = { kind: 'convert', toType: chk.to, left: chk.months, total: chk.months };
-    addNews(state, 'build', `${p.name}: conversion to ${chk.to} started ($${chk.cost}M, offline ${chk.months} months).`);
+    const item = { kind: job.kind, tech: job.tech, toType: chk.to, paid: chk.cost, months: chk.months };
+    if (!p.build && !qOf(p).length) startJob(state, p, item);
+    else { qOf(p).push(item); addNews(state, 'build', `${p.name}: ${jobName(item)} queued ($${chk.cost}M paid).`); }
     return chk;
+  }
+  function jobName(job) {
+    return job.kind === 'tech' ? `${TECHS[job.tech].short} capture` : job.kind === 'deep' ? '99 % upgrade' : `conversion to ${job.toType}`;
+  }
+  // start a paid job; if it no longer makes sense (e.g. a solvent swap already done) the money comes back
+  function startJob(state, p, item) {
+    const r = item.kind === 'tech' ? install(state, p.id, item.tech, item.paid)
+      : item.kind === 'deep' ? upgrade(state, p.id, item.paid) : convert(state, p.id, item.paid);
+    if (!r.ok) { state.funds += item.paid; addNews(state, 'build', `${p.name}: ${jobName(item)} skipped (${r.why.toLowerCase()}), $${item.paid}M refunded.`); }
+    return r;
+  }
+  // index 0 = the job under way (full refund, the plant goes back to how it was); 1.. = queued jobs
+  function cancelJob(state, plantId, index) {
+    const p = findPlant(state, plantId);
+    if (!p) return { ok: false, why: 'No such plant' };
+    if (index === 0) {
+      if (!p.build || p.build.kind === 'new') return { ok: false, why: 'Nothing to cancel' };
+      const back = p.build.paid || 0;
+      state.funds += back;
+      addNews(state, 'build', `${p.name}: ${jobName(p.build)} cancelled, $${back}M refunded.`);
+      p.build = null;
+      return { ok: true, refund: back };
+    }
+    const q = qOf(p);
+    const item = q[index - 1];
+    if (!item) return { ok: false, why: 'Nothing to cancel' };
+    q.splice(index - 1, 1);
+    state.funds += item.paid;
+    return { ok: true, refund: item.paid };
+  }
+
+  // lab queue: the lab runs one project at a time, the rest wait (already paid)
+  function canQueueResearch(state, id, method) {
+    const lq = state.labQueue || (state.labQueue = []);
+    if (lq.length >= QUEUE_MAX) return { ok: false, why: `Queue full (${QUEUE_MAX})` };
+    if (id === 'screen') {
+      const planned = lq.filter(x => x.id === 'screen').length + (state.research.screen != null ? 1 : 0);
+      if (planned >= undiscovered(state).length) return { ok: false, why: undiscovered(state).length ? 'Enough screens queued' : 'Every solvent found' };
+    } else {
+      if (!TECHS[id] || !TECHS[id].research) return { ok: false, why: 'Nothing to research' };
+      if (state.unlocked[id] || state.research[id] != null || lq.some(x => x.id === id)) return { ok: false, why: 'Already done or queued' };
+    }
+    const mt = methodOf(id, method);
+    const cost = researchCost(state, id, mt);
+    if (state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
+    return { ok: true, cost, months: researchMonths(state, id, mt), method: mt };
+  }
+  function enqueueResearch(state, id, method) {
+    if (!Object.keys(state.research).length && !(state.labQueue || []).length) return startResearch(state, id, method);
+    const chk = canQueueResearch(state, id, method);
+    if (!chk.ok) return chk;
+    state.funds -= chk.cost;
+    state.labQueue.push({ id, method: chk.method, paid: chk.cost, months: chk.months });
+    addNews(state, 'lab', `${id === 'screen' ? METHODS[chk.method].label : project(id).name} queued ($${chk.cost}M paid).`);
+    return chk;
+  }
+  function cancelResearch(state, index) {
+    const lq = state.labQueue || [];
+    const item = lq[index];
+    if (!item) return { ok: false, why: 'Nothing to cancel' };
+    lq.splice(index, 1);
+    state.funds += item.paid;
+    return { ok: true, refund: item.paid };
+  }
+  function startQueues(state) {
+    for (const p of state.plants) {
+      while (!p.build && qOf(p).length) startJob(state, p, qOf(p).shift());
+    }
+    const lq = state.labQueue || [];
+    while (!Object.keys(state.research).length && lq.length) {
+      const item = lq.shift();
+      const r = startResearch(state, item.id, item.method, item.paid);
+      if (!r.ok) { state.funds += item.paid; addNews(state, 'lab', `Queued lab project skipped (${r.why.toLowerCase()}), $${item.paid}M refunded.`); }
+    }
   }
   function canBuildPlant(state, type) {
     const b = PLANT_TYPES[type].build;
@@ -398,29 +526,33 @@
     const chk = canDemolish(state, p);
     if (!chk.ok) return chk;
     state.funds -= DEMOLISH_COST;
+    const back = qOf(p).reduce((a, x) => a + x.paid, 0);   // queued jobs never started: money back
+    state.funds += back;
     state.plants = state.plants.filter(x => x !== p);
-    addNews(state, 'build', `${p.name} demolished ($${DEMOLISH_COST}M).`);
+    addNews(state, 'build', `${p.name} demolished ($${DEMOLISH_COST}M)${back ? `, $${back}M of queued work refunded` : ''}.`);
     return chk;
   }
-  function canResearch(state, id, method) {
+  function canResearch(state, id, method, paid) {
     if (id === 'screen') { if (!undiscovered(state).length) return { ok: false, why: 'Every solvent found' }; }
     else if (!TECHS[id] || !TECHS[id].research) return { ok: false, why: 'Nothing to research' };
     if (state.unlocked[id] || state.research[id] != null) return { ok: false, why: 'Already done' };
     if (Object.keys(state.research).length) return { ok: false, why: 'Lab busy: one project at a time' };
     const cost = researchCost(state, id, method);
-    if (state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
+    if (!paid && state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
     return { ok: true, cost };
   }
-  function startResearch(state, id, method) {
-    const chk = canResearch(state, id, method);
+  function startResearch(state, id, method, paid) {
+    const chk = canResearch(state, id, method, paid != null);
     if (!chk.ok) return chk;
     const pr = project(id), mt = methodOf(id, method);
-    state.funds -= chk.cost;
+    const cost = paid != null ? paid : chk.cost;
+    if (paid == null) state.funds -= cost;
     state.research[id] = researchMonths(state, id, mt);
     state.resMethod[id] = mt;
+    state.resTotal = state.research[id];
     addNews(state, 'lab', id === 'screen'
-      ? `${METHODS[mt].label} started ($${chk.cost}M, ${state.research[id]} months, ${Math.round(researchOdds(state, id, mt) * 100)} % chance to find a solvent).`
-      : `Pilot test of the ${pr.short} funded ($${chk.cost}M, ${state.research[id]} months).`);
+      ? `${METHODS[mt].label} started ($${cost}M, ${state.research[id]} months, ${Math.round(researchOdds(state, id, mt) * 100)} % chance to find a solvent).`
+      : `Pilot test of the ${pr.short} funded ($${cost}M, ${state.research[id]} months).`);
     return chk;
   }
   function setPrice(state, price) { state.price = Math.max(40, Math.min(220, Math.round(price))); }
@@ -464,8 +596,8 @@
       state.demandMult = 1.12; state.demandMonths = 3;
       const cold = rg.peak === 'cold';
       if (!cap.length || state.captureOff > 0) {
-        addNews(state, 'event', cold ? 'Cold snap! Electric heaters push demand up 12 % for 3 months.' : 'Heat wave! Air-conditioners push demand up 12 % for 3 months.');
-        flash(state, 'event', cold ? 'Cold snap! Demand +12 % for 3 months.' : 'Heat wave! Demand +12 % for 3 months.');
+        headline(state, cold ? 'cold' : 'heat', 'bad', cold ? 'Cold snap grips the city' : 'Heat wave grips the city', 'Power demand +12 % for three months',
+          cold ? 'Electric heaters run day and night. Keep enough plants online or the lights go out.' : 'Air-conditioners run day and night. Keep enough plants online or the lights go out.');
         return;
       }
       const mw = cap.reduce((a, p) => a + p.gross * penalty(p, p.tech), 0);
@@ -537,29 +669,35 @@
     const k = pool[Math.floor(R() * pool.length)];
     if (k === 'gas') {
       state.gasMult = 1.8; state.gasMonths = 6;
-      addNews(state, 'event', 'Gas price spike: gas fuel costs 80 % more for 6 months.');
-      flash(state, 'event', 'Gas price spike: gas fuel +80 % for 6 months.');
+      headline(state, 'gas', 'bad', 'Gas prices soar', 'Gas fuel costs 80 % more for six months',
+        'A cold spell abroad and a pipeline outage send gas prices to a record. Every gas plant in Capture City pays 80 % more for its fuel until the market calms down.');
     } else if (k === 'lng') {
       state.lngCut = 2;
-      addNews(state, 'event', 'LNG tanker delayed and storage is only days deep: gas plants run at half power for 2 months.');
-      flash(state, 'event', 'LNG shortage: gas plants at 50 % for 2 months.');
+      headline(state, 'lng', 'bad', 'LNG tanker stuck at sea', 'Gas plants at half power for two months',
+        'The island keeps only days of liquefied gas in its tanks. With the next tanker delayed by a storm, gas plants must run at half power until supply is back.');
     } else if (k === 'winter') {
       state.gasFreeze = 1;
-      addNews(state, 'event', 'Winter storm: frozen gas wells and pipes leave gas plants at 30 % for a month.');
-      flash(state, 'event', 'Winter storm: gas plants at 30 % for a month.');
+      headline(state, 'winter', 'bad', 'Winter storm freezes gas wells', 'Gas plants at 30 % for a month',
+        'Frozen wellheads and pipes choke the gas supply. Gas plants can only run at 30 % this month, just as heaters push demand up.');
     } else if (k === 'subsidy') {
       state.subsidy = 12;
-      addNews(state, 'good', 'Government CCUS subsidy: capture projects cost 30 % less for 12 months.');
-      flash(state, 'good', 'CCUS subsidy: capture projects \u221230 % for 12 months.');
+      headline(state, 'subsidy', 'good', 'Government backs carbon capture', 'Capture projects 30 % cheaper for a year',
+        'A new clean-air package pays part of every capture project started in the next 12 months: installing, switching and upgrading capture all cost 30 % less.');
     } else if (k === 'health') {
       state.anger = Math.min(100, state.anger + 8);
-      addNews(state, 'event', 'Health report links smog to asthma. Public anger +8.');
-      flash(state, 'event', 'Health report links smog to asthma. Anger +8.');
+      headline(state, 'health', 'bad', 'Doctors link smog to asthma', 'Public anger +8',
+        'A hospital study finds more childhood asthma in neighbourhoods downwind of the power plants. Parents are marching outside City Hall.');
     } else {
-      state.usCut = true; state.resCut = 24;
-      addNews(state, 'policy', 'Washington halts federal carbon-capture funding. Research partners pull out: lab projects cost 50 % more for 2 years.');
-      flash(state, 'policy', 'US carbon-capture funding cut: research costs +50 % for 2 years.');
+      state.usCut = true; state.resCut = 24; state.opexCut = 24;
+      headline(state, 'subcut', 'bad', 'President axes carbon-capture funding', 'Research +50 %, capture running costs +30 % for two years',
+        'The White House has cancelled federal support for carbon capture overnight. Partner labs lose their grants, so every lab project costs 50 % more, and solvent and service suppliers pass on their losses: running a capture plant costs 30 % more. Both last two years.');
     }
+  }
+  // a front-page story: the page shows it as a newspaper and the game waits until it is read
+  function headline(state, id, tone, title, deck, text) {
+    state.headlineN = (state.headlineN || 0) + 1;
+    state.headline = { n: state.headlineN, id, tone, title, deck, text };
+    addNews(state, tone === 'good' ? 'good' : id === 'subcut' ? 'policy' : 'event', `${title}: ${deck}.`);
   }
 
   // ---- one month --------------------------------------------------------------
@@ -636,6 +774,8 @@
         addNews(state, 'build', `${p.name}: ${TECHS[p.tech].short}${p.deep ? ' at 99 %' : ''} capture is online.`);
       }
     }
+    // the next queued job starts as soon as a plant (or the lab) is free
+    startQueues(state);
     // start-up failures and precipitation
     for (const p of state.plants) {
       if (p.outage > 0) { p.outage -= 1; continue; }
@@ -661,6 +801,7 @@
       const pt = PLANT_TYPES[p.type];
       const on = p.tech && p.outage <= 0 && state.captureOff <= 0;
       const e = on ? eff(p.tech, p.deep, p.type) : null;
+      if (e && state.opexCut > 0) e.opex *= 1.3;   // subsidy cut: suppliers pass on their losses
       const c = e ? e.capture : 0;
       const pen = e ? pt.intensity * c * workPerTonne(e) : 0;
       const fuel = p.type === 'gas' ? gasFuel(state) : pt.fuel;
@@ -760,6 +901,7 @@
     if (state.gasMonths > 0 && --state.gasMonths === 0) state.gasMult = 1;
     if (state.subsidy > 0) state.subsidy -= 1;
     if (state.resCut > 0) state.resCut -= 1;
+    if (state.opexCut > 0 && --state.opexCut === 0) addNews(state, 'good', 'Capture running costs are back to normal.');
     if (state.lngCut > 0 && --state.lngCut === 0) addNews(state, 'good', 'LNG supply is back to normal.');
     if (state.gasFreeze > 0) state.gasFreeze -= 1;
     if (state.shipMonths > 0 && --state.shipMonths === 0) addNews(state, 'good', 'The storage site is open again.');
@@ -804,6 +946,7 @@
     BREACH, breachStep, REGIONS, SEASON, SURPLUS_SHARE, SHIP, METHODS, DROPS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG, STARS,
     newGame, step, choose, offCost, online,
     install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost,
+    QUEUE_MAX, planned, canQueue, enqueue, cancelJob, canQueueResearch, enqueueResearch, cancelResearch,
     convert, canConvert, buildPlant, canBuildPlant, demolish, canDemolish,
     startResearch, canResearch, researchCost, researchMonths, researchOdds, project, maturity,
     setPrice, penalty, eff, workPerTonne, carbonTax, taxFor, limit, limitAt, limitFor, fairPrice, gasFuel, demand, peakDemand, seasonOf, year, monthName, score, stars,

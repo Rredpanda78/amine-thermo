@@ -5,10 +5,10 @@
 <title>Capture City 2050</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&family=Playfair+Display:ital,wght@0,700;0,900;1,400&display=swap">
 <style>
-/* Layout: a utility control room. Live town scene on top, meters pinned above it,
-   operator panels (price, plants, lab, news) below — one column on phones, two on desktop. */
+/* Layout: meters across the top, then two panes — the city (live scene, tap a plant to command it, price)
+   and the research lab (screening, pilot test, news). Phones switch panes with two tabs. */
 :root {
   --bg: #0F1A2B;
   --panel: #16243A;
@@ -44,6 +44,8 @@ button { font: inherit; color: inherit; }
 .speed button { background: var(--panel); border: 0; padding: 8px 11px; min-width: 42px; cursor: pointer; font-family: var(--mono); font-size: 13px; }
 .speed button + button { border-left: 1px solid var(--line); }
 .speed button[aria-pressed="true"] { background: var(--amine); color: #062320; font-weight: 600; }
+.snd button { min-width: 0; padding: 8px 9px; font-size: 12px; }
+.snd button[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
 .speed button:focus-visible, .btn:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
 
 /* meters */
@@ -95,10 +97,24 @@ button { font: inherit; color: inherit; }
 .m-gh.over .limbar { box-shadow: 0 0 0 1px var(--anger); }
 .m-gh.over .val { color: var(--anger); }
 
-/* main grid */
-.main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: start; }
-.col { display: grid; gap: 12px; min-width: 0; }
+/* two panes: city | research (tabs on phones) */
+.main { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.pane { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.pane-t { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.pane-t b { font-family: var(--mono); color: var(--fg); letter-spacing: 0; text-transform: none; font-size: 13px; font-weight: 600; }
+.tabs { display: none; }
+.tabs button { background: var(--panel); border: 0; padding: 10px; font-weight: 700; cursor: pointer; color: var(--muted); position: relative; }
+.tabs button[aria-selected="true"] { background: var(--amine); color: #062320; }
+.tabs .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--co2); margin-left: 6px; vertical-align: 1px; }
 .scene { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #7EC8F0; }
+.chips-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pchip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-size: 12.5px; min-height: 32px; }
+.pchip:hover, .pchip:focus-visible { border-color: var(--amine); outline: none; }
+.pchip b { font-family: var(--mono); }
+.pchip i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.pchip.down { border-color: #6B3E33; color: var(--anger); }
+.pchip.add { border-style: dashed; color: var(--amine); font-weight: 700; }
 .scene canvas { display: block; width: 100%; height: auto; }
 .paused-badge { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(15, 26, 43, .45); border: 0; color: #FFF; font: 700 18px var(--body); letter-spacing: 1px; cursor: pointer; }
 .paused-badge span { background: rgba(15, 26, 43, .9); border: 1px solid var(--line); border-radius: 999px; padding: 10px 18px; }
@@ -119,15 +135,31 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .hint .hot { color: var(--anger); font-weight: 700; }
 .hint .ok { color: var(--good); font-weight: 700; }
 
-/* plants */
-.plants { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.plant { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 6px; min-width: 0; text-align: left; cursor: pointer; }
-.plant:hover, .plant:focus-visible { border-color: var(--amine); outline: none; }
-.plant.down { border-color: #6B3E33; }
-.plant.add { border-style: dashed; place-items: center; align-content: center; color: var(--muted); min-height: 96px; font-weight: 700; }
-.plant.add big { font-size: 26px; line-height: 1; color: var(--amine); }
-.plant .ph { display: flex; justify-content: space-between; align-items: center; gap: 4px 6px; flex-wrap: wrap; }
-.plant .nm { font-weight: 700; white-space: nowrap; }
+/* plant command card: icon grid (hover / tap for the info box), work queue on top */
+.cmd { width: min(560px, 100%); }
+.cmd-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cmd-top .btn { min-height: 34px; padding: 6px 12px; }
+.qrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0 2px; }
+.qrow .ql { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: 2px; }
+.qs { position: relative; width: 46px; height: 46px; border-radius: 10px; border: 1px dashed var(--line); display: grid; place-items: center; align-content: center; font: 600 10.5px/1.1 var(--mono); color: var(--muted); background: #0F1B2D; overflow: hidden; text-align: center; padding: 0; }
+.qs.job { border: 0; color: #0B1422; cursor: pointer; }
+.qs.job.run { box-shadow: 0 0 0 2px var(--fg); }
+.qs.job .x { position: absolute; top: 1px; right: 3px; font-size: 11px; font-weight: 700; opacity: .7; }
+.qs.job:hover .x, .qs.job:focus-visible .x { opacity: 1; color: #7A1308; }
+.qs .pg { position: absolute; left: 0; bottom: 0; height: 5px; background: rgba(11, 20, 34, .55); }
+.qs small { font-size: 9.5px; font-weight: 600; opacity: .85; }
+.icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; margin-top: 10px; }
+.ic { position: relative; aspect-ratio: 1 / 1; border-radius: 12px; border: 2px solid transparent; display: grid; place-items: center; align-content: center; gap: 1px; cursor: pointer; font-weight: 700; font-size: 14px; color: #0B1422; padding: 4px; line-height: 1.1; text-align: center; }
+.ic small { font-size: 10px; font-weight: 700; opacity: .8; }
+.ic.locked { background: #22324D !important; color: var(--muted); }
+.ic.sel { border-color: #FFF; box-shadow: 0 0 0 2px var(--co2); }
+.ic.done::after { content: '✓'; position: absolute; top: 2px; right: 6px; font-size: 13px; }
+.ic:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
+.info { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; background: #0F1B2D; padding: 10px 12px; display: grid; gap: 6px; min-height: 170px; align-content: start; }
+.info .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.info .nm { font-weight: 700; font-size: 16px; }
+.info .pitch { font-size: 13.5px; }
+.cmd-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
 .chip { font-size: 11px; font-family: var(--mono); padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .chip.coal { color: #F0A58A; border-color: #6B3E33; }
 .chip.gas { color: #9CC7F2; border-color: #33506F; }
@@ -169,6 +201,7 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 
 /* news */
 .news { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 190px; overflow: auto; }
+@media (min-width: 861px) { .o-lab .proj { padding: 6px 10px; } .o-lab .lab-list { gap: 6px; } }
 .news li { font-size: 13px; padding-left: 10px; border-left: 3px solid var(--line); }
 .news li time { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-right: 6px; }
 .news li.policy { border-color: var(--co2); }
@@ -213,8 +246,28 @@ details p { margin: 6px 0 0; }
 .close-row { display: flex; justify-content: flex-end; margin-top: 12px; }
 .acts { display: flex; flex-wrap: wrap; gap: 8px; }
 
-/* decision card */
-.ev .tag { color: var(--anger); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; }
+/* events: a newspaper front page in the middle of the screen */
+.paper { width: min(640px, 100%); max-height: min(92vh, 920px); overflow: auto; background: #F3EEE2; color: #1A1A1A; border-radius: 3px; padding: 16px 20px 18px; box-shadow: 0 24px 70px var(--shadow); font-family: Georgia, 'Times New Roman', serif; animation: drop .5s cubic-bezier(.2, .9, .3, 1.2); }
+@keyframes drop { from { transform: rotate(-10deg) scale(.5); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .paper { animation: none; } }
+.paper .mast { text-align: center; font-family: 'Playfair Display', Georgia, serif; font-weight: 900; font-size: clamp(24px, 6vw, 40px); line-height: 1; letter-spacing: .5px; border-bottom: 4px double #1A1A1A; padding-bottom: 6px; }
+.paper .dline { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1A1A1A; padding: 4px 0; margin-bottom: 12px; }
+.paper .dline .ex { color: #B3261E; font-weight: 700; }
+.paper .dline .ex.good { color: #2E6B3A; }
+.paper h3 { font-family: 'Playfair Display', Georgia, serif; font-weight: 900; font-size: clamp(24px, 5.6vw, 38px); line-height: 1.05; margin: 0 0 6px; letter-spacing: 0; }
+.paper .deck { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 17px; margin: 0 0 12px; }
+.paper .story { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.paper figure { margin: 0; }
+.paper figure svg { width: 100%; height: auto; display: block; border: 1px solid #1A1A1A; }
+.paper figcaption { font-size: 11px; font-style: italic; margin-top: 3px; color: #444; }
+.paper .body { font-size: 15px; line-height: 1.5; margin: 0; }
+.paper .body::first-letter { float: left; font-family: 'Playfair Display', Georgia, serif; font-weight: 900; font-size: 44px; line-height: .85; padding: 3px 6px 0 0; }
+.paper .opts { margin-top: 14px; }
+.paper .choice { background: #FFFDF6; border: 1.5px solid #1A1A1A; color: #1A1A1A; border-radius: 3px; }
+.paper .choice:hover { border-color: #B3261E; }
+.paper .choice .ce { color: #444; }
+.paper .btn { background: #1A1A1A; color: #F3EEE2; justify-self: end; }
+@media (max-width: 520px) { .paper .story { grid-template-columns: minmax(0, 1fr); } .paper figure { max-width: 300px; } }
 .choice { display: grid; gap: 2px; text-align: left; width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; min-height: 56px; }
 .choice:hover { border-color: var(--amine); }
 .choice:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
@@ -241,11 +294,22 @@ details p { margin: 6px 0 0; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
 @media (max-width: 860px) {
-  .main { display: flex; flex-direction: column; align-items: stretch; }
-  .col { display: contents; }
-  .o-scene { order: 1; } .o-plants { order: 2; } .o-price { order: 3; } .o-lab { order: 4; } .o-news { order: 5; } .o-credits { order: 6; }
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: sticky; top: 0; z-index: 5; }
+  .main[data-tab="city"] .p-research, .main[data-tab="research"] .p-city { display: none; }
   .meters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .m-gh { grid-column: 1 / -1; }
+  .wrap { gap: 10px; padding-block: 10px 20px; }
+  .pane-t { display: none; }
+  .brand small { font-size: 10px; letter-spacing: .6px; }
+  .icons { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .ic { font-size: 13px; border-radius: 10px; }
+  .qs { width: 40px; height: 40px; }
+  .qrow { gap: 6px; }
+  .qrow .ql { display: none; }
+  .news { max-height: 130px; }
+  .top { gap: 8px; }
+  .meter { padding: 6px 8px; }
 }
 @media (max-width: 420px) {
   .date { font-size: 16px; min-width: 78px; }
@@ -265,6 +329,10 @@ details p { margin: 6px 0 0; }
         <button id="sp2" aria-pressed="false">2×</button>
         <button id="sp4" aria-pressed="false">4×</button>
       </div>
+      <div class="speed snd" role="group" aria-label="Sound">
+        <button id="sfxBtn" aria-pressed="true" title="Sound effects on/off">SFX</button>
+        <button id="musBtn" aria-pressed="false" title="Music on/off">Music</button>
+      </div>
     </div>
   </div>
 
@@ -282,9 +350,16 @@ details p { margin: 6px 0 0; }
 
   </div>
 
-  <div class="main">
-    <div class="col">
-      <div class="scene o-scene"><canvas id="cv" aria-label="The town and its power plants"></canvas><button class="paused-badge" id="pausedBadge" hidden><span>❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div></div>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Panels">
+    <button role="tab" data-tab="city" aria-selected="true">City</button>
+    <button role="tab" data-tab="research" aria-selected="false">Research<span class="dot" id="labDot" hidden></span></button>
+  </div>
+
+  <div class="main" id="main" data-tab="city">
+    <section class="pane p-city" aria-label="City">
+      <h2 class="pane-t">City · tap a plant to command it <b id="co2rate">CO₂ — Mt/yr</b></h2>
+      <div class="scene"><canvas id="cv" aria-label="The town and its power plants. Tap a plant to command it."></canvas><button class="paused-badge" id="pausedBadge" hidden><span>❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div></div>
+      <div class="chips-row"><div class="chips" id="chips"></div></div>
       <div class="card o-price">
         <h2>Electricity price <b id="profit">profit —</b></h2>
         <div class="price-row">
@@ -294,28 +369,19 @@ details p { margin: 6px 0 0; }
         <div class="hint" id="priceHint">People accept up to $100/MWh. Higher prices fund capture but make people angry.</div>
         <div class="hint" id="fuelHint"></div>
       </div>
+    </section>
+    <section class="pane p-research" aria-label="Research">
+      <h2 class="pane-t">Research lab <b id="labHead">one project at a time</b></h2>
+      <div class="card o-lab">
+        <div class="lab-note" id="labNote"></div>
+        <div class="lab-list" id="lab"></div>
+        <div class="qrow" id="labQ"></div>
+      </div>
       <div class="card o-news">
         <h2>News</h2>
         <ul class="news" id="news"></ul>
       </div>
-    </div>
-    <div class="col">
-      <div class="card o-plants">
-        <h2>Power plants <b id="co2rate">CO₂ — Mt/yr</b></h2>
-        <div class="plants" id="plants"></div>
-      </div>
-      <div class="card o-lab">
-        <h2>Research lab <b>one project at a time</b></h2>
-        <div class="lab-note" id="labNote"></div>
-        <div class="lab-list" id="lab"></div>
-      </div>
-      <div class="card credits o-credits">
-        <b>Where the numbers come from.</b> Capture technologies use values reported in Lin Research Group papers
-        (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Sep. Purif. Technol. 2025).
-        Values marked <span class="est">est.</span> are game estimates where a paper gives no number.
-        Plants, fuel prices, running costs, the CO₂ limit, failure odds, events and the three regions are simplified for play and are not forecasts.
-      </div>
-    </div>
+    </section>
   </div>
 </div>
 
@@ -328,21 +394,23 @@ details p { margin: 6px 0 0; }
       <li><b>CO₂ limit.</b> Keep the orange bar inside the green box. The box <b>shrinks every year</b> toward net zero. Going over fills the <b>limit breach</b> meter; at 100 % you lose your licence.</li>
       <li><b>Public anger</b> rises with high prices, blackouts and smog. At 100 % you are voted out.</li>
       <li><b>Funds</b> come from electricity bills. Spare power sells to industry at a lower price, but dirty power stops paying once carbon is priced. Below −$500M you go bankrupt.</li>
-      <li>Tap a <b>plant</b> to add CO₂ capture, upgrade it to 99 %, switch coal to gas, or demolish it. Tap <b>+</b> to build a new one.</li>
+      <li>Tap a <b>plant in the town</b> to command it: add CO₂ capture, upgrade to 99 %, switch coal to gas, or demolish. Jobs <b>queue up</b> like in a strategy game: paid when queued, fully refunded if you cancel.</li>
       <li>The <b>research lab</b> finds new solvents by slow, reliable <b>experiments</b> or fast, riskier <b>computer screening</b>. New solvents can fail in their first 2 years.</li>
     </ul>
     <div class="regions" id="regions" role="radiogroup" aria-label="Region"></div>
     <div class="btn-row"><button class="btn" id="startBtn">Start 2026</button></div>
     <p class="src" id="best" style="margin-top:10px"></p>
+    <p class="credits" style="margin:6px 0 0"><b>Where the numbers come from.</b> Capture technologies use values reported in Lin Research Group papers
+      (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Sep. Purif. Technol. 2025) and pilot-plant literature.
+      Values marked <span class="est">est.</span> are game estimates. Plants, prices, the CO₂ limit, events and regions are simplified for play and are not forecasts.</p>
   </div>
 </div>
 
 <div class="overlay" id="ovPlant" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="plTitle">
-    <h3 id="plTitle">Plant</h3>
+  <div class="sheet cmd" role="dialog" aria-modal="true" aria-labelledby="plTitle">
+    <div class="cmd-top"><h3 id="plTitle">Plant</h3><button class="btn ghost" id="plClose">Close</button></div>
     <p class="lead" id="plLead"></p>
     <div id="plBody"></div>
-    <div class="close-row"><button class="btn ghost" id="plClose">Close</button></div>
   </div>
 </div>
 
@@ -356,12 +424,17 @@ details p { margin: 6px 0 0; }
 </div>
 
 <div class="overlay" id="ovEvent" hidden>
-  <div class="sheet ev" role="dialog" aria-modal="true" aria-labelledby="evTitle">
-    <div class="tag">Decision · game paused</div>
+  <article class="paper" role="dialog" aria-modal="true" aria-labelledby="evTitle">
+    <div class="mast">The Capture City Times</div>
+    <div class="dline"><span id="evDate">Jan 2026</span><span class="ex" id="evKind">Extra!</span><span>Game paused</span></div>
     <h3 id="evTitle"></h3>
-    <p class="lead" id="evText"></p>
+    <p class="deck" id="evDeck"></p>
+    <div class="story">
+      <figure><div id="evArt"></div><figcaption id="evCap"></figcaption></figure>
+      <p class="body" id="evText"></p>
+    </div>
     <div class="opts" id="evOpts"></div>
-  </div>
+  </article>
 </div>
 
 <div class="overlay" id="ovFind" hidden>
@@ -404,7 +477,7 @@ details p { margin: 6px 0 0; }
   let S = M.newGame();
   let speed = 1, playing = false, acc = 0, lastT = 0;
   let toastN = 0, toastTimer = null;
-  const MS_PER_MONTH = 800;
+  const MS_PER_MONTH = 1600;   // one game month every 1.6 s at 1× (half the old pace)
   // any open sheet or tip pauses the clock
   const paused = () => ['ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'tip'].some(id => !$(id).hidden);
 
@@ -425,11 +498,93 @@ details p { margin: 6px 0 0; }
   $('sp2').onclick = () => setSpeed(2);
   $('sp4').onclick = () => setSpeed(4);
 
+  // ---------- sound: synthesized with Web Audio (no audio files); effects on, music off by default ----------
+  const SND = (() => {
+    const load = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v === '1'; } catch (e) { return d; } };
+    const save = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch (e) { /* storage unavailable */ } };
+    let ac = null, fxBus = null, musBus = null, musTimer = null, step = 0, nextT = 0;
+    let fxOn = load('cc2050-sfx', true), musOn = false;   // music always starts off
+    function ctx() {
+      if (!ac) {
+        const A = window.AudioContext || window.webkitAudioContext;
+        if (!A) return null;
+        ac = new A();
+        fxBus = ac.createGain(); fxBus.gain.value = 0.55; fxBus.connect(ac.destination);
+        musBus = ac.createGain(); musBus.gain.value = 0.35; musBus.connect(ac.destination);
+      }
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    }
+    const N = n => 440 * Math.pow(2, (n - 69) / 12);
+    function tone(bus, f, t0, dur, type, vol, slideTo) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(f, t0);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(bus); o.start(t0); o.stop(t0 + dur + 0.05);
+    }
+    function noise(t0, dur, vol, freq) {
+      const len = Math.floor(ac.sampleRate * dur), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.8; g.gain.value = vol;
+      s.connect(f); f.connect(g); g.connect(fxBus); s.start(t0);
+    }
+    const FX = {
+      click: t => tone(fxBus, 1400, t, 0.035, 'square', 0.04),
+      queue: t => { tone(fxBus, N(72), t, 0.09, 'triangle', 0.16); tone(fxBus, N(79), t + 0.07, 0.12, 'triangle', 0.16); },
+      cancel: t => { tone(fxBus, N(79), t, 0.09, 'triangle', 0.13); tone(fxBus, N(70), t + 0.07, 0.16, 'triangle', 0.13); },
+      nope: t => tone(fxBus, 180, t, 0.16, 'square', 0.05),
+      done: t => [72, 76, 79, 84].forEach((n, i) => tone(fxBus, N(n), t + i * 0.08, 0.28, 'triangle', 0.13)),
+      news: t => { noise(t, 0.28, 0.35, 1800); noise(t + 0.12, 0.2, 0.25, 2600); tone(fxBus, N(84), t + 0.3, 0.7, 'sine', 0.12); tone(fxBus, N(91), t + 0.3, 0.7, 'sine', 0.05); },
+      find: (t, stars) => { const seq = [72, 76, 79, 84, 88, 91].slice(0, 2 + (stars || 2)); seq.forEach((n, i) => tone(fxBus, N(n), t + i * 0.1, 0.35, 'square', 0.06)); tone(fxBus, N(seq[seq.length - 1] + 12), t + seq.length * 0.1, 0.8, 'triangle', 0.1); },
+      empty: t => { tone(fxBus, N(67), t, 0.18, 'triangle', 0.13); tone(fxBus, N(61), t + 0.17, 0.35, 'triangle', 0.13); },
+      fail: t => { tone(fxBus, 330, t, 0.5, 'sawtooth', 0.06, 90); noise(t, 0.3, 0.2, 400); },
+      blackout: t => tone(fxBus, 240, t, 0.8, 'sawtooth', 0.07, 45),
+      warn: t => { tone(fxBus, 880, t, 0.12, 'square', 0.05); tone(fxBus, 660, t + 0.16, 0.12, 'square', 0.05); tone(fxBus, 880, t + 0.32, 0.12, 'square', 0.05); },
+      win: t => [60, 64, 67, 72, 67, 72, 76, 79].forEach((n, i) => tone(fxBus, N(n), t + i * 0.12, 0.3, 'square', 0.06)),
+      lose: t => [67, 66, 65, 60].forEach((n, i) => tone(fxBus, N(n), t + i * 0.3, i === 3 ? 0.9 : 0.3, 'triangle', 0.13)),
+    };
+    function play(name, arg) {
+      if (!fxOn || !FX[name]) return;
+      try { if (ctx()) FX[name](ac.currentTime + 0.01, arg); } catch (e) { /* audio is optional */ }
+    }
+    // background loop: an original C–Am–F–G tune, bass + soft arpeggio, scheduled a little ahead
+    const PROG = [[36, [60, 64, 67, 72]], [33, [57, 60, 64, 69]], [29, [57, 60, 65, 69]], [31, [55, 59, 62, 67]]];
+    const MEL = [76, 0, 74, 72, 0, 72, 74, 76, 0, 72, 69, 0, 67, 0, 69, 72, 0, 72, 74, 0, 72, 69, 67, 0, 71, 0, 74, 72, 0, 71, 67, 0];
+    function tick() {
+      if (!ac) return;
+      const beat = 60 / 88 / 2;
+      while (nextT < ac.currentTime + 0.25) {
+        const bar = Math.floor(step / 8) % 4, b = step % 8, [bass, ch] = PROG[bar];
+        if (b === 0 || b === 4) tone(musBus, N(bass), nextT, beat * 3.5, 'triangle', 0.16);
+        tone(musBus, N(ch[b % 4]), nextT, beat * 0.9, 'square', 0.022);
+        const m = MEL[step % 32];
+        if (m && Math.floor(step / 32) % 2 === 1) tone(musBus, N(m), nextT, beat * 1.6, 'triangle', 0.06);
+        nextT += beat; step += 1;
+      }
+    }
+    function setMusic(on) {
+      musOn = on;
+      clearInterval(musTimer); musTimer = null;
+      if (on && ctx()) { nextT = ac.currentTime + 0.05; step = 0; musTimer = setInterval(tick, 90); }
+      $('musBtn').setAttribute('aria-pressed', String(on));
+    }
+    function setFx(on) { fxOn = on; save('cc2050-sfx', on); $('sfxBtn').setAttribute('aria-pressed', String(on)); }
+    setFx(fxOn);
+    $('sfxBtn').onclick = () => { setFx(!fxOn); play('click'); };
+    $('musBtn').onclick = () => setMusic(!musOn);
+    return { play, unlock: () => { if (fxOn || musOn) ctx(); } };
+  })();
+
   // ---------- tips (shown once each, pause the game) ----------
   const TIPS = [
-    { id: 'start', when: s => s.m >= 1, text: 'Tap a power plant to add CO₂ capture. Coal Plant A is the biggest emitter.' },
+    { id: 'start', when: s => s.m >= 1, text: 'Tap a power plant in the town (or its chip under the town) to add CO₂ capture. Coal Plant A is the biggest emitter.' },
     { id: 'box', when: s => s.m >= 4, text: 'Keep the orange bar inside the green box: that box is the legal CO₂ limit, and it shrinks every year.' },
-    { id: 'lab', when: s => s.m >= 10 || s.plants.some(p => p.tech || p.build), text: 'The research lab finds better solvents, one project at a time. Lab experiments are slow but usually work; computer screening (QM + MD) is fast and cheap but can miss.' },
+    { id: 'lab', when: s => s.m >= 10 || s.plants.some(p => p.tech || p.build), text: () => 'The research lab finds better solvents. Lab experiments are slow but usually work; computer screening (QM + MD) is fast and cheap but can miss. The lab runs one project at a time, and you can queue up to 5 more.' + (innerWidth <= 860 ? ' Open the Research tab at the top.' : '') },
     { id: 'deep', when: s => s.m >= 144, text: 'Plan ahead: by the 2040s 90 % capture is not enough. The 99 % upgrade is costly and takes a year to build; switching coal to gas is the other route. The dashed line on the CO₂ bar is the limit 5 years from now.' },
   ];
   let tipsShown = {};
@@ -438,7 +593,7 @@ details p { margin: 6px 0 0; }
     const t = TIPS.find(x => !tipsShown[x.id] && x.when(S));
     if (!t) return false;
     tipsShown[t.id] = true;
-    $('tipText').textContent = t.text;
+    $('tipText').textContent = typeof t.text === 'function' ? t.text() : t.text;
     $('tip').hidden = false;
     return true;
   }
@@ -459,48 +614,38 @@ details p { margin: 6px 0 0; }
     $('fuelHint').innerHTML = (S.gasMult > 1 ? `<span class="hot">Gas price spike: $${fmt(M.gasFuel(S))}/MWh.</span> ` : '') +
       (S.lngCut > 0 ? '<span class="hot">LNG shortage: gas plants at half power.</span> ' : '') +
       (S.gasFreeze > 0 ? '<span class="hot">Winter storm: gas plants at 30 %.</span> ' : '') +
-      (S.shipMonths > 0 ? `CO₂ is being shipped to a backup site (${S.shipMonths} mo).` : '');
+      (S.shipMonths > 0 ? `CO₂ is being shipped to a backup site (${S.shipMonths} mo). ` : '') +
+      (S.opexCut > 0 ? `<span class="hot">Subsidy cut: capture running costs +30 % (${S.opexCut} mo).</span>` : '');
   }
 
-  // ---------- plants ----------
-  function plantHTML(p) {
-    const pen = p.tech ? M.penalty(p, p.tech) : 0;
-    const on = M.online(p);
-    const tags = [];
-    if (p.build && p.build.kind === 'new') tags.push('<span class="chip warn">being built</span>');
-    else if (p.build && p.build.kind === 'convert') tags.push(`<span class="chip warn">→ ${p.build.toType}</span>`);
-    else if (p.tech) { const t = M.TECHS[p.tech]; tags.push(`<span class="tech-tag" style="color:${t.color}">${t.short} · ${p.deep ? 99 : 90} %</span>`); }
-    else tags.push('<span class="tech-tag" style="color:var(--muted)">No capture</span>');
-    if (p.down > 0) tags.push(`<span class="chip bad">${p.downWhy === 'tripped' ? 'tripped' : 'typhoon'}</span>`);
-    else if (p.tech && (p.outage > 0 || S.captureOff > 0)) tags.push('<span class="chip bad">capture off</span>');
-    if (p.type === 'gas' && S.lngCut > 0 && on) tags.push('<span class="chip bad">LNG 50 %</span>');
-    let prog = '';
-    if (p.build) {
-      const done = 1 - p.build.left / p.build.total;
-      prog = `<div class="prog"><i style="width:${Math.round(done * 100)}%"></i></div>`;
-    }
-    const net = on ? p.gross * (1 - pen) * (p.type === 'gas' && S.lngCut > 0 ? 0.5 : 1) : 0;
-    return `<button class="plant ${p.down > 0 ? 'down' : ''}" data-plant="${p.id}">
-      <div class="ph"><span class="nm">Plant ${p.id}</span><span class="chip ${p.type}">${p.gross} MW ${p.type}</span></div>
-      <div class="tags">${tags.join('')}</div>
-      <div class="kv">Output <b>${fmt(net)}</b> MW${p.build ? ` · ${p.build.left} mo` : ''}</div>
-      ${prog}
-    </button>`;
+  // ---------- plant chips under the town (same as tapping the plant in the scene) ----------
+  const TYPE_COL = { coal: '#6E3F33', gas: '#5A6E86' };
+  function plantStatus(p) {
+    if (p.build && p.build.kind === 'new') return 'being built';
+    if (p.build && p.build.kind === 'convert') return '→ ' + p.build.toType;
+    if (p.down > 0) return p.downWhy === 'tripped' ? 'tripped' : 'under repair';
+    const t = p.tech ? M.TECHS[p.tech] : null;
+    let s = t ? t.short + (p.deep ? ' 99 %' : '') : 'no capture';
+    if (p.tech && (p.outage > 0 || S.captureOff > 0)) s += ' (off)';
+    return s;
   }
-  function renderPlants() {
-    const add = S.plants.length < M.MAX_PLANTS
-      ? `<button class="plant add" id="addPlant"><big>+</big>Build a plant</button>` : '';
-    $('plants').innerHTML = S.plants.map(plantHTML).join('') + add;
-    $('plants').querySelectorAll('[data-plant]').forEach(b => b.onclick = () => openPlant(b.dataset.plant));
-    if ($('addPlant')) $('addPlant').onclick = openBuild;
+  function renderChips() {
+    const add = S.plants.length < M.MAX_PLANTS ? '<button class="pchip add" id="addPlant">+ Build plant</button>' : '';
+    $('chips').innerHTML = S.plants.map(p => {
+      const t = p.tech ? M.TECHS[p.tech] : null, q = (p.queue || []).length;
+      return `<button class="pchip ${p.down > 0 ? 'down' : ''}" data-plant="${p.id}"><i style="background:${t ? t.color : TYPE_COL[p.type]}"></i><b>${p.id}</b>${p.type} · ${plantStatus(p)}${p.build ? ` · ${p.build.left} mo` : ''}${q ? ` · +${q}` : ''}</button>`;
+    }).join('') + add;
+    $('chips').querySelectorAll('[data-plant]').forEach(b => b.onclick = () => { SND.play('click'); openPlant(b.dataset.plant); });
+    if ($('addPlant')) $('addPlant').onclick = () => { SND.play('click'); openBuild(); };
   }
 
-  // ---------- plant sheet ----------
-  let curPlant = null;
-  function openPlant(id) { curPlant = id; renderPlant(); $('ovPlant').hidden = false; }
+  // ---------- plant command card: work queue, icon grid, info box (hover on desktop, tap on phones) ----------
+  let curPlant = null, sel = null, hoverK = null, lastPtr = 'mouse', armed = false;
+  function openPlant(id) { curPlant = id; sel = null; hoverK = null; armed = false; renderPlant(); $('ovPlant').hidden = false; }
   function closePlant() { $('ovPlant').hidden = true; curPlant = null; }
   $('plClose').onclick = closePlant;
   $('ovPlant').addEventListener('click', e => { if (e.target === $('ovPlant')) closePlant(); });
+  document.addEventListener('pointerdown', e => { lastPtr = e.pointerType || 'mouse'; }, true);
   // compare bars: every solvent on the same scale for this plant (speed: log 0.1x to 10x)
   function bars(p, id) {
     const t = M.TECHS[id], e = M.eff(id, false, p.type);
@@ -514,82 +659,126 @@ details p { margin: 6px 0 0; }
       + row('Power lost', '−' + fmt(lost(id)) + ' MW', rel(lost, id), false)
       + row('Build cost', '$' + fmt(cost(id)) + 'M', rel(cost, id), false)
       + row('Running cost', '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
-      + '</div>';
+      + '</div><div class="barkey">Bars run from the best to the worst solvent: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.</div>';
   }
-  function techRow(p, id) {
-    const t = M.TECHS[id];
-    const pen = M.penalty(p, id, false);
-    const e = M.eff(id, false, p.type);
-    const mt = M.maturity(S, id);
-    const chk = M.canInstall(S, p, id);
-    const est = k => (t.est && t.est.includes(k)) ? ' <span class="est">est.</span>' : '';
-    const stage = !t.startup ? `<span class="chip ok">${t.stage}</span>`
-      : mt.proven ? '<span class="chip ok">proven ✓</span>'
-      : `<span class="chip warn" title="Monthly odds of a start-up failure until 24 months of operation">new · ${fmt(mt.risk * 100, 1)} %/mo risk</span>`;
-    let action;
-    if (p.tech === id) action = `<span class="ready">Installed ✓</span>`;
-    else if (!S.unlocked[id]) action = `<span class="src">${M.DROPS[id] ? 'Find it by solvent screening in the lab' : 'Run the pilot test in the lab'}${S.research[id] != null ? ' (' + S.research[id] + ' mo left)' : ''}</span>`;
-    else action = `<button class="btn ${t.star ? 'gold' : ''}" data-inst="${id}" ${chk.ok ? '' : 'disabled'}>${p.tech ? 'Switch' : 'Install'} · $${fmt(M.installCost(S, p, id))}M · ${M.installMonths(p)} mo</button>${chk.ok ? '' : `<span class="src">${chk.why}</span>`}`;
-    return `<div class="opt ${t.star ? 'star' : ''}">
-      <div class="row"><span class="nm" style="color:${t.color}">${t.name}</span>${stage}</div>
-      <div class="pitch">${t.pitch}</div>
-      ${bars(p, id)}
-      <details><summary>Details</summary><p>Absorbs ${t.rate}× as fast as MEA; a slower solvent needs a taller absorber, so it costs more to build. Regeneration ${fmt(e.duty, 1)} GJ/t${est('duty')}${t.est && t.est.includes('capex') ? ' · build cost is a game estimate' : ''}${p.type === 'gas' ? ' (gas flue gas is dilute, so +15 %)' : ''}. ${t.fact}</p><p class="src">${t.src}</p></details>
-      <div class="row">${action}</div>
-    </div>`;
+  const ICON = { mea90: ['MEA', 'solvent'], afs: ['AS', 'MEA + stripper'], cesar1: ['CESAR1', 'AMP + PZ'], pz: ['PZ', '+ stripper'], ampnmp: ['AMP', '– NMP'], pe2eg: ['2PE', '– EG'] };
+  const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' || k === 'convert' ? { kind: k } : null;
+  function jobLook(j) {
+    if (j.kind === 'tech') return { c: M.TECHS[j.tech].color, l: ICON[j.tech][0] };
+    if (j.kind === 'deep') return { c: '#7BD389', l: '99%' };
+    if (j.kind === 'convert') return { c: j.toType === 'gas' ? '#9CC7F2' : '#F0A58A', l: '→' + j.toType };
+    return { c: '#E2A93B', l: 'new' };
+  }
+  function iconHTML(p, k) {
+    const v = M.planned(p);
+    let bg, label, sub = '', locked = false, done = false, name;
+    if (M.TECHS[k]) {
+      const t = M.TECHS[k];
+      bg = t.color; [label, sub] = ICON[k]; name = t.name;
+      locked = !S.unlocked[k]; done = v.tech === k;
+      if (locked) sub = M.DROPS[k] ? '★'.repeat(M.DROPS[k].stars) : 'pilot test';
+    } else if (k === 'deep') { bg = '#7BD389'; label = '99%'; sub = 'upgrade'; done = !!v.deep; locked = !v.tech; name = 'Upgrade to 99 % capture'; }
+    else if (k === 'convert') { const to = v.type === 'coal' ? 'gas' : 'coal'; bg = to === 'gas' ? '#9CC7F2' : '#F0A58A'; label = '→ ' + to; sub = 'convert'; name = 'Convert to ' + to; }
+    else { bg = '#EF6351'; label = '✕'; sub = 'demolish'; name = 'Demolish'; }
+    return `<button class="ic ${locked ? 'locked' : ''} ${done ? 'done' : ''} ${(hoverK || sel) === k ? 'sel' : ''}" data-k="${k}" style="background:${bg}${label.length > 4 ? ';font-size:12px' : ''}" aria-label="${name}${locked ? ' (locked)' : ''}">${label}${sub ? `<small>${sub}</small>` : ''}</button>`;
+  }
+  function markSel() {
+    document.querySelectorAll('#icons .ic').forEach(x => x.classList.toggle('sel', x.dataset.k === (hoverK || sel)));
   }
   function renderPlant() {
     const p = S.plants.find(x => x.id === curPlant);
     if (!p) { closePlant(); return; }
     const pt = M.PLANT_TYPES[p.type];
+    const on = M.online(p), pen = p.tech ? M.penalty(p, p.tech) : 0;
     $('plTitle').textContent = `${pt.label} Plant ${p.id}`;
-    $('plLead').textContent = `${p.gross} MW ${p.type} · ${pt.intensity} t CO₂ per MWh · funds ${money(S.funds)} · game paused`;
-    let h = '';
-    if (p.build) {
-      const k = p.build.kind;
-      const what = k === 'new' ? 'Being built' : k === 'convert' ? `Converting to ${p.build.toType}`
-        : k === 'deep' ? 'Upgrading to 99 %' : `Installing ${M.TECHS[p.build.tech].short}`;
-      h += `<div class="opt"><div class="row"><span class="nm">${what}</span><span class="chip warn">${p.build.left} mo left</span></div></div>`;
+    $('plLead').textContent = `${p.gross} MW ${p.type} · ${plantStatus(p)} · output ${fmt(on ? p.gross * (1 - pen) : 0)} MW · funds ${money(S.funds)} · game paused`;
+    const jobs = [];
+    if (p.build) jobs.push(Object.assign({ run: true }, p.build));
+    (p.queue || []).forEach(j => jobs.push(j));
+    let q = '<span class="ql">Queue</span>';
+    for (let i = 0; i < 1 + M.QUEUE_MAX; i++) {
+      const j = jobs[i];
+      if (!j) { q += '<span class="qs"></span>'; continue; }
+      const lk = jobLook(j), can = j.kind !== 'new';
+      const pg = j.run ? `<span class="pg" style="width:${Math.round(100 * (1 - j.left / j.total))}%"></span>` : '';
+      q += `<button class="qs job ${j.run ? 'run' : ''}" style="background:${lk.c}" data-cx="${i}" ${can ? '' : 'disabled'} title="${can ? `Cancel for a full refund ($${j.paid || 0}M)` : 'New plant under construction'}">${can ? '<span class="x">×</span>' : ''}${lk.l}<small>${j.run ? j.left : j.months} mo</small>${pg}</button>`;
     }
-    if (!p.build || (p.build.kind !== 'new' && p.build.kind !== 'convert')) {
-      h += '<h4>CO₂ capture</h4><div class="opts">';
-      if (p.tech && !p.deep) {
-        const chk = M.canUpgrade(S, p);
-        const pen = M.penalty(p, p.tech, true);
-        h += `<div class="opt up"><div class="row"><span class="nm" style="color:var(--good)">Upgrade to 99 % capture</span><span class="chip">taller packing</span></div>
-          <div class="pitch">A costly last resort: 99 % instead of 90 %, but the taller columns take a year to build and need more steam.</div>
-          <div class="mini"><span>captures <b>99 %</b></span><span>output <b>−${Math.round(pen * 100)} %</b></span></div>
-          <details><summary>Details</summary><p>Pushing amine capture past 99 % needs 20–30 m of packing and about 9 % more regeneration energy <span class="est">est.</span></p><p class="src">Chang, Chou &amp; Lin, Sep. Purif. Technol. 2025</p></details>
-          <div class="row"><button class="btn" data-up="1" ${chk.ok ? '' : 'disabled'}>Upgrade · $${fmt(M.upgradeCost(S, p))}M · ${M.DEEP.months} mo</button>${chk.ok ? '' : `<span class="src">${chk.why}</span>`}</div></div>`;
-      } else if (p.deep) {
-        h += '<div class="opt up"><div class="row"><span class="nm" style="color:var(--good)">Capturing 99 % ✓</span></div></div>';
-      }
-      h += '<div class="barkey">Bars run from the best to the worst solvent for this plant: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.</div>';
-      h += M.TECH_ORDER.map(id => techRow(p, id)).join('') + '</div>';
+    const building = p.build && p.build.kind === 'new';
+    const keys = building ? [] : [...M.TECH_ORDER, 'deep', 'convert', 'demolish'];
+    $('plBody').innerHTML = `<div class="qrow">${q}</div>`
+      + (building ? '<p class="lead">This plant is still being built. Come back when it is online to add capture.</p>'
+        : `<div class="icons" id="icons">${keys.map(k => iconHTML(p, k)).join('')}</div><div class="info" id="info"></div>`)
+      + `<p class="cmd-hint">${lastPtr === 'mouse' ? 'Hover an icon for details, click it to queue.' : 'Tap an icon for details, tap it again to queue.'} Jobs are paid when queued; tap a job in the queue to cancel it for a full refund.</p>`;
+    $('plBody').querySelectorAll('[data-cx]').forEach(b => b.onclick = () => {
+      const r = M.cancelJob(S, p.id, +b.dataset.cx);
+      SND.play(r.ok ? 'cancel' : 'nope');
+      renderAll();
+    });
+    $('plBody').querySelectorAll('.ic').forEach(b => {
+      const k = b.dataset.k;
+      b.onmouseenter = () => { if (lastPtr === 'mouse') { hoverK = k; markSel(); renderInfo(p); } };
+      b.onfocus = () => { if (b.matches(':focus-visible')) { sel = k; markSel(); renderInfo(p); } };
+      b.onclick = () => {
+        if (k !== 'demolish') armed = false;
+        if (k === 'demolish' || (lastPtr !== 'mouse' && sel !== k)) { sel = k; hoverK = null; markSel(); renderInfo(p); SND.play('click'); return; }
+        doJob(p, k);
+      };
+    });
+    if ($('icons')) $('icons').onmouseleave = () => { hoverK = null; markSel(); renderInfo(p); };
+    renderInfo(p);
+  }
+  function renderInfo(p) {
+    const box = $('info');
+    if (!box) return;
+    const v = M.planned(p);
+    const vp = Object.assign({}, p, v);   // the plant as it will be when this job starts
+    const k = hoverK || sel || (v.tech ? (v.deep ? 'convert' : 'deep') : 'mea90');
+    const idle = !p.build && !(p.queue || []).length;
+    const act = chk => `${idle ? 'Start' : 'Queue'} · $${fmt(chk.cost)}M · ${chk.months} mo`;
+    const why = chk => `<span class="src">${chk.why}${chk.cost && chk.why === 'Not enough funds' ? ` (needs $${fmt(chk.cost)}M)` : ''}</span>`;
+    let h;
+    if (M.TECHS[k]) {
+      const t = M.TECHS[k], e = M.eff(k, false, v.type), mt = M.maturity(S, k), chk = M.canQueue(S, p, jobFor(k));
+      const est = x => (t.est && t.est.includes(x)) ? ' <span class="est">est.</span>' : '';
+      const stage = !t.startup ? `<span class="chip ok">${t.stage}</span>`
+        : mt.proven ? '<span class="chip ok">proven ✓</span>'
+        : `<span class="chip warn" title="Monthly odds of a start-up failure until 24 months of operation">new · ${fmt(mt.risk * 100, 1)} %/mo risk</span>`;
+      h = `<div class="row"><span class="nm" style="color:${t.color}">${t.name}</span>${stage}</div>
+        <div class="pitch">${t.pitch}</div>${bars(vp, k)}
+        <details><summary>Details</summary><p>Absorbs ${t.rate}× as fast as MEA; a slower solvent needs a taller absorber, so it costs more to build. Regeneration ${fmt(e.duty, 1)} GJ/t${est('duty')}${t.est && t.est.includes('capex') ? ' · build cost is a game estimate' : ''}${v.type === 'gas' && !t.gasOK ? ' (gas flue gas is dilute, so +15 %)' : ''}. ${t.fact}</p><p class="src">${t.src}</p></details>
+        <div class="row">${chk.ok ? `<button class="btn ${t.star ? 'gold' : ''}" data-go="${k}">${act(chk)}</button>` : why(chk)}</div>`;
+    } else if (k === 'deep') {
+      const chk = M.canQueue(S, p, { kind: 'deep' });
+      const pen = v.tech ? M.penalty({ type: v.type }, v.tech, true) : 0;
+      h = `<div class="row"><span class="nm" style="color:var(--good)">Upgrade to 99 % capture</span><span class="chip">taller packing</span></div>
+        <div class="pitch">A costly last resort: 99 % instead of 90 %, but the taller columns take a year to build and need more steam.</div>
+        ${v.tech ? `<div class="mini"><span>captures <b>99 %</b></span><span>output <b>−${Math.round(pen * 100)} %</b></span></div>` : ''}
+        <details><summary>Details</summary><p>Pushing amine capture past 99 % needs 20–30 m of packing and about 9 % more regeneration energy <span class="est">est.</span></p><p class="src">Chang, Chou &amp; Lin, Sep. Purif. Technol. 2025</p></details>
+        <div class="row">${chk.ok ? `<button class="btn" data-go="deep">${act(chk)}</button>` : why(chk)}</div>`;
+    } else if (k === 'convert') {
+      const chk = M.canQueue(S, p, { kind: 'convert' }), to = v.type === 'coal' ? 'gas' : 'coal';
+      h = `<div class="row"><span class="nm">Convert to ${to}</span><span class="chip ${to}">${M.PLANT_TYPES[to].size} MW ${to}</span></div>
+        <div class="pitch">${to === 'gas' ? 'Switch to gas: 60 % less CO₂ per MWh, but pricier fuel and LNG shortages.' : 'Switch to coal: cheap, steady fuel, but 2.6× the CO₂ per MWh.'} The plant is offline while it is converted; its capture unit stays.</div>
+        <div class="row">${chk.ok ? `<button class="btn ghost" data-go="convert">${act(chk)} offline</button>` : why(chk)}</div>`;
+    } else {
+      const dm = M.canDemolish(S, p), back = (p.queue || []).reduce((a, x) => a + x.paid, 0);
+      h = `<div class="row"><span class="nm" style="color:var(--anger)">Demolish ${p.name}</span></div>
+        <div class="pitch">Costs $${M.DEMOLISH_COST}M and removes ${p.gross} MW for good.${back ? ` Queued work is refunded ($${back}M).` : ''}</div>
+        <div class="row">${dm.ok ? `<button class="btn danger ${armed ? 'armed' : ''}" data-go="demolish">${armed ? 'Tap again to demolish' : `Demolish · $${M.DEMOLISH_COST}M`}</button>` : `<span class="src">${dm.why}</span>`}</div>`;
     }
-    const cv = M.canConvert(S, p);
-    const conv = M.CONVERT[cv.to];
-    const dm = M.canDemolish(S, p);
-    h += `<h4>Plant</h4><div class="opt">
-      <div class="pitch">${cv.to === 'gas'
-        ? 'Switch to gas: 60 % less CO₂ per MWh, but pricier fuel and LNG shortages.'
-        : 'Switch to coal: cheap, steady fuel, but 2.6× the CO₂ per MWh.'}</div>
-      <div class="acts">
-        <button class="btn ghost" id="doConvert" ${cv.ok ? '' : 'disabled'}>Convert to ${cv.to} · $${conv.cost}M · offline ${conv.months} mo</button>
-        <button class="btn danger" id="doDemolish" ${dm.ok ? '' : 'disabled'}>Demolish · $${M.DEMOLISH_COST}M</button>
-      </div>
-      ${cv.ok ? '' : `<span class="src">${cv.why}</span>`}${dm.ok ? '' : `<span class="src">${dm.why}</span>`}
-    </div>`;
-    $('plBody').innerHTML = h;
-    $('plBody').querySelectorAll('[data-inst]').forEach(b => b.onclick = () => { M.install(S, p.id, b.dataset.inst); closePlant(); renderAll(); });
-    const up = $('plBody').querySelector('[data-up]');
-    if (up) up.onclick = () => { M.upgrade(S, p.id); closePlant(); renderAll(); };
-    $('doConvert').onclick = () => { M.convert(S, p.id); closePlant(); renderAll(); };
-    $('doDemolish').onclick = e => {
-      const b = e.currentTarget;
-      if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Tap again to demolish'; return; }
-      M.demolish(S, p.id); closePlant(); renderAll();
-    };
+    box.innerHTML = h;
+    box.querySelectorAll('[data-go]').forEach(b => b.onclick = () => doJob(p, b.dataset.go));
+  }
+  function doJob(p, k) {
+    if (k === 'demolish') {
+      if (!armed) { armed = true; sel = k; hoverK = null; markSel(); renderInfo(p); return; }
+      if (M.demolish(S, p.id).ok) { SND.play('cancel'); closePlant(); renderAll(); }
+      return;
+    }
+    const r = M.enqueue(S, p.id, jobFor(k));
+    SND.play(r.ok ? 'queue' : 'nope');
+    sel = k; hoverK = null;
+    renderAll();
   }
 
   // ---------- build sheet ----------
@@ -611,39 +800,67 @@ details p { margin: 6px 0 0; }
     $('bdOpts').querySelectorAll('[data-build]').forEach(b => b.onclick = () => { M.buildPlant(S, b.dataset.build); closeBuild(); renderAll(); });
   }
 
-  // ---------- lab ----------
+  // ---------- lab: pick a project; while the lab is busy the button queues it (paid now) ----------
   function renderLab() {
-    const busy = Object.keys(S.research).length > 0;
+    const busy = Object.keys(S.research).length > 0, lq = S.labQueue || [];
+    const idle = !busy && !lq.length;
     const notes = [];
-    if (S.resCut > 0) notes.push(`<span class="hot">US funding cut: research costs +50 % for ${S.resCut} more months.</span>`);
-    notes.push('<b>Lab experiments</b> are slow but usually find a solvent; <b>computer screening</b> (QM + MD, like our GHGT-18 poster) is fast and cheap but can come up empty, and every empty screen improves the next.');
+    if (S.resCut > 0) notes.push(`<span class="hot">Funding cut: research costs +50 % for ${S.resCut} more months.</span>`);
     $('labNote').innerHTML = notes.join(' ');
+    $('labNote').hidden = !notes.length;
     $('lab').innerHTML = M.LAB_ORDER.map(id => {
       const pr = M.project(id);
       const left = S.research[id];
       const tries = (S.tries && S.tries[id]) || 0;
       const methods = pr.process ? ['exp'] : ['exp', 'comp'];
-      let right;
-      const allFound = id === 'screen' && !M.canResearch(S, 'screen', 'exp').ok && M.canResearch(S, 'screen', 'exp').why === 'Every solvent found';
-      if (S.unlocked[id] || allFound) right = `<div class="acts"><span class="ready">${allFound ? 'Every solvent found ✓' : 'Ready ✓'}</span></div>`;
-      else if (left != null) {
-        const mt = S.resMethod[id] || 'exp';
-        right = `<div class="acts"><span class="ready" style="color:var(--amine)">${mt === 'comp' ? 'Screening' : pr.process ? 'Pilot test' : 'Experiments'} · ${left} mo · ${Math.round(M.researchOdds(S, id, mt) * 100)} %</span></div>`;
-      } else {
-        right = '<div class="acts">' + methods.map(mt => {
+      const allFound = id === 'screen' && M.canResearch(S, 'screen', 'exp').why === 'Every solvent found';
+      let status = '', acts;
+      if (left != null) {
+        const mt = S.resMethod[id] || 'exp', total = Math.max(left, S.resTotal || M.researchMonths(S, id, mt));
+        status = `<div class="d" style="color:var(--amine)">${mt === 'comp' ? 'Computer screen' : pr.process ? 'Pilot test' : 'Lab experiments'} running · ${left} mo left · ${Math.round(M.researchOdds(S, id, mt) * 100)} % success</div><div class="prog"><i style="width:${Math.round(100 * (1 - left / total))}%"></i></div>`;
+      }
+      if (S.unlocked[id] || allFound) acts = `<div class="acts"><span class="ready">${allFound ? 'Every solvent found ✓' : 'Ready ✓'}</span></div>`;
+      else if (id !== 'screen' && (left != null || lq.some(x => x.id === id))) acts = '';
+      else {
+        acts = '<div class="acts">' + methods.map(mt => {
+          const chk = idle ? M.canResearch(S, id, mt) : M.canQueueResearch(S, id, mt);
           const cost = M.researchCost(S, id, mt), months = M.researchMonths(S, id, mt), odds = Math.round(M.researchOdds(S, id, mt) * 100);
-          const label = id !== 'screen' ? 'Pilot test' : mt === 'comp' ? 'Computer screen' : 'Lab experiments';
-          return `<button class="btn rbtn ${mt === 'comp' ? 'ghost' : pr.star ? 'gold' : ''}" data-res="${id}" data-mt="${mt}" ${busy || S.funds < cost ? 'disabled' : ''}><b>${busy ? 'Lab busy' : label}</b><small>$${cost}M · ${months} mo · ${odds} % success</small></button>`;
+          const label = id !== 'screen' ? 'Pilot test' : mt === 'comp' ? 'QM + MD screen' : 'Lab experiments';
+          return `<button class="btn rbtn ${mt === 'comp' ? 'ghost' : pr.star ? 'gold' : ''}" data-res="${id}" data-mt="${mt}" ${chk.ok ? '' : 'disabled'}><b>${idle ? '' : 'Queue · '}${label}</b><small>$${cost}M · ${months} mo · ${odds} % success${chk.ok ? '' : ' · ' + chk.why}</small></button>`;
         }).join('') + '</div>';
       }
-      const total = left != null ? Math.max(left, M.researchMonths(S, id, S.resMethod[id])) : 1;
-      const prog = left != null ? `<div class="prog" style="grid-column:1/-1"><i style="width:${Math.round(100 * (1 - left / total))}%"></i></div>` : '';
       return `<div class="proj ${pr.star ? 'star' : ''}">
         <div><div class="t">${pr.name}</div><div class="d">${pr.desc}${tries ? ` · ${tries} empty screen${tries > 1 ? 's' : ''} so far` : ''}</div>${id === 'screen'
-          ? '<div class="drops">' + Object.keys(M.DROPS).map(k => `<span class="${S.unlocked[k] ? 'got' : ''}">${S.unlocked[k] ? '✓ ' : ''}${M.TECHS[k].short} ${'★'.repeat(M.DROPS[k].stars)}</span>`).join('') + '</div>' : ''}</div>
-        ${right}${prog}</div>`;
+          ? '<div class="drops">' + Object.keys(M.DROPS).map(k => `<span class="${S.unlocked[k] ? 'got' : ''}">${S.unlocked[k] ? '✓ ' : ''}${M.TECHS[k].short} ${'★'.repeat(M.DROPS[k].stars)}</span>`).join('') + '</div>' : ''}${status}</div>
+        ${acts}</div>`;
     }).join('');
-    $('lab').querySelectorAll('[data-res]').forEach(b => b.onclick = () => { M.startResearch(S, b.dataset.res, b.dataset.mt); renderAll(); });
+    $('lab').querySelectorAll('[data-res]').forEach(b => b.onclick = () => {
+      const r = M.enqueueResearch(S, b.dataset.res, b.dataset.mt);
+      SND.play(r.ok ? 'queue' : 'nope');
+      renderAll();
+    });
+    // lab queue: the running project, then what waits (tap to cancel, full refund)
+    const runId = Object.keys(S.research)[0];
+    const look = j => j.id === 'screen' ? (j.method === 'comp' ? { c: '#2EC4B6', l: 'QM+MD' } : { c: '#E2A93B', l: 'Exp.' }) : { c: '#2BB3C0', l: 'Pilot' };
+    let q = '<span class="ql">Queue</span>';
+    const slots = (runId ? [{ id: runId, method: S.resMethod[runId], run: true, left: S.research[runId] }] : []).concat(lq);
+    for (let i = 0; i < 1 + M.QUEUE_MAX; i++) {
+      const j = slots[i];
+      if (!j) { q += '<span class="qs"></span>'; continue; }
+      const lk = look(j);
+      if (j.run) {
+        const total = Math.max(j.left, S.resTotal || j.left);
+        q += `<span class="qs job run" style="background:${lk.c}" title="Running">${lk.l}<small>${j.left} mo</small><span class="pg" style="width:${Math.round(100 * (1 - j.left / total))}%"></span></span>`;
+      } else q += `<button class="qs job" style="background:${lk.c}" data-lcx="${i - (runId ? 1 : 0)}" title="Cancel for a full refund ($${j.paid}M)"><span class="x">×</span>${lk.l}<small>${j.months} mo</small></button>`;
+    }
+    $('labQ').innerHTML = q;
+    $('labQ').querySelectorAll('[data-lcx]').forEach(b => b.onclick = () => {
+      const r = M.cancelResearch(S, +b.dataset.lcx);
+      SND.play(r.ok ? 'cancel' : 'nope');
+      renderAll();
+    });
+    $('labHead').textContent = idle ? 'lab idle' : `running · ${lq.length}/${M.QUEUE_MAX} queued`;
+    $('labDot').hidden = !(idle && M.canResearch(S, 'screen', 'comp').ok);
   }
 
   // ---------- discovery reveal (screening found a solvent) ----------
@@ -661,26 +878,78 @@ details p { margin: 6px 0 0; }
     $('findFact').textContent = t.fact;
     $('findSrc').textContent = t.src;
     $('ovFind').hidden = false;
+    SND.play('find', st);
     return true;
   }
   $('findOk').onclick = () => { $('ovFind').hidden = true; };
 
-  // ---------- decision cards ----------
+  // ---------- front page: decisions and big news appear as a newspaper in the middle (the game waits) ----------
+  const SKY = 'M0 160V122h18v-16h16v26h14v-38h20v38h12v-20h18v32h14v-48h22v48h12v-24h18v38h14v-10h24V160Z';
+  const svg = body => `<svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg" role="img">${body}</svg>`;
+  const ART = {
+    heat: svg(`<rect width="220" height="160" fill="#EAD9AE"/><g stroke="#E9A93B" stroke-width="5" stroke-linecap="round"><path d="M70 14v10M70 96v10M24 60h10M106 60h10M38 28l7 7M95 85l7 7M38 92l7-7M95 35l7-7"/></g><circle cx="70" cy="60" r="26" fill="#F2B544"/><path d="${SKY}" fill="#4A4540"/><rect x="164" y="24" width="16" height="84" rx="8" fill="#FFF" stroke="#222" stroke-width="2"/><rect x="169" y="40" width="6" height="66" fill="#B3261E"/><circle cx="172" cy="112" r="12" fill="#B3261E" stroke="#222" stroke-width="2"/>`),
+    cold: svg(`<rect width="220" height="160" fill="#CFDCE6"/><g stroke="#FFF" stroke-width="5" stroke-linecap="round"><path d="M70 22v76M37 41l66 38M37 79l66-38"/><path d="M62 30l8 8 8-8M62 90l8-8 8 8"/></g><path d="${SKY}" fill="#3F4852"/><path d="M0 122h18v4H0zM34 106h16v4H34zM68 94h20v4H68zM132 84h22v4h-22z" fill="#FFF"/><rect x="164" y="24" width="16" height="84" rx="8" fill="#FFF" stroke="#222" stroke-width="2"/><rect x="169" y="92" width="6" height="14" fill="#2F6FB3"/><circle cx="172" cy="112" r="12" fill="#2F6FB3" stroke="#222" stroke-width="2"/>`),
+    typhoon: svg(`<rect width="220" height="160" fill="#BFC4C4"/><path d="M110 80c0-14 12-22 24-18 14 5 16 26 2 36-18 13-46 2-50-22-4-26 18-50 48-48" fill="none" stroke="#FFF" stroke-width="9" stroke-linecap="round"/><path d="M110 80c0 14-12 22-24 18-14-5-16-26-2-36 18-13 46-2 50 22 4 26-18 50-48 48" fill="none" stroke="#E8EBEB" stroke-width="7" stroke-linecap="round"/><circle cx="110" cy="80" r="6" fill="#6B7373"/><g stroke="#6B7373" stroke-width="2"><path d="M16 20l-8 20M36 12l-8 20M190 110l-8 20M206 120l-8 20M22 120l-8 20"/></g>`),
+    storage: svg(`<rect width="220" height="160" fill="#DCD3BE"/><rect x="150" y="40" width="10" height="90" fill="#6E6A60"/><path d="M138 130h34l-6-14h-22z" fill="#6E6A60"/><path d="M0 132h220v28H0z" fill="#9C9180"/>${[20, 58, 96].map((x, i) => `<g><circle cx="${x + 12}" cy="${104 - (i % 2) * 4}" r="8" fill="#2B2B2B"/><path d="M${x} ${136}v-22q12-8 24 0v22z" fill="#2B2B2B"/><path d="M${x + 22} ${112 - (i % 2) * 4}v-40" stroke="#2B2B2B" stroke-width="3"/><rect x="${x + 4}" y="${50 - (i % 2) * 4}" width="40" height="24" fill="#FFF" stroke="#2B2B2B" stroke-width="2"/><text x="${x + 24}" y="${66 - (i % 2) * 4}" font-family="Georgia,serif" font-size="9" font-weight="700" text-anchor="middle" fill="#B3261E">${['NO WELLS', 'NOT HERE', 'SAFETY?'][i]}</text></g>`).join('')}`),
+    wash: svg(`<rect width="220" height="160" fill="#DAD6C8"/><rect x="30" y="30" width="22" height="100" fill="#7B7B7B"/><rect x="60" y="54" width="14" height="76" fill="#2EC4B6" opacity=".8"/><circle cx="46" cy="22" r="12" fill="#B9B9B0"/><circle cx="62" cy="14" r="9" fill="#C9C9C0"/><path d="M0 130h220v30H0z" fill="#8F8878"/><path d="M130 50h24v26l22 44a8 8 0 0 1-7 12h-54a8 8 0 0 1-7-12l22-44z" fill="#FFF" stroke="#222" stroke-width="3"/><path d="M118 108h60l8 14a4 4 0 0 1-4 6h-68a4 4 0 0 1-4-6z" fill="#8E7CC3"/><circle cx="92" cy="52" r="18" fill="none" stroke="#222" stroke-width="5"/><path d="M104 66l16 18" stroke="#222" stroke-width="7" stroke-linecap="round"/>`),
+    gas: svg(`<rect width="220" height="160" fill="#E6DCC6"/><path d="M78 140c-30 0-44-24-34-48 6-14 18-20 16-40 22 14 28 32 26 44 6-6 8-14 6-22 14 12 22 30 16 44-4 12-14 22-30 22z" fill="#3A7BD5"/><path d="M78 140c-14 0-22-12-16-24 4-8 12-10 12-22 12 10 18 22 16 32-2 8-6 14-12 14z" fill="#9CC7F2"/><path d="M150 132V58M150 42l-22 26h44z" stroke="#B3261E" stroke-width="14" fill="#B3261E" stroke-linejoin="round"/><text x="186" y="80" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#2B2B2B">$</text>`),
+    lng: svg(`<rect width="220" height="160" fill="#CFD8DC"/><path d="M0 118q14-8 28 0t28 0 28 0 28 0 28 0 28 0 28 0 28 0V160H0z" fill="#5E7C8A"/><path d="M30 96h150l-16 26H46z" fill="#2B2B2B"/><rect x="140" y="74" width="26" height="22" fill="#EEE" stroke="#2B2B2B" stroke-width="2"/>${[62, 92, 122].map(x => `<circle cx="${x}" cy="90" r="12" fill="#F3EEE2" stroke="#2B2B2B" stroke-width="2"/>`).join('')}<circle cx="178" cy="38" r="22" fill="#FFF" stroke="#2B2B2B" stroke-width="3"/><path d="M178 38V24M178 38l10 6" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round"/>`),
+    winter: svg(`<rect width="220" height="160" fill="#DCE4EA"/><path d="M0 128h220v32H0z" fill="#FFF"/><rect x="20" y="92" width="180" height="16" fill="#7B8B98"/><rect x="96" y="76" width="18" height="16" fill="#7B8B98"/><circle cx="105" cy="70" r="10" fill="#B3261E"/>${[34, 58, 134, 160, 184].map((x, i) => `<path d="M${x} 108l4 ${10 + (i % 3) * 6} 4-${10 + (i % 3) * 6}z" fill="#BFE3F7"/>`).join('')}${[[30, 30], [80, 18], [150, 26], [190, 50], [120, 44], [50, 60]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#FFF"/>`).join('')}`),
+    subsidy: svg(`<rect width="220" height="160" fill="#E4E0CC"/><rect x="24" y="36" width="172" height="86" rx="4" fill="#F7F4E8" stroke="#2B2B2B" stroke-width="2" transform="rotate(-5 110 79)"/><g transform="rotate(-5 110 79)" font-family="Georgia,serif" fill="#2B2B2B"><text x="36" y="58" font-size="11" font-weight="700">CLEAN-AIR FUND</text><text x="36" y="82" font-size="10">Pay to: Capture City Power</text><text x="36" y="108" font-size="22" font-weight="700" fill="#2E6B3A">−30 %</text><path d="M120 104q14-10 22 0t22-4" stroke="#2B2B2B" stroke-width="2" fill="none"/></g>`),
+    health: svg(`<rect width="220" height="160" fill="#CDBF9F"/><rect x="36" y="46" width="18" height="86" fill="#6E3F33"/><rect x="62" y="62" width="18" height="70" fill="#6E3F33"/><circle cx="46" cy="36" r="16" fill="#5A534C"/><circle cx="66" cy="24" r="20" fill="#6B645C"/><circle cx="96" cy="20" r="18" fill="#7A736A"/><path d="M0 132h220v28H0z" fill="#8C7B4F"/><rect x="132" y="54" width="60" height="60" rx="6" fill="#FFF" stroke="#2B2B2B" stroke-width="2"/><path d="M154 66h16v14h14v16h-14v14h-16V96h-14V80h14z" fill="#B3261E"/>`),
+    // an unnamed cartoon president at a desk, signing the order
+    subcut: svg(`<rect width="220" height="160" fill="#D9D2C1"/><g opacity=".35"><rect x="10" y="10" width="58" height="40" fill="#8E1C16"/>${[0, 1, 2, 3].map(i => `<rect x="10" y="${14 + i * 10}" width="58" height="4" fill="#F3EEE2"/>`).join('')}<rect x="10" y="10" width="24" height="20" fill="#1F3A68"/><rect x="152" y="10" width="58" height="40" fill="#8E1C16"/>${[0, 1, 2, 3].map(i => `<rect x="152" y="${14 + i * 10}" width="58" height="4" fill="#F3EEE2"/>`).join('')}<rect x="152" y="10" width="24" height="20" fill="#1F3A68"/></g><path d="M52 160q4-44 58-50 54 6 58 50z" fill="#23272E"/><path d="M96 111l14 26 14-26z" fill="#F4F1EA"/><path d="M106 116h8l4 44h-16z" fill="#C0271F"/><path d="M104 110h12l-2 8h-8z" fill="#8E1C16"/><rect x="100" y="94" width="20" height="18" fill="#E89A5E"/><ellipse cx="81" cy="72" rx="6" ry="9" fill="#E08E52"/><ellipse cx="139" cy="72" rx="6" ry="9" fill="#E08E52"/><ellipse cx="110" cy="70" rx="29" ry="33" fill="#EFA462"/><path d="M78 64q-8-30 26-36 32-6 44 12 6 10-2 22-4-14-20-16 6 6 4 10-18-12-40-6-8 4-12 14z" fill="#F4CD4F"/><path d="M84 46q20-20 52-8" stroke="#E0B43A" stroke-width="3" fill="none"/><path d="M92 66q7-4 13 0M115 66q7-4 13 0" stroke="#3A2A1A" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M92 58q7-5 14-1M114 57q7-4 14 1" stroke="#D9B040" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="110" cy="90" rx="7" ry="5" fill="#B5543A"/><path d="M104 78q6 4 12 0" stroke="#C97A45" stroke-width="2" fill="none"/><path d="M0 138h220v22H0z" fill="#6B4A2E"/><rect x="138" y="118" width="62" height="34" fill="#FFF" stroke="#2B2B2B" stroke-width="1.5" transform="rotate(-6 169 135)"/><g transform="rotate(-6 169 135)" font-family="Georgia,serif" fill="#2B2B2B"><text x="146" y="131" font-size="7" font-weight="700">CARBON CAPTURE</text><text x="146" y="142" font-size="7" font-weight="700">FUNDING</text><path d="M144 139h52" stroke="#B3261E" stroke-width="2.5"/></g><path d="M150 116l18-10 3 4-18 10z" fill="#1A1A1A"/>`),
+    generic: svg(`<rect width="220" height="160" fill="#DAD3C2"/><path d="${SKY}" fill="#4A4540"/>`),
+  };
+  const CAP = {
+    heat: 'Air-conditioners strain the grid.', cold: 'Heaters strain the grid.', typhoon: 'The storm on satellite.',
+    storage: 'Residents at the injection wells.', wash: 'Researchers sample the air downwind.', gas: 'Gas prices hit a record.',
+    lng: 'The delayed tanker, days from port.', winter: 'Frozen pipes at a gas field.', subsidy: 'The new clean-air package.',
+    health: 'Smog over the city.', subcut: 'The President signs the order. (Cartoon)',
+  };
+  let headN = 0;
+  function showPaper(h, opts) {
+    const key = h.id === 'heat' && /cold/i.test(h.title) ? 'cold' : h.id;
+    const m = Math.min(S.m, M.MONTHS - 1);
+    $('evDate').textContent = MONTH[m % 12] + ' ' + (M.START_YEAR + Math.floor(m / 12));
+    $('evKind').textContent = opts ? 'Your decision' : h.tone === 'good' ? 'Good news' : 'Extra! Extra!';
+    $('evKind').className = 'ex' + (h.tone === 'good' ? ' good' : '');
+    $('evTitle').textContent = h.title.replace(/!$/, '');
+    $('evDeck').textContent = h.deck || '';
+    $('evText').textContent = h.text;
+    $('evArt').innerHTML = ART[key] || ART.generic;
+    $('evCap').textContent = CAP[key] || '';
+    if (opts) {
+      $('evOpts').innerHTML = opts.map((o, i) =>
+        `<button class="choice" data-ch="${i}"><span class="cl">${o.label}</span><span class="ce">${o.effect}</span></button>`).join('');
+      $('evOpts').querySelectorAll('[data-ch]').forEach(b => b.onclick = () => {
+        SND.play('click');
+        M.choose(S, +b.dataset.ch);
+        $('ovEvent').hidden = true;
+        renderAll();
+      });
+    } else {
+      $('evOpts').innerHTML = '<button class="btn" data-ok="1">Back to work</button>';
+      $('evOpts').querySelector('[data-ok]').onclick = () => { SND.play('click'); $('ovEvent').hidden = true; };
+    }
+    $('ovEvent').hidden = false;
+    SND.play('news');
+    const first = $('evOpts').querySelector('button');
+    if (first) first.focus({ preventScroll: true });
+  }
+  // a decision (the model waits in S.pending until it is answered)
   function openEvent() {
     const ev = S.pending;
     if (!ev) return;
-    $('evTitle').textContent = ev.title;
-    $('evText').textContent = ev.text;
-    $('evOpts').innerHTML = ev.opts.map((o, i) =>
-      `<button class="choice" data-ch="${i}"><span class="cl">${o.label}</span><span class="ce">${o.effect}</span></button>`).join('');
-    $('evOpts').querySelectorAll('[data-ch]').forEach(b => b.onclick = () => {
-      M.choose(S, +b.dataset.ch);
-      $('ovEvent').hidden = true;
-      renderAll();
-    });
-    $('ovEvent').hidden = false;
-    const first = $('evOpts').querySelector('button');
-    if (first) first.focus();
+    showPaper({ id: ev.id, title: ev.title, deck: 'Your call: the game waits for your decision', text: ev.text, tone: 'bad' }, ev.opts);
+  }
+  // big news that needs no decision
+  function openHeadline() {
+    const h = S.headline;
+    if (!h || h.n === headN) return false;
+    headN = h.n;
+    showPaper(h, null);
+    return true;
   }
   function showToast() {
     const f = S.flash;
@@ -752,9 +1021,37 @@ details p { margin: 6px 0 0; }
   }
   let lastGas = null;
   function renderAll() {
-    renderMeters(); renderPrice(); renderPlants(); renderLab(); renderNews();
+    renderMeters(); renderPrice(); renderChips(); renderLab(); renderNews();
     if (!$('ovPlant').hidden) renderPlant();
     if (!$('ovBuild').hidden) renderBuild();
+    fitNews();
+  }
+  // desktop: the news list ends where the city pane ends, so the page does not scroll
+  function fitNews() {
+    const n = $('news');
+    if (innerWidth <= 860) { n.style.maxHeight = ''; return; }
+    const bottom = document.querySelector('.p-city').getBoundingClientRect().bottom;
+    n.style.maxHeight = Math.max(72, Math.round(bottom - n.getBoundingClientRect().top - 13)) + 'px';
+  }
+
+  // ---------- phone tabs: City | Research ----------
+  function setTab(t) {
+    $('main').dataset.tab = t;
+    $('tabs').querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+    if (t === 'city') resize();
+  }
+  $('tabs').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { SND.play('click'); setTab(b.dataset.tab); });
+
+  // ---------- sounds for what happened this month (news items newer than `top`) ----------
+  function soundsSince(top, breach0) {
+    const fresh = [];
+    for (const n of S.news) { if (n === top) break; fresh.push(n); }
+    const has = re => fresh.some(n => re.test(n.text));
+    if (has(/start-up failure|precipitated/)) SND.play('fail');
+    else if (has(/^Blackouts/)) SND.play('blackout');
+    else if (has(/came up empty/)) SND.play('empty');
+    else if (has(/is online|capture is online|conversion finished|is ready to install/)) SND.play('done');
+    if ((breach0 < 50 && S.greenhouse >= 50) || (breach0 < 80 && S.greenhouse >= 80)) SND.play('warn');
   }
 
   // ---------- end ----------
@@ -803,6 +1100,7 @@ details p { margin: 6px 0 0; }
       if (!b || sc > b.score) { best[s.region] = { score: sc, stars: st }; saveBest(best); }
     }
     $('ovEnd').hidden = false;
+    SND.play(win ? 'win' : 'lose');
   }
   $('againBtn').onclick = () => { $('ovEnd').hidden = true; tipsShown = { start: true, box: true }; showIntro(); };
 
@@ -835,8 +1133,9 @@ details p { margin: 6px 0 0; }
     playing = false;
   }
   $('startBtn').onclick = () => {
-    S = M.newGame(undefined, region); particles.length = 0; toastN = 0; lastGas = null; findN = 0;
-    $('ovIntro').hidden = true; renderAll(); setSpeed(1); playing = true;
+    S = M.newGame(undefined, region); particles.length = 0; toastN = 0; lastGas = null; findN = 0; headN = 0;
+    SND.unlock(); SND.play('click');
+    $('ovIntro').hidden = true; setTab('city'); renderAll(); setSpeed(1); playing = true;
   };
   showIntro();
 
@@ -846,13 +1145,27 @@ details p { margin: 6px 0 0; }
   function resize() {
     const box = cv.parentElement.getBoundingClientRect();
     W = Math.round(box.width);
-    H = Math.round(Math.max(210, Math.min(360, W * (W < 520 ? 0.66 : 0.5))));
+    H = Math.round(Math.max(210, Math.min(340, W * (W < 520 ? 0.66 : 0.46))));
     DPR = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     cv.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   }
-  window.addEventListener('resize', resize);
+  window.addEventListener('resize', () => { resize(); fitNews(); });
+
+  // plants in the scene are tap targets (rectangles recorded while drawing)
+  let hits = [], hoverId = null;
+  function scenePos(e) {
+    const r = cv.getBoundingClientRect();
+    return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height];
+  }
+  function hitAt(x, y) {
+    for (let i = hits.length - 1; i >= 0; i--) { const h = hits[i]; if (x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1) return h.id; }
+    return null;
+  }
+  cv.addEventListener('click', e => { const id = hitAt(...scenePos(e)); if (id) { SND.play('click'); openPlant(id); } });
+  cv.addEventListener('mousemove', e => { hoverId = hitAt(...scenePos(e)); cv.style.cursor = hoverId ? 'pointer' : 'default'; });
+  cv.addEventListener('mouseleave', () => { hoverId = null; });
 
   const lerp = (a, b, t) => a + (b - a) * t;
   function mix(c1, c2, t) {
@@ -880,7 +1193,32 @@ details p { margin: 6px 0 0; }
     return out;
   }
 
+  // name tag on the ground under a plant: id + capture, a build bar, and the number of queued jobs
+  function drawTag(p, cx, base, k, down) {
+    const t = p.tech ? M.TECHS[p.tech] : null;
+    const what = p.build && p.build.kind === 'new' ? 'building' : p.build && p.build.kind === 'convert' ? '→ ' + p.build.toType
+      : t ? ICON[p.tech][0] + (p.deep ? ' 99%' : '') : 'no capture';
+    const fs = Math.max(8, Math.min(11, W * 0.016)) * Math.max(0.85, k);
+    ctx.font = `600 ${fs.toFixed(1)}px 'IBM Plex Mono', monospace`;
+    const txt = what === 'no capture' ? p.id : p.id + ' · ' + what, tw = ctx.measureText(txt).width + 8, th = fs + 5, y = base + 4;
+    ctx.fillStyle = 'rgba(15,26,43,.85)'; ctx.fillRect(cx - tw / 2, y, tw, th);
+    ctx.fillStyle = down ? '#EF6351' : t ? t.color : '#E9EFF7';
+    ctx.textAlign = 'center'; ctx.fillText(txt, cx, y + th - 4);
+    if (p.build) {
+      ctx.fillStyle = '#0B1422'; ctx.fillRect(cx - tw / 2, y + th, tw, 3);
+      ctx.fillStyle = '#F4B740'; ctx.fillRect(cx - tw / 2, y + th, tw * (1 - p.build.left / p.build.total), 3);
+    }
+    const q = (p.queue || []).length;
+    if (q) {
+      ctx.fillStyle = '#F4B740'; ctx.beginPath(); ctx.arc(cx + tw / 2, y, 7, 0, 7); ctx.fill();
+      ctx.fillStyle = '#0B1422'; ctx.font = "700 9px 'IBM Plex Mono', monospace"; ctx.fillText('+' + q, cx + tw / 2, y + 3);
+    }
+    ctx.textAlign = 'left';
+  }
+
   function drawScene(dt) {
+    if (W < 10) return;   // the city pane is hidden (phone on the Research tab)
+    hits = [];
     // sky dirt follows today's emissions (10.5 Mt/yr ≈ fully hazy)
     const g = S.last ? Math.max(0, Math.min(1, (S.rate - 0.5) / 10)) : 0.85;
     const L = S.last;
@@ -950,12 +1288,16 @@ details p { margin: 6px 0 0; }
       const cx = s.x * W;
       const bw = W * 0.085 * k, bh = H * (p.type === 'coal' ? 0.2 : 0.15) * k;
       const by = base - bh + 6 * k;
+      const hit = { id: p.id, x0: cx - bw * 0.7, x1: cx + bw / 2 + Math.max(5, W * 0.014) * k * 2 + 12 * k, y0: base - H * 0.34 * k, y1: base + 22 };
+      hits.push(hit);
+      if (hoverId === p.id) {
+        ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+        ctx.strokeRect(hit.x0, hit.y0, hit.x1 - hit.x0, hit.y1 - hit.y0); ctx.setLineDash([]);
+      }
       if (p.build && p.build.kind === 'new') {
         ctx.fillStyle = 'rgba(244,183,64,.55)'; ctx.fillRect(cx - bw / 2, by, bw, bh);
         ctx.strokeStyle = '#E2A93B'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx + bw * 0.6, base); ctx.lineTo(cx + bw * 0.6, by - bh); ctx.lineTo(cx - bw * 0.3, by - bh); ctx.stroke();
-        ctx.fillStyle = 'rgba(15,26,43,.8)'; ctx.fillRect(cx - bw / 2, by + bh - 12, bw, 12);
-        ctx.fillStyle = '#F4B740'; ctx.font = `600 ${Math.max(8, Math.min(11, W * 0.016))}px 'IBM Plex Mono', monospace`;
-        ctx.textAlign = 'center'; ctx.fillText(p.id, cx, by + bh - 3); ctx.textAlign = 'left';
+        drawTag(p, cx, base, k, false);
         return;
       }
       const down = !M.online(p);
@@ -987,10 +1329,7 @@ details p { margin: 6px 0 0; }
           for (let q = 0; q < 3; q++) { const yy = base + ((ph + q / 3) % 1) * (H - 8 - base); ctx.beginPath(); ctx.arc(ax + aw / 2, yy, 2, 0, 7); ctx.fill(); }
         }
       }
-      // label
-      ctx.fillStyle = 'rgba(15,26,43,.8)'; ctx.fillRect(cx - bw / 2, by + bh - 12, bw, 12);
-      ctx.fillStyle = down ? '#EF6351' : '#E9EFF7'; ctx.font = `600 ${Math.max(8, Math.min(11, W * 0.016))}px 'IBM Plex Mono', monospace`;
-      ctx.textAlign = 'center'; ctx.fillText(p.id, cx, by + bh - 3); ctx.textAlign = 'left';
+      drawTag(p, cx, base, k, down);
       if (down) return;
 
       // smoke emission rate for this plant
@@ -998,19 +1337,23 @@ details p { margin: 6px 0 0; }
       const load = u ? u.run / Math.max(1, u.netCap) : 1;
       const cap = u ? u.c : 0;
       const intensity = p.type === 'coal' ? 1 : 0.45;
-      const rate = (playing && speed > 0 && !paused() ? 1 : 0.35) * load * intensity * (1 - cap) * (REDUCED ? 0.3 : 1) * k;
+      // no capture: dark smoke; capture running: only a white steam plume
+      const puff = (playing && speed > 0 && !paused() ? 1 : 0.35) * load * (REDUCED ? 0.3 : 1) * k;
       chimneys.forEach(chx => {
-        if (Math.random() < rate * dt * 0.02) particles.push({ x: chx, y: base - chH - 2, vx: 6 + Math.random() * 8, vy: -14 - Math.random() * 10, r: (3 + Math.random() * 3) * k, life: 1, dark: p.type === 'coal' });
-        if (cap > 0 && Math.random() < load * dt * 0.006) particles.push({ x: chx, y: base - chH - 2, vx: 4 + Math.random() * 4, vy: -10, r: (2 + Math.random() * 2) * k, life: 0.6, steam: true });
+        if (cap > 0) {
+          if (Math.random() < puff * dt * 0.012) particles.push({ x: chx, y: base - chH - 2, vx: 5 + Math.random() * 6, vy: -12 - Math.random() * 8, r: (3 + Math.random() * 3) * k, life: 0.9, steam: true });
+        } else if (Math.random() < puff * intensity * dt * 0.02) {
+          particles.push({ x: chx, y: base - chH - 2, vx: 6 + Math.random() * 8, vy: -14 - Math.random() * 10, r: (3 + Math.random() * 3) * k, life: 1, dark: p.type === 'coal' });
+        }
       });
     });
 
     // particles
     for (let i = particles.length - 1; i >= 0; i--) {
       const q = particles[i];
-      q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000; q.r += dt / 1000 * (q.steam ? 3 : 5); q.life -= dt / 1000 * (q.steam ? 0.6 : 0.22);
+      q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000; q.r += dt / 1000 * (q.steam ? 4 : 5); q.life -= dt / 1000 * (q.steam ? 0.4 : 0.22);
       if (q.life <= 0 || q.y < -20) { particles.splice(i, 1); continue; }
-      ctx.fillStyle = q.steam ? `rgba(255,255,255,${0.5 * q.life})` : (q.dark ? `rgba(55,50,48,${0.55 * q.life})` : `rgba(140,140,140,${0.45 * q.life})`);
+      ctx.fillStyle = q.steam ? `rgba(255,255,255,${0.7 * q.life})` : (q.dark ? `rgba(55,50,48,${0.55 * q.life})` : `rgba(140,140,140,${0.45 * q.life})`);
       ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(0.5, q.r), 0, 7); ctx.fill();
     }
     if (particles.length > 400) particles.splice(0, particles.length - 400);
@@ -1033,11 +1376,13 @@ details p { margin: 6px 0 0; }
       if (playing && speed > 0 && !S.over && !S.pending && !paused()) {
         acc = Math.max(0, acc) + dt * speed;
         let ticked = false;
-        while (acc >= MS_PER_MONTH && !S.over && !S.pending) { acc -= MS_PER_MONTH; M.step(S); ticked = true; }
-        if (ticked) { renderAll(); showToast(); }
+        const top = S.news[0], breach0 = S.greenhouse, hl0 = S.headlineN;
+        // one month at a time, so a front-page story stops the clock the month it happens
+        while (acc >= MS_PER_MONTH && !S.over && !S.pending && S.headlineN === hl0) { acc -= MS_PER_MONTH; M.step(S); ticked = true; }
+        if (ticked) { renderAll(); showToast(); soundsSince(top, breach0); }
         if (S.over) showEnd();
         else if (S.pending) { acc = 0; openEvent(); }
-        else if (ticked && (openFind() || maybeTip())) acc = 0;
+        else if (ticked && (openHeadline() || openFind() || maybeTip())) acc = 0;
       }
       drawScene(dt);
     } catch (e) {
@@ -1065,7 +1410,7 @@ details p { margin: 6px 0 0; }
         $('ovIntro').hidden = true; playing = true;
         for (let i = 0; i < n && !S.over && !S.pending; i++) M.step(S);
         renderAll(); showToast();
-        if (S.over) showEnd(); else if (S.pending) openEvent(); else openFind();
+        if (S.over) showEnd(); else if (S.pending) openEvent(); else if (!openHeadline()) openFind();
         return S.m;
       },
       tip() { return maybeTip(); },
@@ -1074,7 +1419,7 @@ details p { margin: 6px 0 0; }
 
   // ---------- boot (keeps the game running across republishes) ----------
   function start(data) {
-    if (data && data.state && data.state.nextId) { S = data.state; $('ovIntro').hidden = true; playing = true; tipsShown = { start: true, box: true, lab: true }; if (S.pending) openEvent(); }
+    if (data && data.state && data.state.nextId) { S = data.state; headN = S.headlineN || 0; $('ovIntro').hidden = true; playing = true; tipsShown = { start: true, box: true, lab: true }; if (S.pending) openEvent(); }
     resize(); renderAll(); requestAnimationFrame(frame);
   }
   if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ state: S }));
