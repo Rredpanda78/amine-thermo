@@ -1,4 +1,4 @@
-/* Capture City 2050 \u2014 game model v3 (pure logic, no DOM).
+/* Capture City 2050 \u2014 game model v4 (pure logic, no DOM).
  * Used by index.html in the browser and by sim_test.js under node for balancing.
  *
  * Technology numbers come from Lin Research Group papers where the paper reports them;
@@ -14,7 +14,8 @@
  *   QM + MD screening, 28 amines ...... Chien, Wu & Lin, GHGT-18 (2026): reaction \u0394G MAE 3.6 kJ/mol
  *
  * Game rules that are NOT from papers: plant sizes and prices, fuel prices, the CO2 limit path,
- * event odds, start-up failure odds, research costs and times, the gas-capture penalty.
+ * event odds, start-up failure odds, research costs and times, the gas-capture penalty,
+ * and the three regions (simplified settings inspired by Taiwan, Europe and Texas, not forecasts).
  */
 (function (root) {
   'use strict';
@@ -24,7 +25,27 @@
   const COMPRESS = 0.10;              // MWh_e per t CO2 for compression + pumps
   const START_YEAR = 2026, END_YEAR = 2050;
   const MONTHS = (END_YEAR - START_YEAR + 1) * 12;   // Jan 2026 .. Dec 2050
-  const FAIR_PRICE = 100;             // $/MWh the public accepts
+  const FAIR_PRICE = 100;             // $/MWh the public accepts (Taiwan; each region sets its own)
+  // Regions: what people accept to pay, demand growth, fuel, carbon price or credit, the limit, grid links, hazards
+  const REGIONS = {
+    taiwan: {
+      label: 'Taiwan', hint: 'standard', stars: [2500, 3000], fair: 100, growth: 0.02, gas: 50, gasSwing: 0.16, tax: { from: 2030, base: 30, step: 4 },
+      credit: 0, limitMul: 1.0, imports: 0, wholesale: 70, typhoon: true, lng: true, winter: false, heat: 1,
+      blurb: 'Island grid, no imports. Gas arrives as LNG by ship and storage is only days deep. Typhoons. A carbon fee starts in 2030.',
+    },
+    europe: {
+      label: 'Europe', hint: 'easier', stars: [2900, 3150], fair: 120, growth: 0.005, gas: 45, gasSwing: 0.24, tax: { from: 2027, base: 60, step: 4 },
+      credit: 0, limitMul: 0.85, imports: 300, wholesale: 75, typhoon: false, lng: false, winter: false, heat: 1,
+      blurb: 'A high carbon price from 2027 and a stricter limit, but people pay more for clean power and neighbours lend up to 300 MW in a shortage.',
+    },
+    texas: {
+      label: 'Texas', hint: 'harder', stars: [3150, 3450], fair: 75, growth: 0.022, gas: 28, gasSwing: 0.2, tax: null,
+      credit: 15, limitMul: 1.15, imports: 0, wholesale: 55, typhoon: false, lng: false, winter: true, heat: 2,
+      blurb: 'No carbon tax: a federal credit pays $15 for every tonne you store (like the US 45Q credit). Cheap shale gas, low prices, fast demand growth, heat waves and winter storms. Its grid is an island too.',
+    },
+  };
+  const RG = state => REGIONS[state.region] || REGIONS.taiwan;
+  const SURPLUS_SHARE = 0.25;         // industrial / wholesale buyers take up to 25 % of demand at the wholesale price
   const BANKRUPT = -500;              // $M
   const MAX_PLANTS = 10;
   const DEMOLISH_COST = 30;           // $M
@@ -33,10 +54,10 @@
   const LIMIT_POINTS = [[2026, 10.5], [2028, 9.8], [2030, 8.5], [2035, 5.5], [2040, 2.5], [2045, 1.1], [2050, 0.6]];
   const LIMIT_SCALE = 12;             // meter full scale (Mt/yr)
   // breach meter (0-100 %): rises with how far over the limit you are, falls slowly while you stay under it
-  const BREACH = { up: 12, down: 5, maxStep: 20 };   // % per month per 100 % over / under the limit
+  const BREACH = { up: 10, down: 5, maxStep: 8 };    // % per month per 100 % over / under the limit (max +8 %/month)
   const PROVEN_MONTHS = 24;           // months of operation before a new solvent stops failing
   const SCREEN_TIME = 0.7, SCREEN_RISK = 0.5;   // QM+MD screening: research time and start-up risk factors
-  const DEEP = { capture: 0.99, dutyMul: 1.09, opexAdd: 1, costFrac: 0.35, months: 3 };
+  const DEEP = { capture: 0.99, dutyMul: 1.09, opexAdd: 1, costFrac: 0.7, months: 12 };   // a costly, slow last resort
 
   // capexFactor: capture-unit cost per MW relative to coal; dutyMul/opexMul: dilute flue gas costs more per tonne
   const PLANT_TYPES = {
@@ -128,7 +149,11 @@
     if (state.subsidy > 0) c *= 0.7;
     return Math.round(c);
   }
-  function carbonTax(year) { return year < 2030 ? 0 : 50 + 5 * (year - 2030); }
+  function taxFor(region, year) {
+    const t = (REGIONS[region] || REGIONS.taiwan).tax;
+    return !t || year < t.from ? 0 : t.base + t.step * (year - t.from);
+  }
+  function carbonTax(year, state) { return taxFor(state ? state.region : 'taiwan', year); }
   function limitAt(t) {
     const P = LIMIT_POINTS;
     if (t <= P[0][0]) return P[0][1];
@@ -140,12 +165,14 @@
     }
     return P[P.length - 1][1];
   }
-  function limit(state) { return limitAt(START_YEAR + Math.min(state.m, MONTHS - 1) / 12); }
+  function limitFor(state, t) { return limitAt(t) * RG(state).limitMul; }
+  function limit(state) { return limitFor(state, START_YEAR + Math.min(state.m, MONTHS - 1) / 12); }
+  function fairPrice(state) { return RG(state).fair; }
   // monthly change of the breach meter for emissions at `ratio` \u00d7 the allowed rate
   function breachStep(ratio) {
     return ratio > 1 ? Math.min(BREACH.maxStep, BREACH.up * (ratio - 1)) : -BREACH.down * (1 - ratio);
   }
-  function gasFuel(state) { return PLANT_TYPES.gas.fuel * state.gasIndex * state.gasMult; }
+  function gasFuel(state) { return RG(state).gas * state.gasIndex * state.gasMult; }
   // a plant produces power unless it is being built, converted or repaired
   function online(p) { return p.down <= 0 && !(p.build && (p.build.kind === 'new' || p.build.kind === 'convert')); }
 
@@ -187,15 +214,17 @@
     return { id, name: `${PLANT_TYPES[type].label} Plant ${id}`, type, gross: PLANT_TYPES[type].size,
       tech: null, deep: false, build: null, outage: 0, down: 0, downWhy: '', washed: false };
   }
-  function newGame(seed) {
+  function newGame(seed, region) {
+    region = REGIONS[region] ? region : 'taiwan';
     const unlocked = {};
     TECH_ORDER.forEach(id => { unlocked[id] = !!TECHS[id].unlocked; });
     Object.keys(PROJECTS).forEach(id => { unlocked[id] = false; });
     return {
       seed: seed || Math.floor(Math.random() * 1e9),
-      m: 0, funds: 700, price: 100, cumCO2: 0, captured: 0, anger: 10,
+      region, m: 0, funds: 700, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
       greenhouse: 0, maxDebt: 0, rate: 0, recent: [], overMonths: 0, wasOver: false,
-      over: null, subsidy: 0, resCut: 0, usCut: false, captureOff: 0, captureOffWhy: '', lngCut: 0,
+      over: null, subsidy: 0, resCut: 0, usCut: false, captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
+      warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0,
       plants: [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas')],
       nextId: 3, unlocked, research: {}, exp: {},  // research[id] = months left; exp[tech] = months in operation
       demandMult: 1, demandMonths: 0, gasMult: 1, gasMonths: 0, gasIndex: 1,
@@ -209,7 +238,7 @@
   function monthName(state) {
     return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][state.m % 12];
   }
-  function demand(state) { return 1150 * Math.pow(1.01, state.m / 12) * state.demandMult; }
+  function demand(state) { return 1150 * Math.pow(1 + RG(state).growth, state.m / 12) * state.demandMult; }
   function addNews(state, kind, text) {
     state.news.unshift({ m: state.m, kind, text });
     if (state.news.length > 30) state.news.pop();
@@ -327,7 +356,8 @@
   function setPrice(state, price) { state.price = Math.max(40, Math.min(220, Math.round(price))); }
 
   // ---- events -----------------------------------------------------------------
-  const CFG = { P_CHOICE: 0.022, P_FORCED: 0.024 };
+  const CFG = { P_CHOICE: 0.015, P_FORCED: 0.024 };
+  const SHIP = { months: 4, perTonne: 12 };   // backup CO2 shipping while the storage site is reviewed
   function capturing(state) {
     return state.plants.filter(p => p.tech && online(p) && p.outage <= 0);
   }
@@ -348,7 +378,8 @@
     const amine = cap.filter(p => !p.washed);
     const up = state.plants.filter(online);
     const pool = [];
-    if (up.length) pool.push('heat', 'typhoon');
+    const rg = RG(state);
+    if (up.length) { for (let k = 0; k < rg.heat; k++) pool.push('heat'); if (rg.typhoon) pool.push('typhoon'); }
     if (cap.length && state.captureOff <= 0 && (state.seen.storage || 0) < 2) pool.push('storage');
     if (amine.length && !state.seen.wash) pool.push('wash');
     if (!pool.length) return;
@@ -365,7 +396,7 @@
       state.pending = {
         id, title: 'Heat wave!', text: 'Air-conditioners push demand up 12 % for 3 months. Capture eats steam that could make power.',
         opts: [
-          { label: 'Pause capture for 3 months', effect: `+${Math.round(mw)} MW \u00b7 ${offText(state, 3)}` },
+          { label: 'Pause capture for 2 months', effect: `+${Math.round(mw)} MW \u00b7 ${offText(state, 2)}` },
           { label: 'Keep capturing', effect: 'Risk blackouts' },
         ],
       };
@@ -373,8 +404,8 @@
       state.pending = {
         id, title: 'Protest at the CO\u2082 storage site', text: 'Residents near the injection wells demand that the storage site close for a safety review.',
         opts: [
-          { label: 'Ignore them', effect: 'Public anger +20' },
-          { label: 'Accept the review', effect: `All capture off 6 months (no carbon tax meanwhile) \u00b7 ${offText(state, 6)}` },
+          { label: 'Ignore them', effect: 'Public anger +12' },
+          { label: 'Accept the review', effect: `Ship CO\u2082 to a backup site for ${SHIP.months} months, \u2248 $${Math.round((state.last ? state.last.captured : 0) * SHIP.perTonne * SHIP.months / 1e6)}M \u00b7 no extra emissions` },
         ],
       };
     } else if (id === 'wash') {
@@ -382,7 +413,7 @@
         id, title: 'Amine emissions study', text: 'A university study finds traces of amine degradation products downwind of the capture plants.',
         opts: [
           { label: 'Install water-wash sections', effect: `$${20 * amine.length}M for ${amine.length} plant${amine.length > 1 ? 's' : ''}` },
-          { label: 'Dismiss the study', effect: 'Public anger +12' },
+          { label: 'Dismiss the study', effect: 'Public anger +8' },
         ],
       };
     } else {
@@ -401,17 +432,17 @@
     if (!ev) return;
     state.pending = null;
     if (ev.id === 'heat') {
-      if (i === 0) { state.captureOff = 3; state.captureOffWhy = 'heat-wave pause'; addNews(state, 'event', 'Heat wave: capture paused for 3 months to keep the lights on.'); }
+      if (i === 0) { state.captureOff = 2; state.captureOffWhy = 'heat-wave pause'; addNews(state, 'event', 'Heat wave: capture paused for 2 months to keep the lights on.'); }
       else addNews(state, 'event', 'Heat wave: capture stays on. Hope the grid holds.');
     } else if (ev.id === 'storage') {
-      if (i === 0) { state.anger = Math.min(100, state.anger + 20); addNews(state, 'event', 'You ignored the storage-site protest. Public anger +20.'); }
-      else { state.captureOff = 6; state.captureOffWhy = 'storage-site review'; addNews(state, 'event', 'Storage site closed for review: all capture off for 6 months.'); }
+      if (i === 0) { state.anger = Math.min(100, state.anger + 12); addNews(state, 'event', 'You ignored the storage-site protest. Public anger +12.'); }
+      else { state.shipMonths = SHIP.months; addNews(state, 'event', `Storage site under review: captured CO\u2082 is shipped to a backup site for ${SHIP.months} months ($${SHIP.perTonne}/t).`); }
     } else if (ev.id === 'wash') {
       if (i === 0) {
         const am = capturing(state).filter(p => !p.washed);
         state.funds -= 20 * am.length; am.forEach(p => { p.washed = true; });
         addNews(state, 'build', `Water-wash sections installed on ${am.length} plant${am.length > 1 ? 's' : ''} ($${20 * am.length}M).`);
-      } else { state.anger = Math.min(100, state.anger + 12); addNews(state, 'event', 'You dismissed the amine study. Public anger +12.'); }
+      } else { state.anger = Math.min(100, state.anger + 8); addNews(state, 'event', 'You dismissed the amine study. Public anger +8.'); }
     } else if (ev.id === 'typhoon') {
       const p = findPlant(state, ev.plant);
       if (!p) return;
@@ -422,7 +453,8 @@
   function forcedEvent(state, R) {
     const hasGas = state.plants.some(p => p.type === 'gas' && online(p));
     const pool = ['subsidy'];
-    if (hasGas) pool.push('gas', 'lng', 'lng');
+    const rg = RG(state);
+    if (hasGas) { pool.push('gas'); if (rg.lng) pool.push('lng', 'lng'); if (rg.winter) pool.push('winter', 'winter'); }
     if (state.rate > 6) pool.push('health');
     if (!state.usCut && state.m >= 18) pool.push('uscut');
     const k = pool[Math.floor(R() * pool.length)];
@@ -434,6 +466,10 @@
       state.lngCut = 2;
       addNews(state, 'event', 'LNG tanker delayed and storage is only days deep: gas plants run at half power for 2 months.');
       flash(state, 'event', 'LNG shortage: gas plants at 50 % for 2 months.');
+    } else if (k === 'winter') {
+      state.gasFreeze = 1;
+      addNews(state, 'event', 'Winter storm: frozen gas wells and pipes leave gas plants at 30 % for a month.');
+      flash(state, 'event', 'Winter storm: gas plants at 30 % for a month.');
     } else if (k === 'subsidy') {
       state.subsidy = 12;
       addNews(state, 'good', 'Government CCUS subsidy: capture projects cost 30 % less for 12 months.');
@@ -456,13 +492,25 @@
     const y = year(state);
 
     // scheduled news
-    if (state.m === 36) addNews(state, 'policy', 'Parliament passes a carbon tax: $50 per tonne from 2030, rising $5 every year.');
-    if (y >= 2030 && state.m % 12 === 0) {
-      addNews(state, 'policy', `${y}: carbon tax $${carbonTax(y)}/t, CO\u2082 limit ${f1(limitAt(y))} Mt/yr and falling.`);
+    const rgn = RG(state);
+    if (rgn.tax && state.m === Math.max(0, (rgn.tax.from - START_YEAR) * 12 - 36)) {
+      addNews(state, 'policy', `A carbon price is coming: $${rgn.tax.base} per tonne from ${rgn.tax.from}, rising $${rgn.tax.step} every year.`);
+    }
+    if (state.m % 12 === 0 && state.m > 0) {
+      addNews(state, 'policy', `${y}: carbon price $${carbonTax(y, state)}/t, CO\u2082 limit ${f1(limitFor(state, y))} Mt/yr and falling.`);
+      // forecast: warn once when today's emissions will pass the limit within 3 years
+      for (let k = 1; k <= 3; k++) {
+        if (state.rate > limitFor(state, y + k) && state.warnedYear !== y + k && state.rate <= limitFor(state, y)) {
+          state.warnedYear = y + k;
+          addNews(state, 'event', `Forecast: at today's emissions you pass the CO\u2082 limit in ${y + k}. Cut emissions before then.`);
+          flash(state, 'event', `Forecast: you pass the CO\u2082 limit in ${y + k} at today's emissions.`);
+          break;
+        }
+      }
     }
 
     // gas market drifts every month (imported LNG)
-    state.gasIndex = Math.max(0.8, Math.min(1.5, state.gasIndex + 0.2 * (1 - state.gasIndex) + (R() - 0.5) * 0.16));
+    state.gasIndex = Math.max(0.75, Math.min(1.6, state.gasIndex + 0.2 * (1 - state.gasIndex) + (R() - 0.5) * rgn.gasSwing));
 
     // research progress
     for (const id of Object.keys(state.research)) {
@@ -515,7 +563,8 @@
     }
 
     // dispatch: cheapest net MWh first
-    const tax = (state.captureOff > 0 && state.captureOffWhy === 'storage-site review') ? 0 : carbonTax(y);
+    const tax = carbonTax(y, state);
+    const credit = rgn.credit;   // paid per tonne captured (Texas)
     const units = state.plants.filter(online).map(p => {
       const pt = PLANT_TYPES[p.type];
       const on = p.tech && p.outage <= 0 && state.captureOff <= 0;
@@ -523,27 +572,47 @@
       const c = e ? e.capture : 0;
       const pen = e ? pt.intensity * c * workPerTonne(e) : 0;
       const fuel = p.type === 'gas' ? gasFuel(state) : pt.fuel;
-      const avail = p.type === 'gas' && state.lngCut > 0 ? 0.5 : 1;
-      const perGross = fuel + (e ? e.opex * pt.intensity * c : 0) + tax * pt.intensity * (1 - c);
+      const avail = p.type === 'gas' ? (state.gasFreeze > 0 ? 0.3 : state.lngCut > 0 ? 0.5 : 1) : 1;
+      const perGross = fuel + (e ? (e.opex - credit) * pt.intensity * c : 0) + tax * pt.intensity * (1 - c);
       return { p, pt, e, c, pen, netCap: p.gross * avail * (1 - pen), marginal: perGross / (1 - pen), fuel };
     }).sort((a, b) => a.marginal - b.marginal);
 
     const D = demand(state);
     let left = D, revenue = 0, cost = 0, emitted = 0, captured = 0, served = 0, netCapTotal = 0;
+    let surplus = D * SURPLUS_SHARE, soldMW = 0, taxPaid = 0;
+    const burn = (u, mw, price) => {           // run a unit for `mw` net and book it at `price` per MWh
+      const netMWh = mw * HOURS;
+      const grossMWh = netMWh / (1 - u.pen);
+      const co2 = grossMWh * u.pt.intensity;         // t
+      const cap = co2 * u.c, emi = co2 - cap;
+      emitted += emi; captured += cap;
+      cost += grossMWh * u.fuel + (u.e ? cap * u.e.opex : 0) + emi * tax;
+      taxPaid += emi * tax;
+      revenue += netMWh * price;
+      return netMWh;
+    };
     for (const u of units) {
       netCapTotal += u.netCap;
       const run = Math.min(u.netCap, left);
       left -= run;
-      const netMWh = run * HOURS;
-      const grossMWh = netMWh / (1 - u.pen);
-      const co2 = grossMWh * u.pt.intensity;           // t
-      const cap = co2 * u.c, emi = co2 - cap;
-      emitted += emi; captured += cap; served += netMWh;
-      cost += grossMWh * u.fuel + (u.e ? cap * u.e.opex : 0) + emi * tax;
+      served += burn(u, run, state.price);
       u.run = run;
     }
+    // spare capacity is sold to industrial / wholesale buyers when it pays (a dirty plant stops paying once carbon is priced)
+    for (const u of units) {
+      const spare = Math.min(u.netCap - u.run, surplus);
+      if (spare <= 0 || u.marginal >= rgn.wholesale) continue;
+      burn(u, spare, rgn.wholesale);
+      surplus -= spare; soldMW += spare; u.run += spare;
+    }
+    // neighbours lend power in a shortage (Europe)
+    let importMW = 0;
+    if (rgn.imports && left > 0) { importMW = Math.min(left, rgn.imports); left -= importMW; served += importMW * HOURS; revenue += importMW * HOURS * state.price; cost += importMW * HOURS * 150; }
     for (const p of state.plants) cost += p.gross * PLANT_TYPES[p.type].fixed * 1e6;   // fixed O&M, running or not
-    revenue = served * state.price;
+    const creditPaid = captured * credit;
+    cost -= creditPaid;
+    if (state.shipMonths > 0) cost += captured * SHIP.perTonne;
+    state.sold = soldMW; state.soldTotal += soldMW * HOURS / 1000; state.imported = importMW; state.creditPaid += creditPaid / 1e6; state.taxPaid += taxPaid / 1e6;
     const overhead = 25e6;                              // grid, staff, maintenance
     const profit = (revenue - cost - overhead) / 1e6;   // $M
     state.funds += profit;
@@ -584,12 +653,13 @@
 
     const baseRate = 1150 * HOURS * 0.95;               // t/month if all-coal, no capture
     const smog = emitted / baseRate;
-    let dA = 7 * Math.max(0, (state.price - FAIR_PRICE) / FAIR_PRICE)
+    const FAIR = rgn.fair;
+    let dA = 7 * Math.max(0, (state.price - FAIR) / FAIR)
            + 40 * unservedFrac
            + 1.2 * smog
            + 0.02 * state.greenhouse
            - 1.0;
-    if (state.price < FAIR_PRICE) dA -= 0.8 * (FAIR_PRICE - state.price) / FAIR_PRICE;
+    if (state.price < FAIR) dA -= 0.8 * (FAIR - state.price) / FAIR;
     state.anger = Math.max(0, Math.min(100, state.anger + dA));
     if (unservedFrac > 0.02) { state.blackouts += 1; addNews(state, 'event', `Blackouts: ${Math.round(unservedFrac * 100)} % of demand unserved!`); }
 
@@ -599,12 +669,14 @@
     if (state.subsidy > 0) state.subsidy -= 1;
     if (state.resCut > 0) state.resCut -= 1;
     if (state.lngCut > 0 && --state.lngCut === 0) addNews(state, 'good', 'LNG supply is back to normal.');
+    if (state.gasFreeze > 0) state.gasFreeze -= 1;
+    if (state.shipMonths > 0 && --state.shipMonths === 0) addNews(state, 'good', 'The storage site is open again.');
     if (state.captureOff > 0 && --state.captureOff === 0) addNews(state, 'good', 'Capture is back on.');
     for (const p of state.plants) if (p.down > 0 && --p.down === 0) addNews(state, 'good', `${p.name} is running again.`);
 
     state.last = {
       demand: D, netCap: netCapTotal, served: served / HOURS, unservedFrac, emitted, captured, limit: lim,
-      revenue: revenue / 1e6, cost: cost / 1e6 + overhead / 1e6, profit, tax, gasFuel: gasFuel(state),
+      revenue: revenue / 1e6, cost: cost / 1e6 + overhead / 1e6, profit, tax, credit, gasFuel: gasFuel(state), sold: soldMW, imported: importMW,
       units: units.map(u => ({ id: u.p.id, run: u.run, netCap: u.netCap, pen: u.pen, c: u.c })),
     };
 
@@ -631,17 +703,18 @@
   function stars(s) {
     if (!s.over || !s.over.win) return 0;
     const sc = score(s);
-    return sc >= STARS.three ? 3 : sc >= STARS.two ? 2 : 1;
+    const [two, three] = RG(s).stars;
+    return sc >= three ? 3 : sc >= two ? 2 : 1;
   }
 
   const api = {
     HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE,
-    BREACH, breachStep, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG, STARS,
+    BREACH, breachStep, REGIONS, SURPLUS_SHARE, SHIP, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG, STARS,
     newGame, step, choose, offCost, online,
     install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost,
     convert, canConvert, buildPlant, canBuildPlant, demolish, canDemolish,
     startResearch, canResearch, researchCost, researchMonths, project, maturity,
-    setPrice, penalty, eff, workPerTonne, carbonTax, limit, limitAt, gasFuel, demand, year, monthName, score, stars,
+    setPrice, penalty, eff, workPerTonne, carbonTax, taxFor, limit, limitAt, limitFor, fairPrice, gasFuel, demand, year, monthName, score, stars,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CCModel = api;

@@ -47,7 +47,27 @@ button { font: inherit; color: inherit; }
 .speed button:focus-visible, .btn:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
 
 /* meters */
-.meters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 8px; }
+.meters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(5, minmax(0, 1fr)); gap: 8px; }
+.m-tax .bar i { background: linear-gradient(90deg, #D9B44A, #B23B2C); }
+.m-tax.credit .val { color: var(--good); }
+.m-tax.credit .bar i { background: var(--good); }
+.fuelrow { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.fuelrow span { color: var(--muted); font-size: 11px; }
+.fuelrow em { font-style: normal; font-size: 11px; margin-left: 4px; }
+.fuelrow em.up { color: var(--anger); } .fuelrow em.down { color: var(--good); }
+.m-fuel .bar i { background: linear-gradient(90deg, #9CC7F2, #EF6351); }
+.limbar s { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed #CFE9D5; transition: left .5s; }
+.regions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+.rgn { display: grid; gap: 3px; align-content: start; text-align: left; padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; }
+.rgn b { font-size: 16px; }
+.rgn i { font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--amine); }
+.rgn span { font-size: 12px; color: var(--muted); }
+.rgn[aria-checked="true"] { border-color: var(--amine); box-shadow: inset 0 0 0 1px var(--amine); }
+.rgn:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
+.arch { margin: 0 0 8px; }
+.arch b { color: var(--gold); font-size: 17px; }
+.arch a { color: var(--amine); }
+@media (max-width: 640px) { .regions { grid-template-columns: minmax(0, 1fr); } }
 .meter { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
 .meter .lab { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
 .meter .val { font-family: var(--mono); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; }
@@ -227,12 +247,14 @@ details p { margin: 6px 0 0; }
     <div class="meter m-gh" id="mGh">
       <div class="lab"><span>CO₂ vs legal limit</span><span class="lim" id="gLim">limit — Mt/yr</span></div>
       <div class="top-row"><div class="val" id="vGh">—<small> Mt/yr</small></div><div class="sub" id="gNext"></div></div>
-      <div class="limbar" role="img" id="gBar" aria-label="CO2 emissions against the legal limit"><b id="gCap"></b><i id="gFill"></i><em id="gOver"></em></div>
+      <div class="limbar" role="img" id="gBar" aria-label="CO2 emissions against the legal limit"><b id="gCap"></b><i id="gFill"></i><em id="gOver"></em><s id="gFut" title="limit in 5 years"></s></div>
       <div class="breach"><span>Limit breach</span><span class="bar"><i id="bBreach"></i></span><b id="vBreach">0 %</b></div>
     </div>
     <div class="meter m-ang" id="mAng"><div class="lab"><span>Public anger</span></div><div class="val" id="vAng">10%</div><div class="bar"><i id="bAng"></i></div></div>
     <div class="meter" id="mFund"><div class="lab"><span>Funds</span></div><div class="val" id="vFund">$700M</div><div class="sub" id="sFund">± $0M / month</div></div>
     <div class="meter" id="mGrid"><div class="lab"><span>Grid</span></div><div class="val" id="vGrid">— MW</div><div class="sub" id="sGrid">demand — MW</div></div>
+    <div class="meter m-tax" id="mTax"><div class="lab"><span id="taxLab">Carbon price</span></div><div class="val" id="vTax">$0<small>/t</small></div><div class="bar"><i id="bTax"></i></div><div class="sub" id="sTax">—</div></div>
+    <div class="meter m-fuel" id="mFuel"><div class="lab"><span>Fuel $/MWh</span></div><div class="fuelrow"><span>coal</span><b id="vCoal">$30</b></div><div class="fuelrow"><span>gas</span><b id="vGas">$50<em id="aGas"></em></b></div><div class="bar"><i id="bGas"></i></div></div>
   </div>
 
   <div class="main">
@@ -266,7 +288,7 @@ details p { margin: 6px 0 0; }
         <b>Where the numbers come from.</b> Capture technologies use values reported in Lin Research Group papers
         (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Sep. Purif. Technol. 2025).
         Values marked <span class="est">est.</span> are game estimates where a paper gives no number.
-        Plants, fuel prices, running costs, the CO₂ limit, failure odds and events are simplified for play and are not forecasts.
+        Plants, fuel prices, running costs, the CO₂ limit, failure odds, events and the three regions are simplified for play and are not forecasts.
       </div>
     </div>
   </div>
@@ -280,14 +302,12 @@ details p { margin: 6px 0 0; }
     <ul>
       <li><b>CO₂ limit.</b> Keep the orange bar inside the green box. The box <b>shrinks every year</b> toward net zero. Going over fills the <b>limit breach</b> meter; at 100 % you lose your licence.</li>
       <li><b>Public anger</b> rises with high prices, blackouts and smog. At 100 % you are voted out.</li>
-      <li><b>Funds</b> come from electricity bills. Below −$500M you go bankrupt.</li>
+      <li><b>Funds</b> come from electricity bills. Spare power sells to industry at a lower price, but dirty power stops paying once carbon is priced. Below −$500M you go bankrupt.</li>
       <li>Tap a <b>plant</b> to add CO₂ capture, upgrade it to 99 %, switch coal to gas, or demolish it. Tap <b>+</b> to build a new one.</li>
       <li>The <b>research lab</b> unlocks new solvents. New solvents can fail in their first 2 years.</li>
     </ul>
-    <div class="btn-row">
-      <button class="btn" id="startBtn">Start 2026</button>
-      <button class="btn ghost" id="fastBtn">Start at 2× speed</button>
-    </div>
+    <div class="regions" id="regions" role="radiogroup" aria-label="Region"></div>
+    <div class="btn-row"><button class="btn" id="startBtn">Start 2026</button></div>
     <p class="src" id="best" style="margin-top:10px"></p>
   </div>
 </div>
@@ -323,6 +343,7 @@ details p { margin: 6px 0 0; }
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="endTitle">
     <h3 id="endTitle">Game over</h3>
     <div class="result-stars" id="endStars"></div>
+    <p class="arch" id="endArch"></p>
     <p class="lead" id="endLead"></p>
     <div class="result-grid" id="endGrid"></div>
     <p class="fact" id="endLab"></p>
@@ -351,8 +372,8 @@ details p { margin: 6px 0 0; }
   const paused = () => ['ovPlant', 'ovBuild', 'ovEvent', 'tip'].some(id => !$(id).hidden);
 
   // ---------- persistence (best score, per viewer) ----------
-  const BEST_KEY = 'cc2050-best-v3';
-  function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY) || 'null'); } catch (e) { return null; } }
+  const BEST_KEY = 'cc2050-best-v4';
+  function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY) || '{}') || {}; } catch (e) { return {}; } }
   function saveBest(b) { try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch (e) { /* storage unavailable */ } }
 
   // ---------- speed ----------
@@ -370,7 +391,7 @@ details p { margin: 6px 0 0; }
     { id: 'start', when: s => s.m >= 1, text: 'Tap a power plant to add CO₂ capture. Coal Plant A is the biggest emitter.' },
     { id: 'box', when: s => s.m >= 4, text: 'Keep the orange bar inside the green box: that box is the legal CO₂ limit, and it shrinks every year.' },
     { id: 'lab', when: s => s.m >= 10 || s.plants.some(p => p.tech || p.build), text: 'The research lab unlocks better solvents. It runs one project at a time, so pick the order.' },
-    { id: 'deep', when: s => s.m >= 156, text: 'By the 2040s 90 % capture is not enough. Tap a plant to upgrade it to 99 %, or switch coal plants to gas.' },
+    { id: 'deep', when: s => s.m >= 144, text: 'Plan ahead: by the 2040s 90 % capture is not enough. The 99 % upgrade is costly and takes a year to build; switching coal to gas is the other route. The dashed line on the CO₂ bar is the limit 5 years from now.' },
   ];
   let tipsShown = {};
   function maybeTip() {
@@ -389,14 +410,15 @@ details p { margin: 6px 0 0; }
   function renderPrice() {
     $('price').value = S.price;
     $('priceVal').innerHTML = '$' + S.price + '<span>/MWh</span>';
-    const d = S.price - M.FAIR_PRICE;
+    const fair = M.fairPrice(S);
+    const d = S.price - fair;
     $('priceHint').innerHTML = d > 0
       ? `<span class="hot">+${d} above what people accept.</span> Anger rises every month at this price.`
       : d < 0 ? `<span class="ok">${-d} below the accepted price.</span> People calm down, but income drops.`
-      : 'People accept up to $100/MWh. Higher prices fund capture but make people angry.';
-    const gf = M.gasFuel(S);
-    $('fuelHint').innerHTML = `Fuel today: coal $${M.PLANT_TYPES.coal.fuel}, gas <b style="color:${gf > 60 ? 'var(--anger)' : 'var(--fg)'}">$${fmt(gf)}</b> per MWh` +
-      (S.lngCut > 0 ? ' · <span class="hot">LNG shortage</span>' : '');
+      : `People accept up to $${fair}/MWh. Higher prices fund capture but make people angry.`;
+    $('fuelHint').innerHTML = (S.lngCut > 0 ? '<span class="hot">LNG shortage: gas plants at half power.</span> ' : '') +
+      (S.gasFreeze > 0 ? '<span class="hot">Winter storm: gas plants at 30 %.</span> ' : '') +
+      (S.shipMonths > 0 ? `CO₂ is being shipped to a backup site (${S.shipMonths} mo).` : '');
   }
 
   // ---------- plants ----------
@@ -479,7 +501,7 @@ details p { margin: 6px 0 0; }
         const chk = M.canUpgrade(S, p);
         const pen = M.penalty(p, p.tech, true);
         h += `<div class="opt up"><div class="row"><span class="nm" style="color:var(--good)">Upgrade to 99 % capture</span><span class="chip">taller packing</span></div>
-          <div class="pitch">Captures 99 % instead of 90 %, needs a bit more steam.</div>
+          <div class="pitch">A costly last resort: 99 % instead of 90 %, but the taller columns take a year to build and need more steam.</div>
           <div class="mini"><span>captures <b>99 %</b></span><span>output <b>−${Math.round(pen * 100)} %</b></span></div>
           <details><summary>Details</summary><p>Pushing amine capture past 99 % needs 20–30 m of packing and about 9 % more regeneration energy <span class="est">est.</span></p><p class="src">Chang, Chou &amp; Lin, Sep. Purif. Technol. 2025</p></details>
           <div class="row"><button class="btn" data-up="1" ${chk.ok ? '' : 'disabled'}>Upgrade · $${fmt(M.upgradeCost(S, p))}M · ${M.DEEP.months} mo</button>${chk.ok ? '' : `<span class="src">${chk.why}</span>`}</div></div>`;
@@ -605,7 +627,8 @@ details p { margin: 6px 0 0; }
     $('vGh').innerHTML = (S.last ? fmt(rate, 1) : '—') + '<small> Mt/yr</small>';
     const y = M.START_YEAR + Math.floor(m / 12);
     const nextY = y < 2050 ? Math.min(2050, (Math.floor(y / 5) + 1) * 5) : null;
-    $('gNext').textContent = nextY ? `limit ${nextY}: ${fmt(M.limitAt(nextY), 1)}` : 'net zero year';
+    $('gNext').textContent = nextY ? `limit ${nextY}: ${fmt(M.limitFor(S, nextY), 1)}` : 'net zero year';
+    $('gFut').style.left = wOf(M.limitFor(S, Math.min(2050, y + 5))) + '%';
     $('gCap').style.width = wOf(lim) + '%';
     $('gFill').style.width = wOf(Math.min(rate, lim)) + '%';
     $('gOver').style.left = wOf(lim) + '%';
@@ -624,12 +647,36 @@ details p { margin: 6px 0 0; }
     if (L) {
       $('sFund').textContent = (L.profit >= 0 ? '+' : '−') + '$' + fmt(Math.abs(L.profit), 1) + 'M / month';
       $('vGrid').textContent = fmt(L.netCap) + ' MW';
-      $('sGrid').textContent = 'demand ' + fmt(L.demand) + ' MW';
+      $('sGrid').textContent = 'demand ' + fmt(L.demand) + ' MW' + (L.sold > 1 ? ` · selling ${fmt(L.sold)}` : '') + (L.imported > 1 ? ` · importing ${fmt(L.imported)}` : '');
       $('mGrid').classList.toggle('danger', L.unservedFrac > 0.01);
       $('profit').textContent = (L.profit >= 0 ? 'profit +$' : 'loss −$') + fmt(Math.abs(L.profit), 1) + 'M/mo';
       $('co2rate').textContent = 'CO₂ ' + fmt(L.emitted * 12 / 1e6, 1) + ' Mt/yr';
     }
+    // carbon price (or capture credit) and fuel gauges
+    const rg = M.REGIONS[S.region] || M.REGIONS.taiwan;
+    if (rg.credit) {
+      $('mTax').classList.add('credit');
+      $('taxLab').textContent = 'Capture credit';
+      $('vTax').innerHTML = `+$${rg.credit}<small>/t</small>`;
+      $('bTax').style.width = Math.min(100, rg.credit / 1.6) + '%';
+      $('sTax').textContent = 'paid per tonne stored';
+    } else {
+      $('mTax').classList.remove('credit');
+      $('taxLab').textContent = 'Carbon price';
+      const tNow = M.carbonTax(y, S), tNext = M.carbonTax(y + 1, S);
+      $('vTax').innerHTML = `$${tNow}<small>/t</small>`;
+      $('bTax').style.width = Math.min(100, tNow / 1.6) + '%';
+      $('sTax').textContent = tNow ? `next year $${tNext}` : (rg.tax ? `starts ${rg.tax.from}: $${rg.tax.base}` : '—');
+    }
+    const gf = M.gasFuel(S);
+    $('vCoal').textContent = '$' + M.PLANT_TYPES.coal.fuel;
+    const arrow = lastGas == null || Math.abs(gf - lastGas) < 0.5 ? '' : gf > lastGas ? '<em class="up">▲</em>' : '<em class="down">▼</em>';
+    $('vGas').innerHTML = '$' + fmt(gf) + arrow;
+    $('bGas').style.width = Math.min(100, gf / 1.2) + '%';
+    $('mFuel').classList.toggle('danger', gf > 70 || S.lngCut > 0 || S.gasFreeze > 0);
+    if (S.m !== lastGasM) { lastGas = gf; lastGasM = S.m; }
   }
+  let lastGas = null, lastGasM = -1;
   function renderAll() {
     renderMeters(); renderPrice(); renderPlants(); renderLab(); renderNews();
     if (!$('ovPlant').hidden) renderPlant();
@@ -647,7 +694,10 @@ details p { margin: 6px 0 0; }
       survived: 'You kept the lights on and stayed within the CO₂ limit until December 2050.' }[s.over.why];
     const st = M.stars(s);
     const sc = M.score(s);
-    $('endTitle').textContent = win ? 'You made it to 2050!' : 'Game over · ' + (M.START_YEAR + Math.floor((s.m - 1) / 12));
+    const rgName = (M.REGIONS[s.region] || M.REGIONS.taiwan).label;
+    $('endTitle').textContent = (win ? 'You made it to 2050!' : 'Game over · ' + (M.START_YEAR + Math.floor((s.m - 1) / 12))) + ' · ' + rgName;
+    const [aName, aText, aDoi] = approach(s);
+    $('endArch').innerHTML = `Your approach: <b>${aName}</b><br>${aText}` + (aDoi ? ` <a href="https://doi.org/${aDoi}" target="_blank" rel="noopener">Read the paper ↗</a>` : '');
     $('endStars').textContent = win ? '★'.repeat(st) + '☆'.repeat(3 - st) : '';
     $('endLead').textContent = why;
     const cells = [
@@ -658,6 +708,8 @@ details p { margin: 6px 0 0; }
       ['Public anger', Math.round(s.anger) + ' %'],
       ['Funds', money(s.funds)],
       ['Blackout months', String(s.blackouts)],
+      [s.creditPaid > 0 ? 'Capture credit earned' : 'Carbon price paid', money(s.creditPaid > 0 ? s.creditPaid : s.taxPaid)],
+      ['Power sold to industry', fmt(s.soldTotal || 0, 0) + ' GWh'],
       ['Score', fmt(sc)],
     ];
     $('endGrid').innerHTML = cells.map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
@@ -673,17 +725,44 @@ details p { margin: 6px 0 0; }
       : '') + tip;
     if (win) {
       const best = loadBest();
-      if (!best || sc > best.score) saveBest({ score: sc, stars: st });
+      const b = best[s.region];
+      if (!b || sc > b.score) { best[s.region] = { score: sc, stars: st }; saveBest(best); }
     }
     $('ovEnd').hidden = false;
   }
-  $('againBtn').onclick = () => { $('ovEnd').hidden = true; S = M.newGame(); particles.length = 0; toastN = 0; tipsShown = { start: true, box: true }; renderAll(); setSpeed(1); playing = true; };
+  $('againBtn').onclick = () => { $('ovEnd').hidden = true; tipsShown = { start: true, box: true }; showIntro(); };
 
-  // ---------- intro ----------
-  const best = loadBest();
-  if (best) $('best').textContent = `Your best: ${best.score} points (${'★'.repeat(best.stars)})`;
-  $('startBtn').onclick = () => { $('ovIntro').hidden = true; setSpeed(1); playing = true; };
-  $('fastBtn').onclick = () => { $('ovIntro').hidden = true; setSpeed(2); playing = true; };
+  // ending title from the approach the player took (links to the paper behind it)
+  function approach(s) {
+    const u = s.techUsed, deepN = s.plants.filter(p => p.deep).length, coalN = s.plants.filter(p => p.type === 'coal').length;
+    if (u.pe2eg) return ['Solvent pioneer', 'You ran the city on 2PE–EG, the water-lean solvent that reacts 4.5× faster than MEA and carries 2.8× more CO₂ per cycle, so it needs less steam.', '10.1016/j.cej.2026.174224'];
+    if (u.ampnmp) return ['Kinetics chaser', 'You bet on AMP–NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '10.1016/j.cej.2025.160544'];
+    if (u.afs) return ['Process optimizer', 'You kept MEA but recovered its heat with an advanced stripper, cutting the steam bill from 3.5 to 2.8 GJ per tonne.', '10.1021/acs.iecr.5c03760'];
+    if (deepN >= 2) return ['99 % engineer', 'You pushed amine capture to 99 % with taller columns: costly, slow to build, and it works.', '10.1016/j.seppur.2024.130120'];
+    if (coalN === 0) return ['Fuel switcher', 'You left coal for gas: 60 % less CO₂ per MWh, but pricier fuel and supply scares.', null];
+    if (u.mea90) return ['MEA workhorse', 'You relied on the industry-standard solvent. It works, but it eats the most steam, which is what better solvents fix.', '10.1016/j.cej.2026.174224'];
+    return ['Business as usual', 'No capture at all: the carbon price and the shrinking limit caught up with the city.', null];
+  }
+
+  // ---------- intro: pick a region ----------
+  let region = 'taiwan';
+  function showIntro() {
+    const best = loadBest();
+    $('regions').innerHTML = Object.entries(M.REGIONS).map(([id, r]) =>
+      `<button class="rgn" role="radio" data-rg="${id}" aria-checked="${id === region}"><b>${r.label}</b><i>${r.hint}${best[id] ? ` · best ${best[id].score} ${'★'.repeat(best[id].stars)}` : ''}</i><span>${r.blurb}</span></button>`).join('');
+    $('regions').querySelectorAll('[data-rg]').forEach(b => b.onclick = () => {
+      region = b.dataset.rg;
+      $('regions').querySelectorAll('[data-rg]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+    });
+    $('best').textContent = '';
+    $('ovIntro').hidden = false;
+    playing = false;
+  }
+  $('startBtn').onclick = () => {
+    S = M.newGame(undefined, region); particles.length = 0; toastN = 0; lastGas = null;
+    $('ovIntro').hidden = true; renderAll(); setSpeed(1); playing = true;
+  };
+  showIntro();
 
   // ---------- scene ----------
   const cv = $('cv'), ctx = cv.getContext('2d');
