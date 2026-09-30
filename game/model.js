@@ -232,6 +232,7 @@
   }
   function install(state, plantId, techId) {
     const p = findPlant(state, plantId);
+    if (!p) return { ok: false, why: 'No such plant' };
     const chk = canInstall(state, p, techId);
     if (!chk.ok) return chk;
     state.funds -= chk.cost;
@@ -249,6 +250,7 @@
   }
   function upgrade(state, plantId) {
     const p = findPlant(state, plantId);
+    if (!p) return { ok: false, why: 'No such plant' };
     const chk = canUpgrade(state, p);
     if (!chk.ok) return chk;
     state.funds -= chk.cost;
@@ -265,6 +267,7 @@
   }
   function convert(state, plantId) {
     const p = findPlant(state, plantId);
+    if (!p) return { ok: false, why: 'No such plant' };
     const chk = canConvert(state, p);
     if (!chk.ok) return chk;
     state.funds -= chk.cost;
@@ -297,6 +300,7 @@
   }
   function demolish(state, plantId) {
     const p = findPlant(state, plantId);
+    if (!p) return { ok: false, why: 'No such plant' };
     const chk = canDemolish(state, p);
     if (!chk.ok) return chk;
     state.funds -= DEMOLISH_COST;
