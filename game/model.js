@@ -47,22 +47,22 @@
       label: 'Taiwan', hint: 'standard', stars: [2700, 3200], base: 1150, peak: 'heat', fair: 135, growth: 0.02, gas: 72, coal: 42,
       tax: [[2026, 10], [2029, 10], [2030, 40], [2050, 120]], credit: 0, creditMonths: 0, ts: 15,
       limitMul: 1.0, imports: 0, wholesale: 95, typhoon: true, lng: true, winter: false, heat: 1,
-      blurb: 'Island grid, no imports. Gas arrives as LNG by ship and storage is only days deep. Typhoons. Carbon fee $10/t from 2026, jumping to $40 in 2030. CO\u2082 storage offshore still has to be built.',
-      zh: { label: '\u53f0\u7063', hint: '\u6a19\u6e96', blurb: '\u5b64\u5cf6\u96fb\u7db2\uff0c\u7121\u6cd5\u9032\u53e3\u96fb\u529b\u3002\u5929\u7136\u6c23\u9760 LNG \u8239\u904b\uff0c\u5b58\u91cf\u53ea\u6709\u5e7e\u5929\u3002\u6709\u98b1\u98a8\u3002\u78b3\u8cbb 2026 \u5e74\u8d77\u6bcf\u5678 10 \u7f8e\u5143\u30012030 \u5e74\u8df3\u5230 40 \u7f8e\u5143\u3002CO\u2082 \u96e2\u5cb8\u5c01\u5b58\u9084\u5728\u8d77\u6b65\u3002' },
+      blurb: 'Island grid, LNG by ship, typhoons. Carbon fee $10/t, jumping to $40 in 2030.',
+      zh: { label: '\u53f0\u7063', hint: '\u6a19\u6e96', blurb: '\u5b64\u5cf6\u96fb\u7db2\u3001LNG \u9760\u8239\u904b\u3001\u6709\u98b1\u98a8\u3002\u78b3\u8cbb\u6bcf\u5678 $10,2030 \u5e74\u8df3\u5230 $40\u3002' },
     },
     germany: {
       label: 'Germany', hint: 'standard', stars: [3000, 3450], base: 1250, peak: 'cold', fair: 145, growth: 0.012, gas: 70, coal: 25,
       tax: [[2026, 85], [2050, 205]], credit: 0, creditMonths: 0, ts: 35,
       limitMul: 0.9, imports: 300, wholesale: 90, typhoon: false, lng: false, winter: false, heat: 1,
-      blurb: 'Lignite and gas heartland under the EU carbon price ($85/t from day one, +$5 a year). Captured CO\u2082 is shipped to North Sea storage. Winter is the peak; European neighbours lend up to 300 MW. Margins are thin: price close to what people accept.',
-      zh: { label: '\u5fb7\u570b', hint: '\u6a19\u6e96', blurb: '\u8910\u7164\u8207\u5929\u7136\u6c23\u91cd\u93ae\uff0c\u7b2c\u4e00\u5929\u5c31\u9069\u7528\u6b50\u76df\u78b3\u50f9(\u6bcf\u5678 85 \u7f8e\u5143\uff0c\u6bcf\u5e74 +5)\u3002\u6355\u6349\u7684 CO\u2082 \u7528\u8239\u904b\u5230\u5317\u6d77\u5c01\u5b58\u3002\u51ac\u5b63\u662f\u7528\u96fb\u5c16\u5cf0\uff0c\u6b50\u6d32\u9130\u570b\u6700\u591a\u652f\u63f4 300 MW\u3002\u5229\u6f64\u5f88\u8584\uff1a\u96fb\u50f9\u8981\u63a5\u8fd1\u5927\u5bb6\u80fd\u63a5\u53d7\u7684\u4e0a\u9650\u3002' },
+      blurb: 'EU carbon price $85/t (+$5 a year), winter peak, 300 MW of imports, thin margins.',
+      zh: { label: '\u5fb7\u570b', hint: '\u6a19\u6e96', blurb: '\u6b50\u76df\u78b3\u50f9\u6bcf\u5678 $85(\u6bcf\u5e74 +5)\u3001\u51ac\u5b63\u5c16\u5cf0\u3001\u53ef\u9032\u53e3 300 MW\u3001\u5229\u6f64\u5f88\u8584\u3002' },
     },
     texas: {
       label: 'Texas', hint: 'fast growth', stars: [3300, 3560], base: 1300, peak: 'heat', fair: 75, growth: 0.025, gas: 26, coal: 23,
       tax: null, credit: 85, creditMonths: 144, ts: 12,
       limitMul: 1.15, imports: 0, wholesale: 55, typhoon: false, lng: false, winter: true, heat: 2,
-      blurb: 'No carbon tax: the US 45Q credit pays $85 for every tonne stored, for 12 years per plant. Cheap shale gas and onshore storage, low prices, fast demand growth, heat waves and winter storms. Its grid is an island too.',
-      zh: { label: '\u5fb7\u5dde', hint: '\u6210\u9577\u5feb', blurb: '\u6c92\u6709\u78b3\u7a05\uff1a\u7f8e\u570b 45Q \u62b5\u6e1b\u6bcf\u5c01\u5b58\u4e00\u5678\u4ed8 85 \u7f8e\u5143\uff0c\u6bcf\u5ea7\u5ee0\u7d66 12 \u5e74\u3002\u9801\u5ca9\u6c23\u4fbf\u5b9c\u3001\u9678\u4e0a\u5c01\u5b58\u4fbf\u5b9c\u3001\u96fb\u50f9\u4f4e\u3001\u7528\u96fb\u6210\u9577\u5feb\uff0c\u6709\u71b1\u6d6a\u8207\u51ac\u5b63\u66b4\u98a8\u96ea\u3002\u96fb\u7db2\u4e5f\u662f\u5b64\u5cf6\u3002' },
+      blurb: 'No carbon tax: 45Q pays $85 per tonne stored. Cheap gas, fast growth, heat and storms.',
+      zh: { label: '\u5fb7\u5dde', hint: '\u6210\u9577\u5feb', blurb: '\u6c92\u6709\u78b3\u7a05:45Q \u6bcf\u5c01\u5b58\u4e00\u5678\u4ed8 $85\u3002\u5929\u7136\u6c23\u4fbf\u5b9c\u3001\u6210\u9577\u5feb\u3001\u6709\u71b1\u6d6a\u8207\u66b4\u98a8\u96ea\u3002' },
     },
   };
   const RG = state => REGIONS[state.region] || REGIONS.taiwan;
@@ -126,86 +126,86 @@
       name: 'MEA + advanced stripper', short: 'MEA+AS', capture: 0.90, duty: 2.8, capex: 1.15, opex: 10, rate: 1,
       unlocked: false, research: { cost: 80, months: 12, process: true }, color: '#2BB3C0', stage: 'Pilot-tested', startup: 0.012,
       fail: 'the new stripper would not hold steady',
-      pitch: 'Same MEA, smarter heat recovery: less steam, safe bet, pricier to build.',
+      pitch: 'Same MEA, smarter heat recovery: less steam, pricier to build.',
       fact: 'A heat-integrated stripper cuts MEA regeneration to \u2248 2.8 GJ/t.',
       src: 'Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025',
-      zh: { name: 'MEA + \u9032\u968e\u6c7d\u63d0', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u65b0\u6c7d\u63d0\u5854\u4e00\u76f4\u7a69\u4e0d\u4e0b\u4f86', pitch: '\u540c\u6a23\u662f MEA\uff0c\u71b1\u56de\u6536\u66f4\u8070\u660e\uff1a\u7701\u84b8\u6c7d\u3001\u7a69\u5065\uff0c\u4f46\u6bd4\u8f03\u8cb4\u3002', fact: '\u71b1\u6574\u5408\u6c7d\u63d0\u5854\u628a MEA \u518d\u751f\u80fd\u8017\u964d\u5230\u7d04 2.8 GJ/t\u3002' },
+      zh: { name: 'MEA + \u9032\u968e\u6c7d\u63d0', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u65b0\u6c7d\u63d0\u5854\u4e00\u76f4\u7a69\u4e0d\u4e0b\u4f86', pitch: '\u540c\u6a23\u662f MEA,\u71b1\u56de\u6536\u66f4\u597d:\u7701\u84b8\u6c7d,\u4f46\u6bd4\u8f03\u8cb4\u3002', fact: '\u71b1\u6574\u5408\u6c7d\u63d0\u5854\u628a MEA \u518d\u751f\u80fd\u8017\u964d\u5230\u7d04 2.8 GJ/t\u3002' },
     },
     rpb: {
       name: 'Rotating packed bed (70 wt% MEA)', short: 'RPB', capture: 0.90, duty: 3.0, capex: 0.65, opex: 12, rate: 10, work: 0.02, fast: true,
       unlocked: false, research: { cost: 90, months: 12, process: true }, color: '#F28482', est: ['capex', 'duty'], stage: 'Pilot (TRL 7)',
       startup: 0.02, risk: 0.004, fail: 'the rotor vibrated out of balance', riskText: 'a rotor bearing failed',
-      pitch: 'A spinning absorber the size of a shipping container: cheap and twice as fast to build, but the rotors need care.',
+      pitch: 'A spinning absorber the size of a container: cheap, builds twice as fast, rotors need care.',
       fact: 'The solvent is flung outward through a ring of packing spinning at about 50\u00d7 gravity. Thin, constantly renewed films absorb CO\u2082 so fast that the absorber is 10\u201320\u00d7 smaller, and it can run concentrated 70 wt% MEA. Catch: rotating machinery breaks down, each unit tops out near 0.1 Mt CO\u2082 a year so big plants need many, and the rotors use power.',
       src: 'Ind. Eng. Chem. Res. 2025 (doi 10.1021/acs.iecr.4c01614); Carbon Clean CycloneCC pilot, Ruwais 2024',
       zh: { name: '\u65cb\u8f49\u586b\u5145\u5e8a(70 wt% MEA)', stage: '\u524d\u5c0e(TRL 7)', fail: '\u8f49\u5b50\u5931\u8861\u5287\u70c8\u632f\u52d5', riskText: '\u8f49\u5b50\u8ef8\u627f\u6545\u969c',
-        pitch: '\u8ca8\u6ac3\u5927\u5c0f\u7684\u65cb\u8f49\u5438\u6536\u5668\uff1a\u4fbf\u5b9c\u3001\u5de5\u671f\u5feb\u4e00\u500d\uff0c\u4f46\u8f49\u5b50\u8981\u5e38\u4fdd\u990a\u3002',
+        pitch: '\u8ca8\u6ac3\u5927\u5c0f\u7684\u65cb\u8f49\u5438\u6536\u5668:\u4fbf\u5b9c\u3001\u5de5\u671f\u5feb\u4e00\u500d,\u8f49\u5b50\u8981\u4fdd\u990a\u3002',
         fact: '\u6eb6\u5291\u88ab\u7529\u904e\u4ee5\u7d04 50 \u500d\u91cd\u529b\u9ad8\u901f\u65cb\u8f49\u7684\u586b\u6599\u74b0\uff0c\u6db2\u819c\u53c8\u8584\u53c8\u4e0d\u65b7\u66f4\u65b0\uff0c\u5438\u6536\u5feb\u5230\u5438\u6536\u5668\u53ea\u8981\u50b3\u7d71\u5854\u7684 1/10\u20131/20\uff0c\u9084\u80fd\u7528 70 wt% \u7684\u6fc3 MEA\u3002\u4ee3\u50f9\uff1a\u65cb\u8f49\u6a5f\u68b0\u6703\u6545\u969c\uff1b\u6bcf\u53f0\u4e0a\u9650\u7d04\u6bcf\u5e74 0.1 Mt CO\u2082\uff0c\u5927\u96fb\u5ee0\u8981\u5f88\u591a\u53f0\uff1b\u8f49\u5b50\u4e5f\u8981\u8017\u96fb\u3002' },
     },
     amp: {
       name: 'Aqueous AMP (30 wt%)', short: 'AMP', capture: 0.90, hiCap: true, duty: 3.25, capex: 1.4, opex: 12, rate: 0.56,
       unlocked: false, research: { cost: 60, months: 12, exp: 0.95, comp: 0.8 }, color: '#A3B18A', est: ['duty', 'opex'], stage: 'Pilot-tested',
       startup: 0.01, solvent: true, fail: 'AMP vapour escaped faster than the water wash could catch it',
-      pitch: 'A trade-off, not an upgrade: twice the CO\u2082 per kilogram and a little less steam, but it absorbs slowly (tall, pricey absorber) and evaporates.',
+      pitch: 'A trade-off: 2\u00d7 the CO\u2082 per kilogram and a bit less steam, but slow and it evaporates.',
       fact: '2-Amino-2-methyl-1-propanol is sterically hindered: it forms little carbamate, so it carries about twice the CO\u2082 of MEA per kilogram and gives it back with less heat (73 vs 82 kJ/mol). But it reacts about 10\u00d7 slower; in a wetted-wall column its overall absorption rate was 45 % below MEA, so the absorber needs about 1.8\u00d7 the packing. It is also about 3.5\u00d7 more volatile than MEA, so more amine escapes and must be replaced. Screening found something different, not something better: what you need decides whether it is worth it.',
       src: 'Chen, Closmann & Rochelle, Energy Procedia 2011 (doi 10.1016/j.egypro.2011.01.029); Le Li, PhD dissertation, UT Austin 2015; Luo et al., Sep. Purif. Technol. 2016',
       zh: { name: '30 wt% AMP \u6c34\u6eb6\u6db2', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: 'AMP \u84b8\u6c23\u9038\u6563\u5f97\u6bd4\u6c34\u6d17\u6bb5\u6536\u5f97\u9084\u5feb',
-        pitch: '\u662f\u53d6\u6368\uff0c\u4e0d\u662f\u5347\u7d1a\uff1a\u6bcf\u516c\u65a4\u5e36\u8d70\u5169\u500d CO\u2082\u3001\u84b8\u6c7d\u7a0d\u7701\uff0c\u4f46\u5438\u6536\u6162(\u5438\u6536\u5854\u9ad8\u53c8\u8cb4)\uff0c\u800c\u4e14\u6703\u63ee\u767c\u3002',
+        pitch: '\u662f\u53d6\u6368:\u6bcf\u516c\u65a4\u5e36 2 \u500d CO\u2082\u3001\u7a0d\u7701\u84b8\u6c7d,\u4f46\u5438\u6536\u6162\u53c8\u6703\u63ee\u767c\u3002',
         fact: '2-\u80fa\u57fa-2-\u7532\u57fa-1-\u4e19\u9187(AMP)\u662f\u7acb\u9ad4\u969c\u7919\u80fa\uff1a\u5e7e\u4e4e\u4e0d\u5f62\u6210\u80fa\u7532\u9178\u9e7d\uff0c\u6240\u4ee5\u6bcf\u516c\u65a4\u80fd\u5e36\u8d70\u7d04\u5169\u500d\u65bc MEA \u7684 CO\u2082\uff0c\u91cb\u653e\u6642\u7684\u71b1\u4e5f\u8f03\u5c11(73 vs 82 kJ/mol)\u3002\u4f46\u5b83\u7684\u53cd\u61c9\u6162\u7d04 10 \u500d\uff1b\u6fd5\u58c1\u5854\u5be6\u6e2c\u7684\u6574\u9ad4\u5438\u6536\u901f\u7387\u6bd4 MEA \u4f4e 45 %\uff0c\u5438\u6536\u5854\u8981\u7d04 1.8 \u500d\u7684\u586b\u6599\u3002\u5b83\u7684\u63ee\u767c\u6027\u4e5f\u7d04\u662f MEA \u7684 3.5 \u500d\uff0c\u8dd1\u6389\u7684\u80fa\u8981\u4e00\u76f4\u88dc\u3002\u7be9\u9078\u627e\u5230\u7684\u662f\u300c\u4e0d\u4e00\u6a23\u300d\uff0c\u4e0d\u662f\u300c\u66f4\u597d\u300d\uff1a\u503c\u4e0d\u503c\u5f97\uff0c\u770b\u4f60\u9700\u8981\u4ec0\u9ebc\u3002' },
     },
     mdeapz: {
       name: 'MDEA/PZ (activated MDEA)', short: 'MDEA/PZ', capture: 0.90, hiCap: true, duty: 3.1, capex: 0.88, opex: 10, rate: 1.8, work: 0.02,
       unlocked: false, research: { cost: 90, months: 18, exp: 0.9, comp: 0.7 }, color: '#4EA8DE', est: ['duty', 'capex', 'opex'], stage: 'Pilot-tested',
       startup: 0.012, solvent: true, fail: 'the blend foamed and carried over into the stripper',
-      pitch: 'A tertiary amine sped up by piperazine: twice the capacity of MEA, no freeze-out, but MDEA breaks down above ~120 \u00b0C, so the stripper runs cooler and compression costs more.',
+      pitch: 'MDEA sped up by piperazine: 2\u00d7 the capacity of MEA, but the stripper must run cooler.',
       fact: "MDEA is a tertiary amine: it cannot form carbamate, so it carries about 1.7\u20132\u00d7 the CO\u2082 of MEA per kilogram with a lower heat of absorption (68\u201370 vs 72\u201382 kJ/mol), but on its own it is far too slow for flue gas. At least 2 m of piperazine speeds it up to about 1.6\u20132\u00d7 MEA. Simulations and a 2025 pilot put its regeneration energy roughly 10\u201325 % below MEA (pilot: 3.4 vs 3.74 MJ/kg on the same rig). Catch: MDEA breaks down above about 120\u2013135 \u00b0C, so the stripper runs at lower pressure (6\u20137 bar vs 16.5 bar for PZ) and CO\u2082 compression costs more.",
       src: "Frailie, PhD dissertation, UT Austin 2014; Xi Chen, PhD dissertation, UT Austin 2011; Closmann, Nguyen & Rochelle, Energy Procedia 2009 (doi 10.1016/j.egypro.2009.01.177); J\u00f8rsboe et al., Fuel 2025 (doi 10.1016/j.fuel.2025.135296)",
       zh: { name: 'MDEA/PZ(\u6d3b\u5316 MDEA)', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u6df7\u5408\u6eb6\u5291\u8d77\u6ce1\uff0c\u88ab\u5e36\u9032\u6c7d\u63d0\u5854',
-        pitch: '\u7528\u54cc\u55ea\u52a0\u901f\u7684\u4e09\u7d1a\u80fa\uff1a\u5bb9\u91cf\u662f MEA \u7684\u5169\u500d\u3001\u4e0d\u6703\u6790\u51fa\uff0c\u4f46 MDEA \u8d85\u904e\u7d04 120 \u00b0C \u5c31\u6703\u5206\u89e3\uff0c\u6c7d\u63d0\u5854\u53ea\u80fd\u8dd1\u4f4e\u6eab\uff0c\u58d3\u7e2e\u5c31\u66f4\u8017\u96fb\u3002',
+        pitch: '\u54cc\u55ea\u52a0\u901f\u7684 MDEA:\u5bb9\u91cf\u662f MEA \u7684 2 \u500d,\u4f46\u6c7d\u63d0\u5854\u53ea\u80fd\u4f4e\u6eab\u904b\u8f49\u3002',
         fact: "MDEA \u662f\u4e09\u7d1a\u80fa\uff1a\u4e0d\u80fd\u5f62\u6210\u80fa\u7532\u9178\u9e7d\uff0c\u6240\u4ee5\u6bcf\u516c\u65a4\u80fd\u5e36\u8d70\u7d04 1.7\u20132 \u500d\u65bc MEA \u7684 CO\u2082\uff0c\u5438\u6536\u71b1\u4e5f\u8f03\u4f4e(68\u201370 vs 72\u201382 kJ/mol)\uff0c\u4f46\u55ae\u7368\u4f7f\u7528\u5c0d\u7159\u6c23\u592a\u6162\u3002\u52a0\u5165\u81f3\u5c11 2 m \u54cc\u55ea\u5f8c\uff0c\u901f\u5ea6\u63d0\u5347\u5230 MEA \u7684\u7d04 1.6\u20132 \u500d\u3002\u6a21\u64ec\u8207 2025 \u5e74\u524d\u5c0e\u5ee0\u986f\u793a\u518d\u751f\u80fd\u8017\u6bd4 MEA \u4f4e\u7d04 10\u201325 %(\u540c\u4e00\u5ea7\u524d\u5c0e\u5ee0\uff1a3.4 vs 3.74 MJ/kg)\u3002\u4ee3\u50f9\uff1aMDEA \u8d85\u904e\u7d04 120\u2013135 \u00b0C \u6703\u5206\u89e3\uff0c\u6c7d\u63d0\u5854\u53ea\u80fd\u5728\u8f03\u4f4e\u58d3\u529b\u904b\u8f49(6\u20137 bar\uff0cPZ \u53ef\u5230 16.5 bar)\uff0cCO\u2082 \u58d3\u7e2e\u66f4\u8017\u96fb\u3002" },
     },
     aas: {
       name: 'Amino-acid salt (K-sarcosinate)', short: 'AAS', capture: 0.90, duty: 3.7, capex: 1.02, opex: 8, rate: 1.16, gasDuty: 3.8, noEmit: true,
       unlocked: false, research: { cost: 70, months: 12, exp: 0.95, comp: 0.75 }, color: '#C9A227', est: ['duty', 'capex', 'opex'], stage: 'Pilot-tested',
       startup: 0.01, risk: 0.002, solvent: true, fail: 'salt crystals formed in the cold rich line', riskText: 'salt crystals clogged a line',
-      pitch: 'Not better, just different: a salt that does not evaporate, so no amine in the air and no emission protests, but it holds less CO\u2082 and needs more steam on coal.',
+      pitch: 'A salt: never evaporates (no emission protests), but holds less CO\u2082 and needs more steam.',
       fact: "Potassium sarcosinate is the salt of an amino acid. Salts do not evaporate, so almost no amine reaches the air. But it holds only about 0.6\u00d7 the CO\u2082 of MEA per kilogram and can crystallise out. An independent pilot measured MORE regeneration energy than MEA; the vendor's advanced process (Siemens POSTCAP) claims 2.4\u20132.7 GJ/t. Lab tests also found that it oxidises: less than MEA, but it is not immune as advertised. It does relatively better on dilute gas-plant flue gas, where it absorbs about 1.6\u00d7 faster than MEA.",
       src: "Le Li, PhD dissertation, UT Austin 2015; Knuutila et al., Energy Procedia 2011 (doi 10.1016/j.egypro.2011.02.024); Jockenh\u00f6vel & Schneider, Energy Procedia 2011 (doi 10.1016/j.egypro.2011.02.011)",
       zh: { name: '\u80fa\u57fa\u9178\u9e7d(\u808c\u80fa\u9178\u9240)', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u51b7\u7684\u5bcc\u6db2\u7ba1\u7dda\u6790\u51fa\u9e7d\u7d50\u6676', riskText: '\u9e7d\u7d50\u6676\u585e\u4f4f\u7ba1\u7dda',
-        pitch: '\u4e0d\u662f\u66f4\u597d\uff0c\u53ea\u662f\u4e0d\u4e00\u6a23\uff1a\u9e7d\u985e\u4e0d\u6703\u63ee\u767c\uff0c\u7a7a\u6c23\u88e1\u6c92\u6709\u80fa\uff0c\u4e0d\u6703\u88ab\u6297\u8b70\u6392\u653e\uff1b\u4f46 CO\u2082 \u5bb9\u91cf\u8f03\u4f4e\uff0c\u7528\u5728\u71c3\u7164\u5ee0\u66f4\u8017\u84b8\u6c7d\u3002',
+        pitch: '\u9e7d\u985e:\u4e0d\u6703\u63ee\u767c(\u4e0d\u6015\u6392\u653e\u6297\u8b70),\u4f46\u5bb9\u91cf\u8f03\u4f4e\u3001\u8f03\u8017\u84b8\u6c7d\u3002',
         fact: "\u808c\u80fa\u9178\u9240\u662f\u80fa\u57fa\u9178\u7684\u9e7d\u985e\u3002\u9e7d\u4e0d\u6703\u63ee\u767c\uff0c\u6240\u4ee5\u5e7e\u4e4e\u6c92\u6709\u80fa\u9032\u5230\u7a7a\u6c23\u88e1\u3002\u4f46\u5b83\u6bcf\u516c\u65a4\u53ea\u80fd\u5e36\u8d70\u7d04 0.6 \u500d\u65bc MEA \u7684 CO\u2082\uff0c\u800c\u4e14\u53ef\u80fd\u7d50\u6676\u6790\u51fa\u3002\u7368\u7acb\u524d\u5c0e\u5ee0\u91cf\u5230\u7684\u518d\u751f\u80fd\u8017\u53cd\u800c\u300c\u9ad8\u65bc\u300dMEA\uff1b\u5ee0\u5546\u7684\u9032\u968e\u6d41\u7a0b(Siemens POSTCAP)\u5ba3\u7a31 2.4\u20132.7 GJ/t\u3002\u5be6\u9a57\u5ba4\u4e5f\u767c\u73fe\u5b83\u6703\u6c27\u5316\uff1a\u6bd4 MEA \u5c11\uff0c\u4f46\u4e0d\u50cf\u5ba3\u50b3\u7684\u90a3\u6a23\u514d\u75ab\u3002\u5b83\u5728\u7a00\u8584\u7684\u71c3\u6c23\u5ee0\u7159\u6c23\u4e0a\u76f8\u5c0d\u8f03\u597d\uff0c\u5438\u6536\u901f\u5ea6\u7d04\u70ba MEA \u7684 1.6 \u500d\u3002" },
     },
     ampnmp: {
       name: 'AMP/NMP (semi-aqueous)', short: 'AMP/NMP', capture: 0.90, hiCap: true, duty: 3.0, capex: 1.45, opex: 6, rate: 0.3,
       unlocked: false, research: { cost: 100, months: 18, exp: 0.9, comp: 0.6 }, color: '#0E9F6E', est: ['duty', 'opex', 'capex'], stage: 'Lab scale',
       startup: 0.025, risk: 0.006, solvent: true, scaleUp: true, fail: 'AMP carbamate precipitated and clogged a line', riskText: 'AMP carbamate precipitated',
-      pitch: 'Cheapest to run, but it absorbs slowly: the tallest absorber, the priciest to build, and it can clog.',
+      pitch: 'Cheapest to run, but slow: the tallest, priciest absorber, and it can clog.',
       fact: 'NMP does not react with CO\u2082; it makes the hindered amine AMP 3\u00d7 faster than in water, and AMP holds about twice the CO\u2082 of MEA, so only half the solvent has to circulate: smaller pumps and less make-up, the cheapest to run. Catch: AMP carbamate can precipitate at high loading and clog lines, even years after start-up.',
       src: 'Cheng, Chen & Lin, Chem. Eng. J. 2025',
       zh: { name: 'AMP/NMP(\u534a\u6c34\u6eb6\u6db2)', stage: '\u5be6\u9a57\u5ba4\u898f\u6a21', fail: 'AMP \u80fa\u7532\u9178\u9e7d\u6790\u51fa\u585e\u4f4f\u7ba1\u7dda', riskText: 'AMP \u80fa\u7532\u9178\u9e7d\u6790\u51fa',
-        pitch: '\u904b\u8f49\u6700\u4fbf\u5b9c\uff0c\u4f46\u5438\u6536\u6162\uff1a\u5438\u6536\u5854\u6700\u9ad8\u3001\u6700\u8cb4\uff0c\u800c\u4e14\u6703\u5835\u585e\u3002',
+        pitch: '\u904b\u8f49\u6700\u4fbf\u5b9c,\u4f46\u5438\u6536\u6162:\u5438\u6536\u5854\u6700\u9ad8\u6700\u8cb4,\u9084\u53ef\u80fd\u5835\u585e\u3002',
         fact: 'NMP \u4e0d\u8ddf CO\u2082 \u53cd\u61c9\uff0c\u537b\u8b93\u7acb\u9ad4\u969c\u7919\u80fa AMP \u6bd4\u5728\u6c34\u4e2d\u5feb 3 \u500d\uff1bAMP \u7684 CO\u2082 \u5bb9\u91cf\u7d04\u662f MEA \u7684\u5169\u500d\uff0c\u6eb6\u5291\u5faa\u74b0\u91cf\u6e1b\u534a\uff1a\u6cf5\u6d66\u66f4\u5c0f\u3001\u88dc\u5145\u66f4\u5c11\uff0c\u904b\u8f49\u6700\u4fbf\u5b9c\u3002\u4ee3\u50f9\uff1a\u9ad8\u8ca0\u8f09\u6642 AMP \u80fa\u7532\u9178\u9e7d\u6703\u6790\u51fa\u5835\u7ba1\uff0c\u5373\u4f7f\u958b\u6a5f\u591a\u5e74\u5f8c\u4e5f\u6703\u767c\u751f\u3002' },
     },
     pe2eg: {
       name: '2PE/EG (water-lean)', short: '2PE/EG', capture: 0.90, hiCap: true, duty: 2.9, capex: 0.80, opex: 9, rate: 4.5,
       unlocked: false, research: { cost: 180, months: 24, exp: 0.85, comp: 0.5 }, color: '#E2A93B', est: ['capex'], star: true, stage: 'Lab scale',
       startup: 0.035, solvent: true, scaleUp: true, fail: 'the viscous solvent overloaded the heat exchanger',
-      pitch: 'The rarest find and shaky first years, then fast, compact and efficient: the best all-rounder.',
+      pitch: 'The rarest find: shaky at first, then fast, compact and efficient.',
       fact: 'Ethylene glycol reacts: it turns the carbamate into alkyl carbonate and frees the amine again, so 2-piperidineethanol gets both 4.5\u00d7 faster reaction and 2.8\u00d7 cyclic capacity vs MEA; regeneration 128 kJ/mol (\u2248 2.9 GJ/t). Catch: 15\u00d7 more viscous than MEA.',
       src: 'Chen, Wu & Lin, Chem. Eng. J. 2026',
       zh: { name: '2PE/EG(\u4f4e\u6c34\u6eb6\u5291)', stage: '\u5be6\u9a57\u5ba4\u898f\u6a21', fail: '\u9ecf\u7a20\u6eb6\u5291\u8b93\u71b1\u4ea4\u63db\u5668\u8d85\u8f09',
-        pitch: '\u6700\u7a00\u6709\uff0c\u524d\u5e7e\u5e74\u4e0d\u7a69\uff0c\u4e4b\u5f8c\u53c8\u5feb\u3001\u53c8\u5c0f\u3001\u53c8\u7701\uff1a\u6700\u5168\u80fd\u3002',
+        pitch: '\u6700\u7a00\u6709:\u524d\u5e7e\u5e74\u4e0d\u7a69,\u4e4b\u5f8c\u53c8\u5feb\u3001\u53c8\u5c0f\u3001\u53c8\u7701\u3002',
         fact: '\u4e59\u4e8c\u9187\u6703\u53c3\u8207\u53cd\u61c9\uff1a\u628a\u80fa\u7532\u9178\u9e7d\u8f49\u6210\u70f7\u57fa\u78b3\u9178\u9e7d\u3001\u628a\u80fa\u91cb\u653e\u51fa\u4f86\uff0c\u6240\u4ee5 2-\u54cc\u5576\u4e59\u9187\u6bd4 MEA \u53cd\u61c9\u5feb 4.5 \u500d\u3001\u5faa\u74b0\u5bb9\u91cf 2.8 \u500d\uff1b\u518d\u751f 128 kJ/mol(\u7d04 2.9 GJ/t)\u3002\u4ee3\u50f9\uff1a\u9ecf\u5ea6\u662f MEA \u7684 15 \u500d\u3002' },
     },
     pz: {
       name: 'Piperazine (PZ) + advanced stripper', short: 'PZ+AS', capture: 0.90, hiCap: true, duty: 2.45, capex: 0.90, opex: 11, rate: 9.5,
       unlocked: false, research: { cost: 90, months: 18, exp: 0.95, comp: 0.7 }, color: '#8E7CC3', est: ['capex', 'opex'],
       stage: 'Pilot-tested', startup: 0.015, risk: 0.003, gasOK: true, solvent: true, fail: 'solid piperazine froze out in a cold line', riskText: 'solid piperazine froze out',
-      pitch: 'Least steam in pilot plants, even on dilute gas-plant flue gas, and so fast the absorber is short; PZ is costly to buy and can freeze out when cold.',
+      pitch: 'Least steam in pilot plants and fast, on coal or gas; costly, and it can freeze out.',
       fact: 'Piperazine is the second-generation benchmark: fast, thermally stable, high capacity. With the advanced stripper, pilot plants measured a net 2.45 GJ per tonne CO\u2082 at 90 % capture, the same at 4 % (gas) and 12 % (coal) CO\u2082. Prof. Yu-Jeng Lin pilot-tested this stripper during his PhD. Catch: solid PZ can precipitate if the solvent gets too cold.',
       src: 'Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016',
       zh: { name: '\u54cc\u55ea(PZ)+ \u9032\u968e\u6c7d\u63d0', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u56fa\u614b\u54cc\u55ea\u5728\u51b7\u7ba1\u7dda\u6790\u51fa', riskText: '\u56fa\u614b\u54cc\u55ea\u6790\u51fa',
-        pitch: '\u524d\u5c0e\u5ee0\u5be6\u6e2c\u6700\u7701\u84b8\u6c7d\uff0c\u71c3\u6c23\u5ee0\u7a00\u8584\u7159\u6c23\u4e5f\u4e00\u6a23\u597d\uff0c\u53cd\u61c9\u5feb\u5230\u5438\u6536\u5854\u5f88\u77ee\uff1b\u4f46 PZ \u5f88\u8cb4\uff0c\u51b7\u4e86\u6703\u6790\u51fa\u3002',
+        pitch: '\u524d\u5c0e\u5ee0\u5be6\u6e2c\u6700\u7701\u84b8\u6c7d\u3001\u53cd\u61c9\u5feb,\u71c3\u7164\u71c3\u6c23\u90fd\u9069\u7528;\u4f46\u5f88\u8cb4,\u51b7\u4e86\u6703\u6790\u51fa\u3002',
         fact: '\u54cc\u55ea\u662f\u7b2c\u4e8c\u4ee3\u57fa\u6e96\u6eb6\u5291\uff1a\u5feb\u3001\u71b1\u7a69\u5b9a\u3001\u5bb9\u91cf\u9ad8\u3002\u642d\u914d\u9032\u968e\u6c7d\u63d0\uff0c\u524d\u5c0e\u5ee0\u5728 90 % \u6355\u6349\u7387\u4e0b\u5be6\u6e2c\u6de8\u80fd\u8017\u6bcf\u5678 CO\u2082 2.45 GJ\uff0c\u7159\u6c23 CO\u2082 4 %(\u71c3\u6c23)\u548c 12 %(\u71c3\u7164)\u90fd\u4e00\u6a23\u3002\u6797\u80b2\u6b63\u6559\u6388\u535a\u58eb\u73ed\u6642\u5c31\u5728\u524d\u5c0e\u5ee0\u6e2c\u8a66\u904e\u9019\u500b\u6c7d\u63d0\u5854\u3002\u4ee3\u50f9\uff1a\u6eb6\u5291\u592a\u51b7\u6642\u56fa\u614b PZ \u6703\u6790\u51fa\u3002' },
     },
     mcfc: {
@@ -213,11 +213,11 @@
       gasOnly: true, noDeep: true, stack: 84,
       unlocked: false, research: { cost: 120, months: 18, process: true }, color: '#E76F51', est: ['capex', 'opex'], stage: 'Demo (2026)',
       startup: 0.03, fail: 'a fuel-cell stack overheated',
-      pitch: 'Captures CO\u2082 while making MORE power, but burns extra gas, stops at 85 %, fits gas plants only and its stacks wear out every 7 years.',
+      pitch: 'Captures CO\u2082 while making more power; gas plants only, 85 % at most, stacks wear out.',
       fact: 'A molten-carbonate fuel cell sits in the flue gas and burns a little extra natural gas to make electricity. To run, it must pull CO\u2082 out of the flue gas and carry it across as carbonate ions, so the CO\u2082 comes out concentrated on the other side. On a gas plant it cuts CO\u2082 about 80 % while overall efficiency stays about the same. Catch: 650 \u00b0C stacks wear out, capture tops out near 85\u201390 %, and coal flue gas would poison it.',
       src: 'Campanari et al., Int. J. Greenh. Gas Control 2010; ExxonMobil & FuelCell Energy Rotterdam demonstration 2026',
       zh: { name: '\u78b3\u9178\u9e7d\u71c3\u6599\u96fb\u6c60(MCFC)', stage: '\u793a\u7bc4(2026)', fail: '\u71c3\u6599\u96fb\u6c60\u5806\u904e\u71b1',
-        pitch: '\u6355\u6349 CO\u2082 \u7684\u540c\u6642\u9084\u300c\u591a\u767c\u96fb\u300d\uff0c\u4f46\u8981\u591a\u71d2\u5929\u7136\u6c23\u3001\u6355\u6349\u7387\u53ea\u5230 85 %\u3001\u53ea\u80fd\u88dd\u5728\u71c3\u6c23\u5ee0\uff0c\u96fb\u6c60\u5806\u6bcf 7 \u5e74\u8981\u63db\u3002',
+        pitch: '\u908a\u6355\u6349\u908a\u591a\u767c\u96fb;\u53ea\u9650\u71c3\u6c23\u5ee0\u3001\u6700\u591a 85 %,\u96fb\u6c60\u5806\u6703\u8001\u5316\u3002',
         fact: '\u7194\u878d\u78b3\u9178\u9e7d\u71c3\u6599\u96fb\u6c60\u88dd\u5728\u7159\u9053\u4e0a\uff0c\u591a\u71d2\u4e00\u9ede\u5929\u7136\u6c23\u4f86\u767c\u96fb\uff1b\u5b83\u904b\u4f5c\u6642\u5fc5\u9808\u628a\u7159\u6c23\u88e1\u7684 CO\u2082 \u4ee5\u78b3\u9178\u6839\u96e2\u5b50\u7684\u5f62\u5f0f\u642c\u5230\u53e6\u4e00\u5074\uff0c\u6240\u4ee5 CO\u2082 \u5728\u53e6\u4e00\u5074\u8b8a\u5f97\u5f88\u6fc3\uff0c\u5bb9\u6613\u6536\u96c6\u3002\u88dd\u5728\u71c3\u6c23\u5ee0\u4e0a\u53ef\u6e1b\u5c11\u7d04 80 % CO\u2082\uff0c\u6574\u9ad4\u6548\u7387\u5e7e\u4e4e\u4e0d\u8b8a\u3002\u4ee3\u50f9\uff1a650 \u00b0C \u7684\u96fb\u6c60\u5806\u6703\u8001\u5316\uff0c\u6355\u6349\u7387\u4e0a\u9650\u7d04 85\u201390 %\uff0c\u71c3\u7164\u7159\u6c23\u6703\u6bd2\u5316\u5b83\u3002' },
     },
   };
@@ -235,17 +235,17 @@
   };
   const PROJECTS = {
     ic: { name: 'Absorber intercooling', short: 'IC', cost: PROCESS.ic.cost, months: PROCESS.ic.months, process: true,
-      desc: 'Pump the half-loaded solvent out of the middle of the absorber, cool it to 40 \u00b0C and send it back: it removes the temperature bulge that chokes high-capacity solvents. Best with AMP, AMP/NMP, MDEA/PZ, PZ and 2PE/EG (about \u221210 % steam); almost nothing for MEA (\u22123 %).',
+      desc: 'Cool the absorber mid-way: less steam for high-capacity solvents.', more: 'Pump the half-loaded solvent out of the middle of the absorber, cool it to 40 \u00b0C and send it back: it removes the temperature bulge that chokes high-capacity solvents. Best with AMP, AMP/NMP, MDEA/PZ, PZ and 2PE/EG (about \u221210 % steam); almost nothing for MEA (\u22123 %).',
       src: 'Chen, Hsu & Lin, Ind. Eng. Chem. Res. 2025 (AMP: solvent rate \u221239 %); Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (MEA: \u22123.8 %)',
-      zh: { name: '\u5438\u6536\u5854\u4e2d\u9593\u51b7\u537b', desc: '\u628a\u5438\u6536\u5854\u4e2d\u6bb5\u7684\u534a\u5bcc\u6db2\u62bd\u51fa\u3001\u51b7\u5230 40 \u00b0C \u518d\u6253\u56de\u53bb\uff0c\u6d88\u9664\u6eab\u5ea6\u9f13\u5305\u5c0d\u9ad8\u5bb9\u91cf\u6eb6\u5291\u7684\u9650\u5236\u3002\u6700\u9069\u5408 AMP\u3001AMP/NMP\u3001MDEA/PZ\u3001PZ\u30012PE/EG(\u84b8\u6c7d\u7d04 \u221210 %)\uff1b\u5c0d MEA \u5e7e\u4e4e\u6c92\u7528(\u22123 %)\u3002' } },
+      zh: { name: '\u5438\u6536\u5854\u4e2d\u9593\u51b7\u537b', desc: '\u5438\u6536\u5854\u4e2d\u6bb5\u51b7\u537b:\u9ad8\u5bb9\u91cf\u6eb6\u5291\u66f4\u7701\u84b8\u6c7d\u3002', more: '\u628a\u5438\u6536\u5854\u4e2d\u6bb5\u7684\u534a\u5bcc\u6db2\u62bd\u51fa\u3001\u51b7\u5230 40 \u00b0C \u518d\u6253\u56de\u53bb\uff0c\u6d88\u9664\u6eab\u5ea6\u9f13\u5305\u5c0d\u9ad8\u5bb9\u91cf\u6eb6\u5291\u7684\u9650\u5236\u3002\u6700\u9069\u5408 AMP\u3001AMP/NMP\u3001MDEA/PZ\u3001PZ\u30012PE/EG(\u84b8\u6c7d\u7d04 \u221210 %)\uff1b\u5c0d MEA \u5e7e\u4e4e\u6c92\u7528(\u22123 %)\u3002' } },
     sf: { name: 'Split-flow, multi-pressure stripper', short: 'SF', cost: PROCESS.sf.cost, months: PROCESS.sf.months, process: true,
-      desc: 'For 99 % capture: a semi-lean solvent does most of the work at the bottom of the absorber and a deeply stripped lean solvent polishes the top. Cuts the reboiler duty of 99 % capture by about 12 %, but needs more solvent circulation and an extra compressor stage. Only matters on plants upgraded to 99 %.',
+      desc: 'Two lean streams for 99 % capture: about 12 % less steam.', more: 'For 99 % capture: a semi-lean solvent does most of the work at the bottom of the absorber and a deeply stripped lean solvent polishes the top. Cuts the reboiler duty of 99 % capture by about 12 %, but needs more solvent circulation and an extra compressor stage. Only matters on plants upgraded to 99 %.',
       src: 'Chang, Chou & Lin, Sep. Purif. Technol. 2025 (doi 10.1016/j.seppur.2024.130120): reboiler 3.68 \u2192 3.25 GJ/t',
-      zh: { name: '\u5206\u6d41 + \u591a\u58d3\u6c7d\u63d0', desc: '\u7d66 99 % \u6355\u6349\u7528\uff1a\u5438\u6536\u5854\u4e0b\u6bb5\u7528\u534a\u8ca7\u6db2\u6293\u5927\u90e8\u5206\uff0c\u4e0a\u6bb5\u7528\u6df1\u5ea6\u518d\u751f\u7684\u8ca7\u6db2\u6536\u5c3e\u300299 % \u6355\u6349\u7684\u518d\u6cb8\u5668\u8ca0\u8377\u7d04\u964d 12 %\uff0c\u4f46\u6eb6\u5291\u5faa\u74b0\u91cf\u66f4\u5927\u3001\u9084\u8981\u591a\u4e00\u6bb5\u58d3\u7e2e\u6a5f\u3002\u53ea\u5c0d\u5df2\u5347\u7d1a 99 % \u7684\u96fb\u5ee0\u6709\u7528\u3002' } },
+      zh: { name: '\u5206\u6d41 + \u591a\u58d3\u6c7d\u63d0', desc: '\u5169\u80a1\u8ca7\u6db2\u505a 99 % \u6355\u6349:\u84b8\u6c7d\u7d04\u7701 12 %\u3002', more: '\u7d66 99 % \u6355\u6349\u7528\uff1a\u5438\u6536\u5854\u4e0b\u6bb5\u7528\u534a\u8ca7\u6db2\u6293\u5927\u90e8\u5206\uff0c\u4e0a\u6bb5\u7528\u6df1\u5ea6\u518d\u751f\u7684\u8ca7\u6db2\u6536\u5c3e\u300299 % \u6355\u6349\u7684\u518d\u6cb8\u5668\u8ca0\u8377\u7d04\u964d 12 %\uff0c\u4f46\u6eb6\u5291\u5faa\u74b0\u91cf\u66f4\u5927\u3001\u9084\u8981\u591a\u4e00\u6bb5\u58d3\u7e2e\u6a5f\u3002\u53ea\u5c0d\u5df2\u5347\u7d1a 99 % \u7684\u96fb\u5ee0\u6709\u7528\u3002' } },
     flex: { name: 'Flexible operation (control system)', short: 'FLEX', cost: 40, months: 8, process: true,
-      desc: 'A control system that lets capture follow the grid: in the two or three peak months every capture unit eases off during the peak hours (75 % on average), so the plants give the town more power (fewer blackouts, more to sell), but more CO\u2082 escapes in those months. Works with every solvent; it starts OFF, switch it on in the lab.',
+      desc: 'Capture eases off in peak months: more power, a little more CO\u2082.', more: 'A control system that lets capture follow the grid: in the two or three peak months every capture unit eases off during the peak hours (75 % on average), so the plants give the town more power (fewer blackouts, more to sell), but more CO\u2082 escapes in those months. Works with every solvent; it starts OFF, switch it on in the lab.',
       src: 'Lin, Wong, Jang & Ou, AIChE J. 2012 (doi 10.1002/aic.12789): flexible operation of amine capture',
-      zh: { name: '\u5f48\u6027\u64cd\u4f5c(\u63a7\u5236\u7cfb\u7d71)', desc: '\u8b93\u6355\u6349\u8ddf\u8457\u96fb\u7db2\u8d70\u7684\u63a7\u5236\u7cfb\u7d71\uff1a\u5728\u5169\u4e09\u500b\u5c16\u5cf0\u6708\u4efd\uff0c\u6bcf\u5957\u6355\u6349\u5728\u5c16\u5cf0\u6642\u6bb5\u964d\u8f09(\u6574\u6708\u5e73\u5747 75 %)\uff0c\u96fb\u5ee0\u591a\u51fa\u96fb\u529b(\u5c11\u505c\u96fb\u3001\u591a\u8ce3\u96fb)\uff0c\u4f46\u90a3\u5e7e\u500b\u6708\u6703\u591a\u6392\u4e00\u4e9b CO\u2082\u3002\u9069\u7528\u6240\u6709\u6eb6\u5291\uff1b\u9810\u8a2d\u95dc\u9589\uff0c\u8981\u5230\u7814\u7a76\u6240\u6253\u958b\u3002' } },
+      zh: { name: '\u5f48\u6027\u64cd\u4f5c(\u63a7\u5236\u7cfb\u7d71)', desc: '\u5c16\u5cf0\u6708\u4efd\u6355\u6349\u964d\u8f09:\u591a\u51fa\u96fb\u529b,\u4f46\u591a\u6392\u4e00\u9ede CO\u2082\u3002', more: '\u8b93\u6355\u6349\u8ddf\u8457\u96fb\u7db2\u8d70\u7684\u63a7\u5236\u7cfb\u7d71\uff1a\u5728\u5169\u4e09\u500b\u5c16\u5cf0\u6708\u4efd\uff0c\u6bcf\u5957\u6355\u6349\u5728\u5c16\u5cf0\u6642\u6bb5\u964d\u8f09(\u6574\u6708\u5e73\u5747 75 %)\uff0c\u96fb\u5ee0\u591a\u51fa\u96fb\u529b(\u5c11\u505c\u96fb\u3001\u591a\u8ce3\u96fb)\uff0c\u4f46\u90a3\u5e7e\u500b\u6708\u6703\u591a\u6392\u4e00\u4e9b CO\u2082\u3002\u9069\u7528\u6240\u6709\u6eb6\u5291\uff1b\u9810\u8a2d\u95dc\u9589\uff0c\u8981\u5230\u7814\u7a76\u6240\u6253\u958b\u3002' } },
   };
   const LAB_ORDER = ['screen', 'afs', 'rpb', 'mcfc', 'ic', 'sf', 'flex'];   // one project at a time, more can queue
 
@@ -353,8 +353,8 @@
 
   function project(id) {
     if (id === 'screen') return { id, name: 'Solvent screening', short: 'screening', cost: METHODS.exp.cost, months: METHODS.exp.months,
-      desc: 'Finds one new solvent you do not have yet (rarer = better). Lab experiments are 10\u00d7 dearer but almost always work, and a lab-tested solvent fails half as often at start-up. QM + MD computer screening, like our GHGT-18 poster, is fast and cheap but can miss, and its finds are predictions: 1.5\u00d7 the start-up failures until proven.',
-      zh: { name: '\u6eb6\u5291\u7be9\u9078', desc: '\u6bcf\u6b21\u627e\u5230\u4e00\u7a2e\u4f60\u9084\u6c92\u6709\u7684\u65b0\u6eb6\u5291(\u8d8a\u7a00\u6709\u8d8a\u597d)\u3002\u5be6\u9a57\u8cb4 10 \u500d\u4f46\u5e7e\u4e4e\u90fd\u6703\u6210\u529f\uff0c\u5be6\u9a57\u9a57\u8b49\u904e\u7684\u6eb6\u5291\u958b\u6a5f\u6545\u969c\u7387\u6e1b\u534a\u3002QM + MD \u96fb\u8166\u7be9\u9078(\u5c31\u662f\u6211\u5011 GHGT-18 \u6d77\u5831\u7684\u65b9\u6cd5)\u53c8\u5feb\u53c8\u4fbf\u5b9c\u4f46\u53ef\u80fd\u843d\u7a7a\uff0c\u627e\u5230\u7684\u53ea\u662f\u9810\u6e2c\uff1a\u6210\u719f\u524d\u958b\u6a5f\u6545\u969c\u7387 1.5 \u500d\u3002' } };
+      desc: 'Find a new solvent. Experiments: dear but sure. QM + MD screening (our GHGT-18 method): cheap and fast, but can miss.', more: 'Finds one new solvent you do not have yet (rarer = better). Lab experiments are 10\u00d7 dearer but almost always work, and a lab-tested solvent fails half as often at start-up. QM + MD computer screening, like our GHGT-18 poster, is fast and cheap but can miss, and its finds are predictions: 1.5\u00d7 the start-up failures until proven.',
+      zh: { name: '\u6eb6\u5291\u7be9\u9078', desc: '\u627e\u4e00\u7a2e\u65b0\u6eb6\u5291\u3002\u5be6\u9a57:\u8cb4\u4f46\u7a69;QM + MD \u7be9\u9078(\u6211\u5011 GHGT-18 \u7684\u65b9\u6cd5):\u4fbf\u5b9c\u53c8\u5feb,\u4f46\u53ef\u80fd\u843d\u7a7a\u3002', more: '\u6bcf\u6b21\u627e\u5230\u4e00\u7a2e\u4f60\u9084\u6c92\u6709\u7684\u65b0\u6eb6\u5291(\u8d8a\u7a00\u6709\u8d8a\u597d)\u3002\u5be6\u9a57\u8cb4 10 \u500d\u4f46\u5e7e\u4e4e\u90fd\u6703\u6210\u529f\uff0c\u5be6\u9a57\u9a57\u8b49\u904e\u7684\u6eb6\u5291\u958b\u6a5f\u6545\u969c\u7387\u6e1b\u534a\u3002QM + MD \u96fb\u8166\u7be9\u9078(\u5c31\u662f\u6211\u5011 GHGT-18 \u6d77\u5831\u7684\u65b9\u6cd5)\u53c8\u5feb\u53c8\u4fbf\u5b9c\u4f46\u53ef\u80fd\u843d\u7a7a\uff0c\u627e\u5230\u7684\u53ea\u662f\u9810\u6e2c\uff1a\u6210\u719f\u524d\u958b\u6a5f\u6545\u969c\u7387 1.5 \u500d\u3002' } };
     if (PROJECTS[id]) return Object.assign({ id }, PROJECTS[id]);
     const t = TECHS[id];
     return { id, name: t.name, short: t.short, cost: t.research.cost, months: t.research.months, star: t.star,
@@ -818,12 +818,12 @@
     } else if (id === 'nox') {
       const n = untreated.length;
       state.pending = {
-        id, title: 'Protest over NOx and amine emissions', text: 'Residents downwind blame the plants for NOx and for traces of amines and nitrosamines from the capture units. NOx in the flue gas also helps turn amines into nitrosamines.',
+        id, title: 'Protest over NOx and amine emissions', text: 'Residents blame the plants for NOx and for traces of amines and nitrosamines from capture.',
         opts: [
           { label: 'Add SCR + acid wash', effect: `$${25 * n}M for ${n} plant${n > 1 ? 's' : ''}`, zh: { label: '\u52a0\u88dd SCR \u812b\u785d + \u9178\u6d17\u6bb5', effect: `${n} \u5ea7\u5ee0\u5171 $${25 * n}M` } },
           { label: 'Dismiss the protest', effect: 'Public anger +8', zh: { label: '\u4e0d\u4e88\u7406\u6703', effect: '\u6c11\u6028 +8' } },
         ],
-        zh: { title: '\u5c45\u6c11\u6297\u8b70 NOx \u8207\u80fa\u6392\u653e', text: '\u4e0b\u98a8\u8655\u5c45\u6c11\u6307\u63a7\u96fb\u5ee0\u6392\u653e NOx\uff0c\u6355\u6349\u8a2d\u5099\u9084\u5e36\u51fa\u5fae\u91cf\u7684\u80fa\u8207\u4e9e\u785d\u80fa\u3002\u7159\u6c23\u4e2d\u7684 NOx \u4e5f\u6703\u8b93\u80fa\u66f4\u5bb9\u6613\u8b8a\u6210\u4e9e\u785d\u80fa\u3002' },
+        zh: { title: '\u5c45\u6c11\u6297\u8b70 NOx \u8207\u80fa\u6392\u653e', text: '\u5c45\u6c11\u6307\u63a7\u96fb\u5ee0\u6392\u653e NOx,\u4ee5\u53ca\u6355\u6349\u8a2d\u5099\u5e36\u51fa\u7684\u5fae\u91cf\u80fa\u8207\u4e9e\u785d\u80fa\u3002' },
       };
     } else {
       const p = up[Math.floor(R() * up.length)];
@@ -876,33 +876,33 @@
     if (k === 'gas') {
       state.gasMult = 1.8; state.gasMonths = 6;
       headline(state, 'gas', 'bad',
-        { title: 'Gas prices soar', deck: 'Gas fuel costs 80 % more for six months', text: 'A cold spell abroad and a pipeline outage send gas prices to a record. Every gas plant in Capture City pays 80 % more for its fuel until the market calms down.' },
-        { title: '\u5929\u7136\u6c23\u50f9\u683c\u98c6\u6f32', deck: '\u516d\u500b\u6708\u5167\u71c3\u6c23\u71c3\u6599\u8cb4 80 %', text: '\u570b\u5916\u5bd2\u6d41\u52a0\u4e0a\u7ba1\u7dda\u505c\u64fa\uff0c\u5929\u7136\u6c23\u50f9\u683c\u5275\u65b0\u9ad8\u3002\u6355\u6349\u57ce\u6bcf\u5ea7\u71c3\u6c23\u5ee0\u7684\u71c3\u6599\u90fd\u8981\u591a\u4ed8 80 %\uff0c\u76f4\u5230\u5e02\u5834\u5e73\u975c\u4e0b\u4f86\u3002' });
+        { title: 'Gas prices soar', deck: 'Gas fuel costs 80 % more for six months', text: 'Gas hits a record price: every gas plant pays 80 % more for fuel until the market calms.' },
+        { title: '\u5929\u7136\u6c23\u50f9\u683c\u98c6\u6f32', deck: '\u516d\u500b\u6708\u5167\u71c3\u6c23\u71c3\u6599\u8cb4 80 %', text: '\u5929\u7136\u6c23\u50f9\u5275\u65b0\u9ad8:\u6bcf\u5ea7\u71c3\u6c23\u5ee0\u71c3\u6599\u8cb4 80 %,\u76f4\u5230\u5e02\u5834\u5e73\u975c\u3002' });
     } else if (k === 'lng') {
       state.lngCut = 2;
       headline(state, 'lng', 'bad',
-        { title: 'LNG tanker stuck at sea', deck: 'Gas plants at half power for two months', text: 'The island keeps only days of liquefied gas in its tanks. With the next tanker delayed by a storm, gas plants must run at half power until supply is back.' },
-        { title: 'LNG \u8239\u53d7\u56f0\u6d77\u4e0a', deck: '\u71c3\u6c23\u5ee0\u5169\u500b\u6708\u53ea\u80fd\u534a\u8f09\u904b\u8f49', text: '\u5cf6\u4e0a\u7684\u6db2\u5316\u5929\u7136\u6c23\u53ea\u5b58\u5f97\u4e86\u5e7e\u5929\u3002\u4e0b\u4e00\u8258\u8239\u88ab\u98a8\u66b4\u803d\u64f1\uff0c\u71c3\u6c23\u5ee0\u53ea\u80fd\u534a\u8f09\u904b\u8f49\uff0c\u76f4\u5230\u4f9b\u61c9\u6062\u5fa9\u3002' });
+        { title: 'LNG tanker stuck at sea', deck: 'Gas plants at half power for two months', text: 'The next LNG tanker is late: gas plants run at half power until it arrives.' },
+        { title: 'LNG \u8239\u53d7\u56f0\u6d77\u4e0a', deck: '\u71c3\u6c23\u5ee0\u5169\u500b\u6708\u53ea\u80fd\u534a\u8f09\u904b\u8f49', text: '\u4e0b\u4e00\u8258 LNG \u8239\u5ef6\u8aa4:\u71c3\u6c23\u5ee0\u534a\u8f09\u904b\u8f49,\u76f4\u5230\u88dc\u7d66\u5230\u6e2f\u3002' });
     } else if (k === 'winter') {
       state.gasFreeze = 1;
       headline(state, 'winter', 'bad',
-        { title: 'Winter storm freezes gas wells', deck: 'Gas plants at 30 % for a month', text: 'Frozen wellheads and pipes choke the gas supply. Gas plants can only run at 30 % this month, just as heaters push demand up.' },
-        { title: '\u51ac\u5b63\u66b4\u98a8\u96ea\u51cd\u4f4f\u6c23\u4e95', deck: '\u71c3\u6c23\u5ee0\u9019\u500b\u6708\u53ea\u5269 30 %', text: '\u4e95\u53e3\u548c\u7ba1\u7dda\u7d50\u51b0\uff0c\u5929\u7136\u6c23\u4f9b\u61c9\u5361\u4f4f\u3002\u71c3\u6c23\u5ee0\u9019\u500b\u6708\u53ea\u80fd\u8dd1 30 %\uff0c\u504f\u504f\u96fb\u6696\u5668\u53c8\u628a\u7528\u96fb\u63a8\u9ad8\u3002' });
+        { title: 'Winter storm freezes gas wells', deck: 'Gas plants at 30 % for a month', text: 'Frozen wellheads: gas plants run at 30 % this month, just as heaters push demand up.' },
+        { title: '\u51ac\u5b63\u66b4\u98a8\u96ea\u51cd\u4f4f\u6c23\u4e95', deck: '\u71c3\u6c23\u5ee0\u9019\u500b\u6708\u53ea\u5269 30 %', text: '\u4e95\u53e3\u7d50\u51b0:\u71c3\u6c23\u5ee0\u9019\u500b\u6708\u53ea\u5269 30 %,\u504f\u504f\u7528\u96fb\u53c8\u8b8a\u9ad8\u3002' });
     } else if (k === 'subsidy') {
       state.subsidy = 12;
       headline(state, 'subsidy', 'good',
-        { title: 'Government backs carbon capture', deck: 'Capture projects 30 % cheaper for a year', text: 'A new clean-air package pays part of every capture project started in the next 12 months: installing, switching and upgrading capture all cost 30 % less.' },
-        { title: '\u653f\u5e9c\u529b\u633a\u78b3\u6355\u6349', deck: '\u4e00\u5e74\u5167\u6355\u6349\u5de5\u7a0b\u4fbf\u5b9c 30 %', text: '\u65b0\u7684\u7a7a\u6c61\u65b9\u6848\u6703\u88dc\u52a9\u672a\u4f86 12 \u500b\u6708\u5167\u958b\u5de5\u7684\u6355\u6349\u5de5\u7a0b\uff1a\u65b0\u88dd\u3001\u63db\u6eb6\u5291\u3001\u5347\u7d1a\u90fd\u4fbf\u5b9c 30 %\u3002' });
+        { title: 'Government backs carbon capture', deck: 'Capture projects 30 % cheaper for a year', text: 'A clean-air package: capture projects started in the next 12 months cost 30 % less.' },
+        { title: '\u653f\u5e9c\u529b\u633a\u78b3\u6355\u6349', deck: '\u4e00\u5e74\u5167\u6355\u6349\u5de5\u7a0b\u4fbf\u5b9c 30 %', text: '\u7a7a\u6c61\u65b0\u65b9\u6848:\u672a\u4f86 12 \u500b\u6708\u958b\u5de5\u7684\u6355\u6349\u5de5\u7a0b\u4fbf\u5b9c 30 %\u3002' });
     } else if (k === 'health') {
       angry(state, 8);
       headline(state, 'health', 'bad',
-        { title: 'Doctors link smog to asthma', deck: 'Public anger +8', text: 'A hospital study finds more childhood asthma in neighbourhoods downwind of the power plants. Parents are marching outside City Hall.' },
-        { title: '\u91ab\u5e2b\uff1a\u7a7a\u6c61\u8207\u6c23\u5598\u6709\u95dc', deck: '\u6c11\u6028 +8', text: '\u91ab\u9662\u7814\u7a76\u767c\u73fe\uff0c\u96fb\u5ee0\u4e0b\u98a8\u8655\u7684\u793e\u5340\u5152\u7ae5\u6c23\u5598\u6bd4\u4f8b\u8f03\u9ad8\u3002\u5bb6\u9577\u5011\u5728\u5e02\u653f\u5e9c\u5916\u904a\u884c\u3002' });
+        { title: 'Doctors link smog to asthma', deck: 'Public anger +8', text: 'A hospital study links childhood asthma to the plants. Parents march on City Hall.' },
+        { title: '\u91ab\u5e2b\uff1a\u7a7a\u6c61\u8207\u6c23\u5598\u6709\u95dc', deck: '\u6c11\u6028 +8', text: '\u91ab\u9662\u7814\u7a76\u6307\u51fa\u96fb\u5ee0\u4e0b\u98a8\u8655\u5152\u7ae5\u6c23\u5598\u8f03\u591a,\u5bb6\u9577\u5230\u5e02\u653f\u5e9c\u904a\u884c\u3002' });
     } else {
       state.usCut = true; state.resCut = 24; state.opexCut = 24;
       headline(state, 'subcut', 'bad',
-        { title: 'President axes carbon-capture funding', deck: 'Research +50 %, capture running costs +30 % for two years', text: 'The White House has cancelled federal support for carbon capture overnight. Partner labs lose their grants, so every lab project costs 50 % more, and solvent and service suppliers pass on their losses: running a capture plant costs 30 % more. Both last two years.' },
-        { title: '\u7e3d\u7d71\u780d\u6389\u78b3\u6355\u6349\u88dc\u52a9', deck: '\u5169\u5e74\u5167\u7814\u767c\u8cbb +50 %\u3001\u6355\u6349\u904b\u8f49\u8cbb +30 %', text: '\u767d\u5bae\u4e00\u591c\u4e4b\u9593\u53d6\u6d88\u806f\u90a6\u7684\u78b3\u6355\u6349\u88dc\u52a9\u3002\u5408\u4f5c\u5be6\u9a57\u5ba4\u5931\u53bb\u7d93\u8cbb\uff0c\u6bcf\u500b\u7814\u767c\u5c08\u6848\u90fd\u8cb4 50 %\uff1b\u6eb6\u5291\u8207\u7dad\u4fee\u5ee0\u5546\u628a\u640d\u5931\u8f49\u5ac1\u51fa\u4f86\uff0c\u6355\u6349\u5ee0\u904b\u8f49\u8cbb\u8cb4 30 %\u3002\u5169\u8005\u90fd\u6301\u7e8c\u5169\u5e74\u3002' });
+        { title: 'President axes carbon-capture funding', deck: 'Research +50 %, capture running costs +30 % for two years', text: 'Federal capture support is cancelled: lab projects cost 50 % more and capture running costs 30 % more, for two years.' },
+        { title: '\u7e3d\u7d71\u780d\u6389\u78b3\u6355\u6349\u88dc\u52a9', deck: '\u5169\u5e74\u5167\u7814\u767c\u8cbb +50 %\u3001\u6355\u6349\u904b\u8f49\u8cbb +30 %', text: '\u806f\u90a6\u78b3\u6355\u6349\u88dc\u52a9\u53d6\u6d88:\u7814\u767c\u8cbb +50 %\u3001\u6355\u6349\u904b\u8f49\u8cbb +30 %,\u6301\u7e8c\u5169\u5e74\u3002' });
     }
   }
   // a front-page story: the page shows it as a newspaper and the game waits until it is read

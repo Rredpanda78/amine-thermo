@@ -235,6 +235,8 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 
 /* lab */
 .lab-list { display: grid; gap: 8px; }
+details.more { font-size: 12.5px; margin-top: 2px; }
+details.more summary { font-size: 12.5px; }
 .drops { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .drops span { font-size: 13px; font-family: var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--muted); }
 .drops span.got { color: var(--good); border-color: #2F5B3A; }
@@ -348,11 +350,6 @@ html:not([lang|="zh"]) .paper .body::first-letter { float: left; font-family: va
 
 /* tips: a small card that pauses the game */
 .lab-tag { color: var(--gold); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 13.5px; }
-.tipov { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px; background: rgba(5, 10, 20, .55); }
-.tip { width: min(460px, 100%); background: #FFF8E1; color: #2A1C02; border-radius: 16px; padding: 16px 18px; box-shadow: 0 16px 50px var(--shadow); display: grid; gap: 12px; }
-.tip b { display: block; font-size: 13.5px; letter-spacing: 1px; text-transform: uppercase; color: #8A5A00; }
-.tip p { margin: 4px 0 0; font-size: 15.5px; line-height: 1.5; }
-.tip .btn { justify-self: end; background: #2A1C02; color: #FFF8E1; }
 
 .intro ul { padding-left: 18px; margin: 8px 0 14px; display: grid; gap: 6px; }
 /* how-to-play page: the goal and the two ways to lose, each with a small copy of its meter */
@@ -547,9 +544,6 @@ html, body { height: 100%; overflow: hidden; }
     <button class="introlink" id="introBack" data-i18n="introBack">‹ How to play</button>
     <h3 class="big" data-i18n="brand">Capture City 2050</h3>
     <p class="lead" data-i18n="introLead">You run the power company of a coal-and-gas town. Keep the lights on until December 2050.</p>
-    <ul data-i18n="introList">
-      <li><b>CO₂ limit.</b> Keep the orange bar inside the green box. The box <b>shrinks every year</b> toward net zero. Going over fills the <b>limit breach</b> meter; at 100 % you lose your licence.</li>
-    </ul>
     <div class="nick"><label for="nick" data-i18n="nickL">Nickname</label><input id="nick" maxlength="16" autocomplete="nickname"><span class="err" id="nickErr" hidden></span></div>
     <div class="regions" id="regions" role="radiogroup" aria-label="Region"></div>
     <div class="btn-row"><button class="btn" id="startBtn" data-i18n="start">Start 2026</button><button class="btn ghost" id="boardBtn" data-i18n="boardB">Leaderboard</button></div>
@@ -652,7 +646,6 @@ html, body { height: 100%; overflow: hidden; }
   </div>
 </div>
 
-<div class="tipov" id="tip" hidden><div class="tip" role="dialog" aria-modal="true" aria-label="Tip"><div><b data-i18n="tipT">Tip · game paused</b><p id="tipText"></p></div><button class="btn" id="tipOk" data-i18n="gotIt">Got it</button></div></div>
 
 <script src="model.js" charset="utf-8"></script>
 <script>
@@ -667,7 +660,7 @@ html, body { height: 100%; overflow: hidden; }
   const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // first-time arrows in the scene: a plant, the lab and the people can be tapped (each goes away once opened)
   const COACH_KEY = 'cc2050-coach';
-  let coach = { plant: 1, lab: 1, crowd: 1 };
+  let coach = { plant: 1, lab: 1, crowd: 1, build: 1 };
   try { const c = JSON.parse(localStorage.getItem(COACH_KEY) || 'null'); if (c) coach = Object.assign(coach, c); } catch (e) { /* storage blocked: show the arrows */ }
   function coachDone(k) { if (!coach[k]) return; coach[k] = 0; try { localStorage.setItem(COACH_KEY, JSON.stringify(coach)); } catch (e) { /* ignore */ } }
   const store = {
@@ -690,44 +683,26 @@ html, body { height: 100%; overflow: hidden; }
     pausedB: ['❚❚ Paused · tap to play', '❚❚ 暫停中 · 點一下繼續'],
     labT: ['Research lab', '研究所'], newsT: ['News', '新聞'],
     rotate: ['Turn your phone sideways for the whole city ↻', '把手機轉成橫向，看整座城市 ↻'],
-    introLead: ['You run the power company of a coal-and-gas town. Keep the lights on until December 2050.', '你經營一座燒煤和天然氣城市的電力公司。撐到 2050 年 12 月，不能停電。'],
-    introList: [
-      '<li><b>CO₂ limit.</b> Keep the orange bar inside the green box. The box <b>shrinks every year</b> toward net zero. Going over fills the <b>limit breach</b> meter; at 100 % you lose your licence.</li>' +
-      '<li><b>Public anger</b> rises with high prices, blackouts and smog (tap the meter to see why). At 100 % you are voted out.</li>' +
-      '<li><b>Funds</b> come from electricity bills: tap the <b>price board</b> in the town to change the price. Storing CO₂ costs money for transport and storage. Below −$500M you go bankrupt.</li>' +
-      '<li>Tap a <b>plant</b> to command it: add CO₂ capture, upgrade to 99 %, switch fuel, or demolish. Jobs <b>queue up</b>: paid when queued, fully refunded if you cancel. Tap the <b>empty lot</b> to build a plant.</li>' +
-      '<li>Tap the <b>lab</b>: find new solvents by slow, reliable <b>experiments</b> or fast, riskier <b>computer screening</b>, or develop new processes. New technology can fail in its first 2 years.</li>',
-      '<li><b>CO₂ 限額。</b>讓橘色條留在綠框裡。綠框<b>每年縮小</b>，2050 年趨近淨零。超過就會累積<b>超標計量</b>，到 100 % 就被吊銷執照。</li>' +
-      '<li><b>民怨</b>會因為電價高、停電、空污而上升(點計量看原因)。到 100 % 你就會被趕下台。</li>' +
-      '<li><b>資金</b>來自電費：點城市裡的<b>電價看板</b>調整電價。封存 CO₂ 要付運輸與封存費。資金低於 −5 億美元就破產。</li>' +
-      '<li>點<b>電廠</b>下指令：加裝 CO₂ 捕捉、升級到 99 %、換燃料或拆除。工程可以<b>排隊</b>：排入就付錢，取消全額退費。點<b>空地</b>蓋新電廠。</li>' +
-      '<li>點<b>研究所</b>：用慢但可靠的<b>實驗</b>或快但有風險的<b>電腦篩選</b>找新溶劑，或研發新製程。新技術前 2 年可能故障。</li>'],
-    limKey: ['<b></b>green box = this year\'s limit · <i></i>dashed line = the limit 5 years from now', '<b></b>綠框 = 今年的限額 · <i></i>虛線 = 5 年後的限額'],
-    howLead: ['How to play, in one minute.', '一分鐘看懂怎麼玩。'],
+    introLead: ['Choose a region.', '選一個地區。'],
+    limKey: ['<b></b>limit now · <i></i>in 5 years', '<b></b>今年限額 · <i></i>5 年後'],
+    howLead: ['How to play.', '怎麼玩。'],
     hGoalT: ['Your goal', '你的目標'],
-    hGoal: ['You run the power company of a coal-and-gas town. Keep the lights on every month until December 2050 while the law cuts the CO₂ you may emit, year after year, toward net zero.',
-      '你經營一座燒煤和天然氣城市的電力公司。每個月都不能停電，一路撐到 2050 年 12 月；同時法律每年都在降低你能排放的 CO₂，一路降向淨零。'],
-    hCO2T: ['Watch out 1: the CO₂ limit', '注意 1：CO₂ 限額'],
-    hCO2: ['Keep the orange bar inside the green box. The box shrinks every year. Go over and the red limit-breach meter fills; at 100 % you lose your licence. Add CO₂ capture to your plants in time: it takes a year to build.',
-      '讓橘色條留在綠框裡，綠框每年縮小。超過的話，紅色的超標計量會累積；到 100 % 就被吊銷執照。要及早替電廠加裝 CO₂ 捕捉：蓋一套要一年。'],
-    hAngT: ['Watch out 2: public anger', '注意 2：民怨'],
-    hAng: ['High electricity prices, blackouts and smog make people angry. At 100 % you are voted out. Capture eats power, so plan spare plants for the summer or winter peak.',
-      '電價太高、停電和空污都會讓民眾不滿。民怨到 100 % 你就會被趕下台。捕捉會吃掉電力，要為夏季或冬季尖峰準備備用電廠。'],
-    hMoneyT: ['And keep some money', '還有：別把錢燒光'],
-    hMoney: ['Electricity bills pay for everything: capture plants, research, CO₂ storage. Below −$500M you go bankrupt. The price board in the town sets the bill.',
-      '一切都靠電費：捕捉設備、研發、CO₂ 封存。資金低於 −5 億美元就破產。城市裡的電價看板決定電費。'],
+    hGoal: ['Keep the lights on until 2050 while the CO₂ limit falls toward zero.', '撐到 2050 年不停電,同時 CO₂ 限額一路降向零。'],
+    hCO2T: ['The CO₂ limit', 'CO₂ 限額'],
+    hCO2: ['Keep the orange bar inside the green box. Capture takes a year to build: start early.', '橘色條要留在綠框內。捕捉要蓋一年,及早開始。'],
+    hAngT: ['Public anger', '民怨'],
+    hAng: ['High prices, blackouts and smog anger people. At 100 % you are voted out.', '電價高、停電、空污都會累積民怨,到 100 % 就下台。'],
+    hMoneyT: ['Money', '資金'],
+    hMoney: ['The price board sets your income. Below −$500M you go bankrupt.', '電價看板決定收入。資金低於 −5 億美元就破產。'],
     introNext: ['Next: choose a region ›', '下一步：選地區 ›'],
     introBack: ['‹ How to play', '‹ 怎麼玩'],
-    nickL: ['Nickname <small style="font-weight:400;color:var(--muted)">(optional, for the leaderboard)</small>', '暱稱 <small style="font-weight:400;color:var(--muted)">(選填，上排行榜用)</small>'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
-    credits: [
-      '<b>Where the numbers come from.</b> Capture technologies use values from Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Int. J. Greenh. Gas Control 2020) and pilot-plant literature; costs, carbon prices and build times were checked against NETL, EIA and IEAGHG. Values marked <span class="est">est.</span> are game estimates. Plants, the CO₂ limit, events and regions are simplified for play and are not forecasts.',
-      '<b>數字從哪來。</b>捕捉技術的數值來自林育正實驗室的論文(Chem. Eng. J. 2025、2026；Ind. Eng. Chem. Res. 2025；Int. J. Greenh. Gas Control 2020)與前導廠文獻；成本、碳價與工期對照過 NETL、EIA、IEAGHG。標 <span class="est">est.</span> 的是遊戲估計值。電廠、CO₂ 限額、事件和地區都為了好玩而簡化，不是預測。'],
+    nickL: ['Nickname <small style="font-weight:400;color:var(--muted)">(optional)</small>', '暱稱 <small style="font-weight:400;color:var(--muted)">(選填)</small>'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
+    credits: ['<b>Sources.</b> Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Int. J. Greenh. Gas Control 2020), pilot-plant literature, NETL, EIA and IEAGHG. <span class="est">est.</span> = game estimate; plants, events and regions are simplified.', '<b>資料來源。</b>林育正實驗室論文(Chem. Eng. J. 2025、2026;Ind. Eng. Chem. Res. 2025;Int. J. Greenh. Gas Control 2020)、前導廠文獻、NETL、EIA、IEAGHG。<span class="est">est.</span> = 遊戲估計;電廠、事件與地區皆已簡化。'],
     close: ['Close', '關閉'], buildT: ['Build a new plant', '蓋新電廠'], priceT: ['Electricity price', '電價'],
     angerT: ['Where public anger comes from', '民怨從哪裡來'],
     boardT: ['Leaderboard · top 10', '排行榜 · 前 10 名'], boardLead: ['Saved on this device only. Finish a game in 2050 to get on the board.', '只存在這台裝置上。撐到 2050 年才能上榜。'],
     clearB: ['Clear board', '清除排行榜'], mast: ['The Capture City Times', '捕捉城時報'], gamePaused: ['Game paused', '遊戲暫停'],
     findOk: ['Install it from any plant', '到任一座電廠安裝'], again: ['Play again', '再玩一次'],
-    tipT: ['Tip · game paused', '提示 · 遊戲暫停'], gotIt: ['Got it', '知道了'],
   };
   // reasons from the model, in Chinese
   const WHY = {
@@ -777,7 +752,7 @@ html, body { height: 100%; overflow: hidden; }
   let speed = 1, playing = false, acc = 0, lastT = 0;
   let toastN = 0, toastTimer = null;
   const MS_PER_MONTH = 1600;   // one game month every 1.6 s at 1×
-  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard', 'tip'].some(id => !$(id).hidden);
+  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard'].some(id => !$(id).hidden);
 
   // ---------- best score per region (shown on the region cards) ----------
   const BEST_KEY = 'cc2050-best-v10';
@@ -904,26 +879,21 @@ html, body { height: 100%; overflow: hidden; }
     return { play, unlock: () => { if (fxOn || musOn) ctx(); } };
   })();
 
-  // ---------- tips (shown once each, pause the game) ----------
+  // ---------- hints: one-line, non-blocking (no pop-ups) ----------
   const TIPS = [
-    { id: 'start', when: s => s.m >= 1, text: () => L('Tap a power plant in the town (or its chip under the town) to add CO₂ capture. Coal Plant A is the biggest emitter.', '點城市裡的電廠(或下方的電廠標籤)加裝 CO₂ 捕捉。燃煤電廠 A 排放最多。') },
-    { id: 'box', when: s => s.m >= 4, text: () => L('Keep the orange bar inside the green box: that box is the legal CO₂ limit, and it shrinks every year. Building capture takes a year, so start early.', '讓橘色條留在綠框裡：綠框就是法定 CO₂ 限額，每年縮小。捕捉設備要蓋一年，早點開始。') },
-    { id: 'lab', when: s => s.m >= 10 || s.plants.some(p => p.tech || p.build), text: () => L('Tap the LAB building to research. Experiments cost 10× more but almost always work, and their finds fail less; computer screening (QM + MD) is fast and cheap but can miss. Process development unlocks new processes such as the rotating packed bed and the fuel cell.', '點 LAB 研究所做研發。實驗貴 10 倍但幾乎都成功，找到的溶劑也比較少故障；電腦篩選(QM + MD)又快又便宜但可能落空。研發製程可以解鎖旋轉填充床、燃料電池等新製程。') + (innerWidth <= 860 ? L(' It is also in the Research tab.', ' 也可以從上方「研發」分頁進入。') : '') },
-    { id: 'price', when: s => s.m >= 18, text: () => L('The price board in the town sets what everyone pays. Above what people accept, anger rises; tap the Public anger meter to see what is driving it.', '城市裡的電價看板決定大家付多少電費。超過大家能接受的價格，民怨就會上升；點「民怨」計量看是什麼在推高它。') },
-    { id: 'deep', when: s => s.m >= 144, text: () => L('Plan ahead: by the 2040s 90 % capture is not enough. The 99 % upgrade takes a year; a fuel cell stops at 85 %. The dashed line on the CO₂ bar is the limit 5 years from now.', '提早規劃：到 2040 年代 90 % 捕捉就不夠了。升級 99 % 要一年；燃料電池只到 85 %。CO₂ 條上的虛線是 5 年後的限額。') },
+    { id: 'deep', when: s => s.m >= 144, text: () => L('By the 2040s 90 % capture is not enough: plan the 99 % upgrade, it takes a year.', '2040 年代 90 % 捕捉就不夠了:提早升級 99 %,要蓋一年。') },
   ];
   let tipsShown = {};
   function maybeTip() {
-    if (!$('tip').hidden || !playing) return false;
     const t = TIPS.find(x => !tipsShown[x.id] && x.when(S));
-    if (!t) return false;
-    tipsShown[t.id] = true;
-    $('tipText').textContent = t.text();
-    $('tip').hidden = false;
-    return true;
+    if (t && playing) {
+      tipsShown[t.id] = true;
+      const el = $('toast');
+      el.className = 'toast'; el.textContent = t.text(); el.hidden = false;
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 6000);
+    }
+    return false;   // never pauses the game
   }
-  $('tipOk').onclick = e => { e.stopPropagation(); $('tip').hidden = true; };
-  $('tip').addEventListener('click', () => { $('tip').hidden = true; });
 
   // ---------- price: the board in the town, plus a sheet with the slider ----------
   function setPrice(v) { M.setPrice(S, v); SND.play('coin'); renderPriceSheet(); renderStatus(); renderAnger(); }
@@ -933,24 +903,24 @@ html, body { height: 100%; overflow: hidden; }
   $('ovPrice').addEventListener('click', e => { if (e.target === $('ovPrice')) $('ovPrice').hidden = true; });
   function priceNote() {
     const fair = M.fairPrice(S), d = S.price - fair;
-    return d > 0 ? L(`<span class="hot">$${d} above what people accept.</span> Anger rises every month at this price.`, `<span class="hot">比大家能接受的高 $${d}。</span>這個價格會讓民怨每月上升。`)
-      : d < 0 ? L(`<span class="ok">$${-d} below the accepted price.</span> People calm down, but income drops.`, `<span class="ok">比可接受價格低 $${-d}。</span>民怨會下降，但收入變少。`)
-      : L(`People accept up to $${fair}/MWh. Higher prices fund capture but make people angry.`, `大家最多接受每 MWh $${fair}。電價越高，捕捉經費越多，但民怨也越高。`);
+    return d > 0 ? L(`<span class="hot">$${d} over: anger rises every month.</span>`, `<span class="hot">超出 $${d}:民怨每月上升。</span>`)
+      : d < 0 ? L(`<span class="ok">$${-d} under: calmer people, less income.</span>`, `<span class="ok">低 $${-d}:民怨下降,收入減少。</span>`)
+      : L('Higher price: more money, more anger.', '電價越高:錢越多,民怨也越高。');
   }
   function renderPriceSheet() {
     $('price').value = S.price;
     $('priceVal').innerHTML = '$' + S.price + '<span>/MWh</span>';
     const L0 = S.last;
-    $('prLead').textContent = L(`Accepted: up to $${M.fairPrice(S)}/MWh · ${L0 ? (L0.profit >= 0 ? 'profit +$' : 'loss −$') + fmt(Math.abs(L0.profit), 1) + 'M last month' : ''} · game paused`,
-      `可接受：每 MWh $${M.fairPrice(S)} 以內 · ${L0 ? (L0.profit >= 0 ? '上月獲利 +$' : '上月虧損 −$') + fmt(Math.abs(L0.profit), 1) + 'M' : ''} · 遊戲暫停`);
+    $('prLead').textContent = L(`OK up to $${M.fairPrice(S)}/MWh${L0 ? ` · ${L0.profit >= 0 ? '+' : '−'}$${fmt(Math.abs(L0.profit), 1)}M last month` : ''}`,
+      `可接受 ≤ $${M.fairPrice(S)}/MWh${L0 ? ` · 上月 ${L0.profit >= 0 ? '+' : '−'}$${fmt(Math.abs(L0.profit), 1)}M` : ''}`);
     $('priceHint').innerHTML = priceNote();
   }
   // one line under the plant chips: price + fuel and supply notes
   function renderStatus() {
     const n = [];
     const fair = M.fairPrice(S), d = S.price - fair;
-    n.push(d > 0 ? L(`<span class="hot">Price $${S.price} is $${d} over what people accept.</span>`, `<span class="hot">電價 $${S.price}，比可接受高 $${d}。</span>`)
-      : L(`Price $${S.price}/MWh (accepted ≤ $${fair}).`, `電價每 MWh $${S.price}(可接受 ≤ $${fair})。`));
+    n.push(d > 0 ? L(`<span class="hot">$${S.price}/MWh · $${d} over OK</span>`, `<span class="hot">電價 $${S.price} · 超出 $${d}</span>`)
+      : L(`$${S.price}/MWh · OK ≤ $${fair}`, `電價 $${S.price} · 可接受 ≤ $${fair}`));
     if (S.gasMult > 1) n.push(L(`<span class="hot">Gas price spike: $${fmt(M.gasFuel(S))}/MWh.</span>`, `<span class="hot">氣價飆漲：每 MWh $${fmt(M.gasFuel(S))}。</span>`));
     if (S.lngCut > 0) n.push(L('<span class="hot">LNG shortage: gas plants at half power.</span>', '<span class="hot">LNG 短缺：燃氣廠半載。</span>'));
     if (S.gasFreeze > 0) n.push(L('<span class="hot">Winter storm: gas plants at 30 %.</span>', '<span class="hot">暴風雪：燃氣廠只剩 30 %。</span>'));
@@ -975,20 +945,20 @@ html, body { height: 100%; overflow: hidden; }
   function renderAnger() {
     const pa = angerParts();
     const net = pa.price + pa.blackout + pa.smog + pa.breach + pa.calm + pa.events;
-    $('agLead').textContent = L(`Anger ${Math.round(S.anger)} % · last month ${net >= 0 ? '+' : ''}${fmt(net, 1)} · at 100 % you are voted out · game paused`,
-      `民怨 ${Math.round(S.anger)} % · 上個月 ${net >= 0 ? '+' : ''}${fmt(net, 1)} · 到 100 % 就下台 · 遊戲暫停`);
+    $('agLead').textContent = L(`${Math.round(S.anger)} % · ${net >= 0 ? '+' : ''}${fmt(net, 1)} last month · 100 % = voted out`,
+      `民怨 ${Math.round(S.anger)} % · 上月 ${net >= 0 ? '+' : ''}${fmt(net, 1)} · 100 % 下台`);
     const big = Math.max(2, ...AP.map(([k]) => Math.abs(pa[k] || 0)));
     $('agRows').innerHTML = AP.map(([k, en, zh]) => {
       const v = pa[k] || 0, w = Math.min(50, Math.abs(v) / big * 50);
       return `<span class="k">${L(en, zh)}</span><span class="tr"><i class="${v >= 0 ? 'up' : 'dn'}" style="width:${w.toFixed(1)}%"></i></span><span class="v ${v > 0.05 ? 'up' : v < -0.05 ? 'dn' : ''}">${v >= 0 ? '+' : ''}${fmt(v, 1)}</span>`;
     }).join('');
     const tips = [];
-    if (pa.price > 0.3) tips.push(L('Lower the price on the price board: every $ above the accepted price adds anger.', '在電價看板降價：超過可接受價格的每一塊錢都會增加民怨。'));
-    if (pa.blackout > 0.1) tips.push(L('Build a spare plant (tap the empty lot): capture eats power, and summer or winter peaks cause blackouts.', '蓋一座備用電廠(點空地)：捕捉會吃掉電力，夏季或冬季尖峰就會停電。'));
-    if (pa.smog > 0.6) tips.push(L('Smog comes from emissions: add capture to the biggest emitters.', '空污來自排放：先替排放最多的電廠加裝捕捉。'));
-    if (pa.breach > 0.2) tips.push(L('Get back under the CO₂ limit: the breach meter itself angers people.', '回到 CO₂ 限額以下：超標本身也會讓民眾不滿。'));
-    if (pa.events > 0) tips.push(L('Recent decisions in the news angered people; it fades over time.', '最近新聞裡的決定惹怒了民眾，會慢慢淡去。'));
-    if (!tips.length) tips.push(L('Things are calm. A price a little below the accepted level calms people faster.', '目前很平靜。電價略低於可接受價格，民怨會降得更快。'));
+    if (pa.price > 0.3) tips.push(L('Lower the price: every $ over the accepted price adds anger.', '降電價:超過可接受價格的每一塊錢都會加民怨。'));
+    if (pa.blackout > 0.1) tips.push(L('Build a spare plant: capture eats power and peaks cause blackouts.', '蓋一座備用電廠:捕捉吃電,尖峰就會停電。'));
+    if (pa.smog > 0.6) tips.push(L('Add capture to the biggest emitters.', '先替排放最多的電廠加裝捕捉。'));
+    if (pa.breach > 0.2) tips.push(L('Get back under the CO₂ limit.', '回到 CO₂ 限額以下。'));
+    if (pa.events > 0) tips.push(L('Recent news angered people; it fades.', '最近的新聞惹怒民眾,會慢慢淡去。'));
+    if (!tips.length) tips.push(L('All calm. A price a bit under the accepted level calms people faster.', '一切平靜。電價略低於可接受價格,民怨降得更快。'));
     $('agAdvice').innerHTML = tips.map(t => `<li>${t}</li>`).join('');
   }
 
@@ -1034,7 +1004,7 @@ html, body { height: 100%; overflow: hidden; }
       + row(lv < 0 ? L('Power gained', '多發電') : L('Power lost', '少發電'), (lv < 0 ? '+' : '−') + fmt(Math.abs(lv)) + ' MW', rel(lost, id), false)
       + row(L('Build cost', '設備費'), '$' + fmt(cost(id)) + 'M', rel(cost, id), false)
       + row(L('Running cost', '運轉費'), '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
-      + `</div><div class="barkey">${L('Bars run from the best to the worst option for this plant: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.', '長條從這座廠最好到最差的選項排列：<b style="color:var(--good)">綠色</b>越長越好，<b style="color:#E07A5F">橘色</b>越長越花錢。')}</div>`;
+      + `</div><div class="barkey">${L('Longer bar: <b style="color:var(--good)">green</b> = better, <b style="color:#E07A5F">orange</b> = costlier', '長條越長:<b style="color:var(--good)">綠</b> = 越好,<b style="color:#E07A5F">橘</b> = 越貴')}</div>`;
   }
   // one naming rule everywhere: blends A/B (MDEA/PZ), solvent + process A+B (MEA+AS), processes as acronyms (RPB, IC)
   const ICON = k => M.TECHS[k].short;
@@ -1090,7 +1060,7 @@ html, body { height: 100%; overflow: hidden; }
     if (!p) { closePlant(); return; }
     const on = M.online(p), pen = p.tech ? M.penalty(p, p.tech) : 0;
     $('plTitle').textContent = plantName(p);
-    $('plLead').textContent = `${p.gross} MW ${typeName(p.type)} · ${plantStatus(p)} · ${L('output', '出力')} ${fmt(on ? p.gross * (1 - pen) : 0)} MW · ${L('funds', '資金')} ${money(S.funds)} · ${L('game paused', '遊戲暫停')}`;
+    $('plLead').textContent = `${p.gross} MW ${typeName(p.type)} · ${plantStatus(p)}${on && pen ? ` → ${fmt(p.gross * (1 - pen))} MW` : ''} · ${money(S.funds)}`;
     const jobs = [];
     if (p.build) jobs.push(Object.assign({ run: true }, p.build));
     (p.queue || []).forEach(j => jobs.push(j));
@@ -1105,7 +1075,7 @@ html, body { height: 100%; overflow: hidden; }
     const groups = iconGroups(p).map(([h, ks], i) => `<div class="igrp g${i}"><div class="igh">${h}</div><div class="icons">${ks.map(k => iconHTML(p, k)).join('')}</div></div>`).join('');
     $('plBody').innerHTML = `<div class="qrow">${q}</div>`
       + `<div class="igrps" id="icons">${groups}</div><div class="info" id="info"></div>`
-      + `<p class="cmd-hint">${lastPtr === 'mouse' ? L('Hover an icon for details, click it to queue.', '滑鼠移到圖示上看說明，點一下排入佇列。') : L('Tap an icon for details, tap it again to queue.', '點圖示看說明，再點一次排入佇列。')} ${L('Jobs are paid when queued; tap a job in the queue to cancel it for a full refund. Capture can be queued while a plant is still being built.', '排入就付錢；點佇列裡的工程可取消並全額退費。電廠還在興建時也能先排捕捉。')}</p>`;
+      + `<p class="cmd-hint">${lastPtr === 'mouse' ? L('Hover to see, click to queue', '滑鼠移上去看,點一下排入') : L('Tap to see, tap again to queue', '點一下看,再點排入')} · ${L('paid when queued · tap a queued job to refund', '排入即付款 · 點佇列可退費')}</p>`;
     $('plBody').querySelectorAll('[data-cx]').forEach(b => b.onclick = () => {
       const r = M.cancelJob(S, p.id, +b.dataset.cx);
       SND.play(r.ok ? 'cancel' : 'nope');
@@ -1164,7 +1134,7 @@ html, body { height: 100%; overflow: hidden; }
       const chk = M.canQueue(S, p, { kind: 'deep' });
       const pen = v.tech ? M.penalty({ type: v.type }, v.tech, true) : 0;
       h = `<div class="row"><span class="nm" style="color:var(--good)">${L('Upgrade to 99 % capture', '升級到 99 % 捕捉')}</span><span class="chip">${L('taller packing', '更高填料')}</span></div>
-        <div class="pitch">${L('A costly last resort: 99 % instead of 90 %, but the taller columns take a year to build and need more steam.', '昂貴的最後手段：捕捉率從 90 % 到 99 %，但更高的塔要蓋一年，也更耗蒸汽。')}</div>
+        <div class="pitch">${L('99 % instead of 90 %: taller columns, a year to build, more steam.', '捕捉率 90 → 99 %:塔更高、要蓋一年、更耗蒸汽。')}</div>
         ${v.tech ? `<div class="mini"><span>${L('captures', '捕捉')} <b>99 %</b></span><span>${L('output', '出力')} <b>−${Math.round(pen * 100)} %</b></span></div>` : ''}
         <details><summary>${L('Details', '詳細')}</summary><p>${L('A commercial design study (with Prof. Lin as co-author) reached 99.5 % capture with about 50 % more absorber packing, raising the capital cost per tonne by about 6 %. The extra regeneration energy used here (about +9 %) is a game estimate', '一份商業設計研究(林育正教授為共同作者)只要多約 50 % 的吸收塔填料就能達到 99.5 % 捕捉，每噸資本成本約多 6 %。這裡用的再生能耗增量(約 +9 %)是遊戲估計')} <span class="est">est.</span></p><p class="src">Hirata et al., Int. J. Greenh. Gas Control 2020 (doi 10.1016/j.ijggc.2019.102847)</p></details>
         <div class="row">${chk.ok ? `<button class="btn" data-go="deep">${act(chk)}</button>` : whyHTML(chk)}</div>`;
@@ -1177,16 +1147,16 @@ html, body { height: 100%; overflow: hidden; }
         ${fitsHTML(k, v.tech)}
         <div class="pitch">${zhOf(pr.desc, pr.zh.desc)}</div>
         ${v.tech && (k !== 'sf' || v.deep) ? `<div class="mini"><span>${L('this plant now', '這座廠目前')} <b>−${now} MW</b></span><span>${L('with it', '加裝後')} <b>−${after} MW</b></span></div>` : ''}
-        <p class="src">${pr.src}</p>
+        <details><summary>${L('Details', '詳細')}</summary><p>${zhOf(pr.more, pr.zh.more)}</p><p class="src">${pr.src}</p></details>
         <div class="row">${chk.ok ? `<button class="btn" data-go="${k}">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (k.startsWith('cv_')) {
       const to = k.slice(3), chk = M.canQueue(S, p, jobFor(k)), pt = M.PLANT_TYPES[to];
       const text = to === 'gasb'
-        ? L('Burn gas in the existing coal boiler: quick and cheap, but it stays a steam cycle, so CO₂ only drops to 0.55 t/MWh (−42 %) and gas costs more per MWh than in a combined cycle.', '在原本的燃煤鍋爐改燒天然氣：快又便宜，但還是蒸汽循環，CO₂ 只降到 0.55 t/MWh(−42 %)，每 MWh 用的氣也比複循環多。')
-        : to === 'gas' ? L('Repower to a combined-cycle gas plant (gas turbine + steam): a two-year rebuild, 400 MW, 0.37 t CO₂/MWh (−61 % vs coal). Fuel cells fit only here.', '改建成複循環燃氣廠(燃氣渦輪 + 蒸汽)：兩年工程，400 MW，0.37 t CO₂/MWh(比燃煤少 61 %)。燃料電池只能裝在這種廠。')
-        : L('Switch the boiler back to coal: cheap, steady fuel, but 0.95 t CO₂/MWh again.', '鍋爐改回燒煤：燃料便宜穩定，但又回到 0.95 t CO₂/MWh。');
+        ? L('Burn gas in the coal boiler: quick and cheap, CO₂ −42 %.', '燃煤鍋爐改燒天然氣:快又便宜,CO₂ −42 %。')
+        : to === 'gas' ? L('Rebuild as a combined cycle: 2 years, CO₂ −61 %. Fuel cells fit only here.', '改建為複循環:兩年,CO₂ −61 %。燃料電池只能裝在這種廠。')
+        : L('Back to coal: cheap fuel, CO₂ back up.', '改回燒煤:燃料便宜,CO₂ 又變高。');
       h = `<div class="row"><span class="nm">${L('Convert to ', '改建為')}${zhOf(pt.label, pt.zh)}</span><span class="chip ${to}">${pt.size} MW · ${pt.intensity} t/MWh</span></div>
-        <div class="pitch">${text} ${L('The plant is offline while it is converted; its capture unit stays.', '改建期間停機；捕捉設備保留。')}</div>
+        <div class="pitch">${text} ${L('Offline while converting; capture stays.', '改建期間停機,捕捉設備保留。')}</div>
         <div class="row">${chk.ok ? `<button class="btn ghost" data-go="${k}">${act(chk)}${L(' offline', ' 停機')}</button>` : whyHTML(chk)}</div>`;
     } else {
       const dm = M.canDemolish(S, p), back = (p.queue || []).reduce((a, x) => a + x.paid, 0);
@@ -1210,13 +1180,13 @@ html, body { height: 100%; overflow: hidden; }
   }
 
   // ---------- build sheet ----------
-  function openBuild() { renderBuild(); $('ovBuild').hidden = false; }
+  function openBuild() { coachDone('build'); renderBuild(); $('ovBuild').hidden = false; }
   function closeBuild() { $('ovBuild').hidden = true; }
   $('bdClose').onclick = closeBuild;
   $('ovBuild').addEventListener('click', e => { if (e.target === $('ovBuild')) closeBuild(); });
   function renderBuild() {
-    $('bdLead').textContent = L(`${S.plants.length} of ${M.MAX_PLANTS} plants · funds ${money(S.funds)} · game paused. More plants = spare power when others trip or lose output to capture, but each costs upkeep.`,
-      `${S.plants.length}/${M.MAX_PLANTS} 座電廠 · 資金 ${money(S.funds)} · 遊戲暫停。電廠多，其他廠跳機或被捕捉吃掉電力時才有備援，但每座都有維護費。`);
+    $('bdLead').textContent = L(`${S.plants.length}/${M.MAX_PLANTS} plants · ${money(S.funds)} · a spare plant covers peaks and trips`,
+      `${S.plants.length}/${M.MAX_PLANTS} 座 · ${money(S.funds)} · 多一座廠可應付尖峰與跳機`);
     const card = (type, pros, cons) => {
       const pt = M.PLANT_TYPES[type], chk = M.canBuildPlant(S, type);
       return `<div class="opt"><div class="row"><span class="nm">${zhOf(pt.label, pt.zh)} · ${pt.size} MW</span><span class="chip ${type}">${pt.intensity} t CO₂/MWh</span></div>
@@ -1224,8 +1194,8 @@ html, body { height: 100%; overflow: hidden; }
         <div class="row"><button class="btn" data-build="${type}" ${chk.ok ? '' : 'disabled'}>${L('Build', '興建')} · $${pt.build.cost}M · ${mo(pt.build.months)}</button>${chk.ok ? '' : `<span class="src">${why(chk.why)}</span>`}</div></div>`;
     };
     $('bdOpts').innerHTML =
-      card('coal', L('Cheap, steady fuel. Capture costs less per tonne (concentrated flue gas).', '燃料便宜穩定。煙氣濃，每噸捕捉比較便宜。'), L('2.6× the CO₂ of gas, smog, and four years to build.', 'CO₂ 是燃氣的 2.6 倍、有空污，而且要蓋四年。')) +
-      card('gas', L('Much cleaner and about two years to build. Fuel cells fit here.', '乾淨得多，約兩年蓋好。可以裝燃料電池。'), L('Fuel is pricier and swings; gas supply scares; capture costs more per tonne.', '燃料較貴、價格波動，可能斷氣；每噸捕捉較貴。'));
+      card('coal', L('Cheap fuel; capture is cheaper per tonne.', '燃料便宜;每噸捕捉較便宜。'), L('2.6× the CO₂ of gas, smog, 4 years to build.', 'CO₂ 是燃氣 2.6 倍、有空污、要蓋 4 年。')) +
+      card('gas', L('Cleaner, 2 years to build, fuel cells fit.', '較乾淨、2 年蓋好、可裝燃料電池。'), L('Pricey, volatile fuel; supply scares.', '燃料貴又波動,可能斷氣。'));
     $('bdOpts').querySelectorAll('[data-build]').forEach(b => b.onclick = () => { const r = M.buildPlant(S, b.dataset.build); SND.play(r.ok ? 'queue' : 'nope'); closeBuild(); renderAll(); });
   }
 
@@ -1260,9 +1230,9 @@ html, body { height: 100%; overflow: hidden; }
           return `<button class="btn rbtn ${mt === 'comp' ? 'ghost' : pr.star ? 'gold' : ''}" data-res="${id}" data-mt="${mt}" ${chk.ok ? '' : 'disabled'}><b>${idle ? '' : L('Queue · ', '排入 · ')}${label}</b><small>$${cost}M · ${mo(months)}${pilot ? '' : ` · ${odds} % ${L('success', '成功')}`}${chk.ok ? '' : ' · ' + why(chk.why)}</small></button>`;
         }).join('') + '</div>';
       }
-      const name = zhOf(pr.name, pr.zh && pr.zh.name), desc = zhOf(pr.desc, pr.zh && pr.zh.desc);
+      const name = zhOf(pr.name, pr.zh && pr.zh.name), desc = zhOf(pr.desc, pr.zh && pr.zh.desc), more = pr.more ? zhOf(pr.more, pr.zh && pr.zh.more) : '';
       return `<div class="proj ${pilot ? 'pilot' : ''} ${pr.star ? 'star' : ''}">
-        <div><div class="t">${name}</div>${['ic', 'sf', 'flex'].includes(id) ? fitsHTML(id) : ''}<div class="d">${desc}${tries ? L(` · ${tries} empty screen${tries > 1 ? 's' : ''} so far`, ` · 已落空 ${tries} 次`) : ''}</div>${id === 'screen'
+        <div><div class="t">${name}</div><div class="d">${desc}${tries ? L(` · ${tries} empty screen${tries > 1 ? 's' : ''} so far`, ` · 已落空 ${tries} 次`) : ''}</div>${['ic', 'sf', 'flex'].includes(id) ? fitsHTML(id) : ''}${more ? `<details class="more"><summary>${L('More', '更多')}</summary><p>${more}</p>${pr.src ? `<p class="src">${pr.src}</p>` : ''}</details>` : ''}${id === 'screen'
           ? '<div class="drops">' + Object.keys(M.DROPS).map(k => `<span class="${S.unlocked[k] ? 'got' : ''}">${S.unlocked[k] ? '✓ ' : ''}${M.TECHS[k].short} ${'★'.repeat(M.DROPS[k].stars)}</span>`).join('') + '</div>' : ''}${status}</div>
         ${acts}</div>`;
     }).join('');
@@ -1275,7 +1245,7 @@ html, body { height: 100%; overflow: hidden; }
     // lab queue: the running project, then what waits (tap to cancel, full refund)
     const runId = Object.keys(S.research)[0];
     const PCOL = { ic: '#5FB3B3', sf: '#B39DDB', flex: '#F4B740' };
-    const look = j => j.id === 'screen' ? (j.method === 'comp' ? { c: '#2EC4B6', l: 'QM+MD' } : { c: '#E2A93B', l: L('Exp.', '實驗') }) : PCOL[j.id] ? { c: PCOL[j.id], l: M.project(j.id).short } : { c: M.TECHS[j.id].color, l: M.TECHS[j.id].short.replace('MEA-', '') };
+    const look = j => j.id === 'screen' ? (j.method === 'comp' ? { c: '#2EC4B6', l: 'QM+MD' } : { c: '#E2A93B', l: L('Exp.', '實驗') }) : PCOL[j.id] ? { c: PCOL[j.id], l: M.project(j.id).short } : { c: M.TECHS[j.id].color, l: icon2(M.TECHS[j.id].short) };
     let q = `<span class="ql">${L('Queue', '佇列')}</span>`;
     const slots = (runId ? [{ id: runId, method: S.resMethod[runId], run: true, left: S.research[runId] }] : []).concat(lq);
     for (let i = 0; i < 1 + M.QUEUE_MAX; i++) {
@@ -1442,23 +1412,23 @@ html, body { height: 100%; overflow: hidden; }
     $('mFund').classList.toggle('danger', S.funds < 0);
     const Ls = S.last;
     if (Ls) {
-      $('sFund').textContent = (Ls.profit >= 0 ? '+' : '−') + '$' + fmt(Math.abs(Ls.profit), 1) + L('M / month', 'M / 月');
+      $('sFund').textContent = (Ls.profit >= 0 ? '+' : '−') + '$' + fmt(Math.abs(Ls.profit), 1) + L('M/mo', 'M/月');
       $('vGrid').textContent = fmt(Ls.netCap) + ' MW';
       const sf = M.SEASON[S.region][(S.m + 11) % 12];   // Ls is last month's dispatch
       const cold = M.REGIONS[S.region].peak === 'cold';
       const tag = sf >= 1.08 ? (cold ? L(' · winter peak', ' · 冬季尖峰') : L(' · summer peak', ' · 夏季尖峰')) : sf <= 0.9 ? L(' · low season', ' · 淡季') : '';
-      $('sGrid').textContent = L('demand ', '需求 ') + fmt(Ls.demand) + ' MW' + tag + (Ls.sold > 1 ? L(` · selling ${fmt(Ls.sold)}`, ` · 售電 ${fmt(Ls.sold)}`) : '') + (Ls.imported > 1 ? L(` · importing ${fmt(Ls.imported)}`, ` · 進口 ${fmt(Ls.imported)}`) : '');
+      $('sGrid').textContent = L('demand ', '需求 ') + fmt(Ls.demand) + tag + (Ls.sold > 1 ? L(` · sell ${fmt(Ls.sold)}`, ` · 售電 ${fmt(Ls.sold)}`) : '') + (Ls.imported > 1 ? L(` · import ${fmt(Ls.imported)}`, ` · 進口 ${fmt(Ls.imported)}`) : '');
       $('mGrid').classList.toggle('danger', Ls.unservedFrac > 0.01);
       $('co2rate').textContent = 'CO₂ ' + fmt(Ls.emitted * 12 / 1e6, 1) + L(' Mt/yr', ' Mt/年');
     }
     // carbon price (or the capture credit) and the storage fee — the prices that shape every decision
     const rg = M.REGIONS[S.region] || M.REGIONS.taiwan;
     const cp = $('cPrice');
-    if (rg.credit) { cp.className = 'cprice credit'; cp.innerHTML = L(`45Q credit <b>+$${rg.credit}/t</b> stored (12 yr per plant) · storage $${rg.ts}/t · no carbon tax`, `45Q 抵減 <b>每噸 +$${rg.credit}</b>(每座廠 12 年)· 封存每噸 $${rg.ts} · 無碳稅`); }
+    if (rg.credit) { cp.className = 'cprice credit'; cp.innerHTML = L(`45Q <b>+$${rg.credit}/t</b> stored · storage $${rg.ts}/t`, `45Q <b>每噸 +$${rg.credit}</b> · 封存每噸 $${rg.ts}`); }
     else {
       const tNow = M.carbonTax(y, S), tNext = M.carbonTax(y + 1, S);
       cp.className = 'cprice';
-      cp.innerHTML = L(`Carbon price <b>$${tNow}/t</b> · next year $${tNext} · storage $${rg.ts}/t`, `碳價 <b>每噸 $${tNow}</b> · 明年 $${tNext} · 封存每噸 $${rg.ts}`);
+      cp.innerHTML = L(`Carbon <b>$${tNow}/t</b>${tNext > tNow ? ` → $${tNext} next year` : ''} · storage $${rg.ts}/t`, `碳價 <b>每噸 $${tNow}</b>${tNext > tNow ? `,明年 $${tNext}` : ''} · 封存每噸 $${rg.ts}`);
     }
   }
   function renderAll() {
@@ -1500,7 +1470,6 @@ html, body { height: 100%; overflow: hidden; }
   let lastEntry = null;
   function showEnd() {
     playing = false;
-    $('tip').hidden = true;
     const s = S, win = s.over.win;
     const why = {
       greenhouse: L('The limit-breach meter hit 100 %. The government revoked your operating licence.', '超標計量到了 100 %，政府吊銷了你的營運執照。'),
@@ -1536,7 +1505,7 @@ html, body { height: 100%; overflow: hidden; }
     else if (s.over.why === 'anger') tip = L('Tip: tap the anger meter to see what drives it; the price board is the quickest fix.', '提示：點民怨計量看原因；電價看板是最快的解法。');
     else if (s.over.why === 'bankrupt') tip = L('Tip: storing CO₂ costs money every tonne. Raise the price a little, or queue fewer projects at once.', '提示：每封存一噸 CO₂ 都要付錢。稍微調高電價，或不要同時排太多工程。');
     else if (s.fails >= 3) tip = L('Tip: new technology fails less once proven; give one plant two years before rolling it out everywhere.', '提示：新技術成熟後就少故障；先在一座廠跑兩年，再全面推廣。');
-    else tip = L('Tip: 2PE–EG is cheap to build and to run once it is proven.', '提示：2PE–EG 成熟後，建造和運轉都便宜。');
+    else tip = L('Tip: 2PE/EG is cheap to build and to run once it is proven.', '提示：2PE/EG 成熟後，建造和運轉都便宜。');
     $('endLab').innerHTML = (used.length
       ? L(`You deployed technology from Lin Research Group papers at National Tsing Hua University: <b>${used.map(id => M.TECHS[id].name).join(', ')}</b>. `, `你用了清華大學林育正實驗室論文裡的技術：<b>${used.map(id => tName(M.TECHS[id])).join('、')}</b>。`)
       : '') + tip;
@@ -1564,8 +1533,8 @@ html, body { height: 100%; overflow: hidden; }
   // ending title from the approach the player took (links to the paper behind it)
   function approach(s) {
     const u = s.techUsed, deepN = s.plants.filter(p => p.deep).length, coalN = s.plants.filter(p => p.type === 'coal').length;
-    if (u.pe2eg) return [L('Solvent pioneer', '溶劑先鋒'), L('You ran the city on 2PE–EG, the water-lean solvent that reacts 4.5× faster than MEA and carries 2.8× more CO₂ per cycle, so it needs less steam.', '你用 2PE–EG 撐起整座城市：這種低水溶劑反應比 MEA 快 4.5 倍、每次循環多帶 2.8 倍 CO₂，所以更省蒸汽。'), '10.1016/j.cej.2026.174224'];
-    if (u.ampnmp) return [L('Kinetics chaser', '動力學玩家'), L('You bet on AMP–NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '你押寶 AMP–NMP：NMP 讓高容量的 AMP 反應快 3 倍，代價是胺甲酸鹽可能析出。'), '10.1016/j.cej.2025.160544'];
+    if (u.pe2eg) return [L('Solvent pioneer', '溶劑先鋒'), L('You ran the city on 2PE/EG, the water-lean solvent that reacts 4.5× faster than MEA and carries 2.8× more CO₂ per cycle, so it needs less steam.', '你用 2PE/EG 撐起整座城市：這種低水溶劑反應比 MEA 快 4.5 倍、每次循環多帶 2.8 倍 CO₂，所以更省蒸汽。'), '10.1016/j.cej.2026.174224'];
+    if (u.ampnmp) return [L('Kinetics chaser', '動力學玩家'), L('You bet on AMP/NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '你押寶 AMP/NMP：NMP 讓高容量的 AMP 反應快 3 倍，代價是胺甲酸鹽可能析出。'), '10.1016/j.cej.2025.160544'];
     if (u.aas && !u.pz && !u.pe2eg) return [L('Clean-air operator', '無胺排放派'), L('You chose an amino-acid salt: it never evaporates, so no amine reached the town, at the price of more steam per tonne on coal.', '你選了胺基酸鹽：它不會揮發，城市空氣裡沒有胺；代價是燃煤廠每噸要更多蒸汽。'), null];
     if (u.mdeapz && !u.pz && !u.pe2eg) return [L('Blend engineer', '混合溶劑工程師'), L('You ran MDEA activated with piperazine: high capacity and no freeze-out, with a stripper kept cool so MDEA does not break down.', '你用哌嗪活化的 MDEA：容量高、不會析出，汽提塔維持低溫避免 MDEA 分解。'), null];
     if (u.amp && !u.pz && !u.rpb && !u.afs) return [L('Trade-off taker', '取捨大師'), L('You ran aqueous AMP: twice the CO₂ per kilogram and a little less steam, paid for with taller absorbers and amine that keeps evaporating. Research found something different, not something better.', '你用了 AMP 水溶液：每公斤帶走兩倍 CO₂、蒸汽稍省，代價是更高的吸收塔和不斷揮發的胺。研發找到的是「不一樣」，不是「更好」。'), '10.1016/j.egypro.2011.01.029'];
@@ -1687,7 +1656,7 @@ html, body { height: 100%; overflow: hidden; }
     return out;
   }
   // plant tap targets: the nearest plant centre wins, so a raised back-row plant is hit on its upper part
-  let ptargets = [], labTip = null;
+  let ptargets = [], labTip = null, plotTip = null;
 
   // name tag on the ground under a plant: id + capture, and the number of queued jobs
   function drawTag(p, cx, base, k, down) {
@@ -1814,10 +1783,12 @@ html, body { height: 100%; overflow: hidden; }
   }
   // ---- the empty lot: tap to build a plant ----
   function drawPlot(horizon) {
+    plotTip = null;
     if (S.plants.length >= M.MAX_PLANTS) return;
     const k = Math.max(0.7, Math.min(1, W / 700)), label = L('+ BUILD', '+ 蓋廠');
     ctx.font = FONT(700, Math.round(11 * k));
     const sw = Math.max(40 * k, ctx.measureText(label).width + 12), x = Math.min(W * PLOT_X, W - sw / 2 - 8);
+    plotTip = { x, y: horizon - 44 * k - 3 };
     const hit = { id: '__add', x0: x - sw / 2 - 6, x1: Math.min(W - 2, x + sw / 2 + 6), y0: horizon - 46 * k, y1: horizon + 16 };
     hits.push(hit);
     ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
@@ -1857,7 +1828,9 @@ html, body { height: 100%; overflow: hidden; }
     hits.push({ id, x0: lx, x1: lx + tw, y0: ly, y1: ly + th });
   }
   function drawCoach(streetY, lay) {
-    if (S.over || S.m > 24 || !playing) return;
+    if (S.over || !playing) return;
+    if (coach.build && plotTip && (!coach.plant || S.m >= 9) && S.m <= 72) drawArrow(plotTip.x, plotTip.y, 'down', L('Build a new plant', '點這裡蓋新電廠'), '__add', 3.6);
+    if (S.m > 24) return;
     const pt = ptargets.find(t => S.plants.some(p => p.id === t.id && !p.build));
     if (coach.plant && pt) drawArrow(pt.cx, pt.cy - pt.ry - 2, 'down', L('Tap a plant to add capture', '點電廠加裝捕捉'), pt.id, 0);
     if (coach.lab && labTip) drawArrow(labTip.x, labTip.y, 'down', L('Tap the lab to research', '點研究所做研發'), '__lab', 1.2);
@@ -2112,7 +2085,6 @@ html, body { height: 100%; overflow: hidden; }
         for (let i = 0; i < frames && !S.over; i++) {
           frame((lastT || performance.now()) + 100);
           if (!$('ovEvent').hidden) { const b = $('evOpts').querySelector('button'); if (b) b.click(); }
-          if (!$('tip').hidden) $('tipOk').click();
         }
         return { m: S.m, over: S.over, errors: loopErrors };
       },
@@ -2123,7 +2095,6 @@ html, body { height: 100%; overflow: hidden; }
         if (S.over) showEnd(); else if (S.pending) openEvent(); else if (!openHeadline()) openFind();
         return S.m;
       },
-      tip() { return maybeTip(); },
       setLang,
     };
   }
