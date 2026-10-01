@@ -547,7 +547,7 @@
     let cost, months, to;
     if (job.kind === 'tech') {
       if (!TECHS[job.tech]) return { ok: false, why: 'Unknown technology' };
-      if (!state.unlocked[job.tech]) return { ok: false, why: TECHS[job.tech].solvent ? 'Find it by solvent screening' : 'Run the pilot test first' };
+      if (!state.unlocked[job.tech]) return { ok: false, why: TECHS[job.tech].solvent ? 'Find it by solvent screening' : 'Develop it in the lab first' };
       if (v.tech === job.tech) return { ok: false, why: plant.tech === job.tech && !plant.build && !qOf(plant).length ? 'Already installed' : 'Already queued' };
       const fit = techFits(v, job.tech) || scaleUpBlock(state, plant, job.tech);
       if (fit) return { ok: false, why: fit };
@@ -565,7 +565,7 @@
       cost = c.cost; months = c.months;
     } else if (job.kind === 'ic' || job.kind === 'sf') {
       const pr = PROCESS[job.kind];
-      if (!state.unlocked[job.kind]) return { ok: false, why: 'Design it in the lab first' };
+      if (!state.unlocked[job.kind]) return { ok: false, why: 'Develop it in the lab first' };
       if (!v.tech) return { ok: false, why: 'Add capture first' };
       if (TECHS[v.tech].power) return { ok: false, why: 'Not for fuel cells' };
       if (v[job.kind]) return { ok: false, why: plant[job.kind] && !plant.build ? 'Already installed' : 'Already queued' };
@@ -742,8 +742,8 @@
     const odds = Math.round(researchOdds(state, id, mt) * 100);
     if (id === 'screen') addNews(state, 'lab', `${METHODS[mt].label} started ($${cost}M, ${state.research[id]} months, ${odds} % chance to find a solvent).`,
       `${METHODS[mt].zh}\u958b\u59cb($${cost}M\uff0c${state.research[id]} \u500b\u6708\uff0c\u627e\u5230\u6eb6\u5291\u6a5f\u7387 ${odds} %)\u3002`);
-    else addNews(state, 'lab', `Pilot test of the ${pr.short} funded ($${cost}M, ${state.research[id]} months).`,
-      `${pr.zh.name}\u524d\u5c0e\u6e2c\u8a66\u958b\u59cb($${cost}M\uff0c${state.research[id]} \u500b\u6708)\u3002`);
+    else addNews(state, 'lab', `Development of ${pr.name} started ($${cost}M, ${state.research[id]} months).`,
+      `\u958b\u59cb\u7814\u767c${pr.zh.name}($${cost}M\uff0c${state.research[id]} \u500b\u6708)\u3002`);
     return chk;
   }
   function setPrice(state, price) { state.price = Math.max(40, Math.min(240, Math.round(price))); }
