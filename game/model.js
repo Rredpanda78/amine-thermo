@@ -42,6 +42,7 @@
   const DIFFS = {
     easy: { label: 'Easy', zh: '\u7c21\u55ae', tighten: 0, funds: 1500, bonus: 1, hint: 'the gentle version', zhHint: '\u8f15\u9b06\u7248' },
     normal: { label: 'Normal', zh: '\u666e\u901a', tighten: 0.12, funds: 1400, bonus: 1.15, hint: 'tighter CO\u2082 limit, a bit less money', zhHint: 'CO\u2082 \u9650\u984d\u66f4\u7dca\u3001\u8cc7\u91d1\u7565\u5c11' },
+    hell: { label: 'Hell', zh: '\u5730\u7344', tighten: 0.3, funds: 800, bonus: 1.6, events: 1.7, gap: 8, hidden: true, hint: 'you were warned', zhHint: '\u4f60\u88ab\u8b66\u544a\u904e\u4e86' },
     hard: { label: 'Hard', zh: '\u56f0\u96e3', tighten: 0.18, funds: 1000, bonus: 1.3, hint: 'much tighter limit, \u2153 less money', zhHint: '\u9650\u984d\u7dca\u5f88\u591a\u3001\u8cc7\u91d1\u5c11 \u2153' },
   };
   const CAPEX_SCALE = 1.3;            // capture unit \u2248 $1,300 per kW (MEA, coal) before the first-of-a-kind premium
@@ -1185,11 +1186,12 @@
     else if (state.m >= MONTHS) state.over = { win: true, why: 'survived' };
 
     // random events for next month (a choice pauses the game until answered); at least a year apart
-    if (!state.over && state.m > 6 && state.m - (state.lastEventM || -99) >= CFG.GAP) {
+    const dv = DIFFS[state.diff] || DIFFS.easy, evx = dv.events || 1;   // Hell: more news, closer together
+    if (!state.over && state.m > 6 && state.m - (state.lastEventM || -99) >= (dv.gap || CFG.GAP)) {
       const r = R();
       const hl = state.headlineN;
-      if (r < CFG.P_CHOICE) offerChoice(state, R);
-      else if (r < CFG.P_CHOICE + CFG.P_FORCED) forcedEvent(state, R);
+      if (r < CFG.P_CHOICE * evx) offerChoice(state, R);
+      else if (r < (CFG.P_CHOICE + CFG.P_FORCED) * evx) forcedEvent(state, R);
       if (state.pending || state.headlineN !== hl) state.lastEventM = state.m;
     }
     return state;

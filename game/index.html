@@ -408,6 +408,27 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
 
 /* ===== full-screen prototype: the town fills the window, meters are LED billboards on top ===== */
 html, body { height: 100%; overflow: hidden; }
+/* ---- HELL (easter egg): the whole page turns red and dark ---- */
+html.hell { --bg: #0B0204; --panel: #1A0809; --panel-2: #250C0D; --line: #4E1515; --fg: #F3DDD7; --muted: #B4867F; --amine: #E0402A; --co2: #FF6A3D; --gold: #FF8A4C; --good: #C9A227; --shadow: rgba(30, 0, 0, .7); }
+html.hell #stage, html.hell .topbar, html.hell .ctrlbar { background: #0B0204; border-color: #3A0C0C; }
+html.hell .led { background: rgba(20, 2, 4, .9); border-color: #5A1414; box-shadow: inset 0 0 16px rgba(224, 64, 42, .18); }
+html.hell .led .val, html.hell .tb-date .date { color: #FF5A3A; text-shadow: 0 0 10px rgba(255, 60, 30, .7); }
+html.hell .tb-date .brand::after { content: ' ☠'; color: #FF3B1F; }
+html.hell .tb-date .date { animation: flick 4s infinite; }
+html.hell .ctrlbar .tick { color: #FF5A3A; text-shadow: 0 0 8px rgba(255, 60, 30, .6); }
+html.hell .btn { color: #1A0202; }
+html.hell .paper { background: #E3CDB6; }
+@keyframes flick { 0%, 92%, 100% { opacity: 1; } 93% { opacity: .3; } 95% { opacity: .9; } 96% { opacity: .2; } }
+@keyframes hellflash { 0% { box-shadow: inset 0 0 0 9999px rgba(200, 0, 0, .55); } 100% { box-shadow: inset 0 0 0 9999px rgba(200, 0, 0, 0); } }
+.hellflash { animation: hellflash 1.2s ease-out; }
+.dif.hell { border-color: #6B1515; background: #200808; color: #FF6A4A; }
+.dif.hell[aria-checked="true"] { border-color: #FF3B1F; box-shadow: 0 0 0 2px rgba(255, 59, 31, .45); }
+#ovHell .sheet { width: min(460px, 94vw); text-align: center; background: #120305; border-color: #6B1515; color: #F3DDD7; }
+#ovHell h3 { font-family: var(--display); color: #FF3B1F; font-size: 30px; letter-spacing: 2px; margin: 4px 0 8px; text-shadow: 0 0 14px rgba(255, 40, 20, .8); animation: flick 3s infinite; }
+#ovHell p { color: #D9B0A8; margin: 0 0 14px; }
+#ovHell .btn { background: #B3261E; color: #FFF; }
+#ovHell .btn.ghost { background: transparent; color: #D9B0A8; border: 1px solid #5A1414; }
+
 /* three bands: the numbers that matter on top, the city in the middle, the controls at the bottom */
 html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
 #stage { position: fixed; inset: 0; display: flex; flex-direction: column; background: #0B1422; }
@@ -635,6 +656,14 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   </article>
 </div>
 
+<div class="overlay" id="ovHell" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hellTitle">
+    <div style="font-size:44px;line-height:1">☠</div>
+    <h3 id="hellTitle">HELL</h3>
+    <p id="hellText"></p>
+    <div class="btn-row" style="justify-content:center"><button class="btn" id="hellGo"></button><button class="btn ghost" id="hellLater"></button></div>
+  </div>
+</div>
 <div class="overlay" id="ovFind" hidden>
   <div class="sheet find" role="dialog" aria-modal="true" aria-labelledby="findName">
     <div class="lab-tag" id="findHow">Discovery</div>
@@ -770,7 +799,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   let speed = 1, playing = false, acc = 0, lastT = 0;
   let toastN = 0, toastTimer = null;
   const MS_PER_MONTH = 1600;   // one game month every 1.6 s at 1×
-  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard'].some(id => !$(id).hidden);
+  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard', 'ovHell'].some(id => !$(id).hidden);
 
   // ---------- best score per region (shown on the region cards) ----------
   const BEST_KEY = 'cc2050-best-v10';
@@ -778,7 +807,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   function saveBest(b) { store.set(BEST_KEY, JSON.stringify(b)); }
 
   // ---------- leaderboard (this device; a shared online board would need a server) ----------
-  let diff = M.DIFFS[store.get('cc2050-diff')] ? store.get('cc2050-diff') : 'normal';
+  let diff = M.DIFFS[store.get('cc2050-diff')] && (store.get('cc2050-diff') !== 'hell' || store.get('cc2050-hell')) ? store.get('cc2050-diff') : 'normal';
   const BOARD_KEY = 'cc2050-board-v10';
   function loadBoard() { try { const b = JSON.parse(store.get(BOARD_KEY) || '[]'); return Array.isArray(b) ? b : []; } catch (e) { return []; } }
   function saveBoard(b) { store.set(BOARD_KEY, JSON.stringify(b.slice(0, 300))); }
@@ -865,23 +894,26 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       coin: t => { tone(fxBus, N(84), t, 0.06, 'square', 0.05); tone(fxBus, N(91), t + 0.05, 0.12, 'square', 0.05); },
       win: t => [60, 64, 67, 72, 67, 72, 76, 79].forEach((n, i) => tone(fxBus, N(n), t + i * 0.12, 0.3, 'square', 0.06)),
       lose: t => [67, 66, 65, 60].forEach((n, i) => tone(fxBus, N(n), t + i * 0.3, i === 3 ? 0.9 : 0.3, 'triangle', 0.13)),
+      hell: t => { tone(fxBus, 55, t, 1.8, 'sawtooth', 0.12, 28); tone(fxBus, 58.3, t, 1.8, 'sawtooth', 0.08, 30); noise(t, 1.2, 0.35, 300); [64, 63, 58, 57].forEach((n, i) => tone(fxBus, N(n - 12), t + 0.4 + i * 0.35, 0.5, 'triangle', 0.1)); },
     };
     function play(name, arg) {
       if (!fxOn || !FX[name]) return;
       try { if (ctx()) FX[name](ac.currentTime + 0.01, arg); } catch (e) { /* audio is optional */ }
     }
     // background loop: an original C–Am–F–G tune, bass + soft arpeggio, scheduled a little ahead
+    const PROG_HELL = [[33, [57, 60, 64, 69]], [34, [58, 61, 65, 70]], [33, [57, 60, 64, 69]], [32, [56, 59, 62, 68]]];   // Am, Bb, Am, G#dim
     const PROG = [[36, [60, 64, 67, 72]], [33, [57, 60, 64, 69]], [29, [57, 60, 65, 69]], [31, [55, 59, 62, 67]]];
     const MEL = [76, 0, 74, 72, 0, 72, 74, 76, 0, 72, 69, 0, 67, 0, 69, 72, 0, 72, 74, 0, 72, 69, 67, 0, 71, 0, 74, 72, 0, 71, 67, 0];
     function tick() {
       if (!ac) return;
-      const beat = 60 / 88 / 2;
+      const hell = document.documentElement.classList.contains('hell');
+      const beat = 60 / (hell ? 62 : 88) / 2;
       while (nextT < ac.currentTime + 0.25) {
-        const bar = Math.floor(step / 8) % 4, b = step % 8, [bass, ch] = PROG[bar];
-        if (b === 0 || b === 4) tone(musBus, N(bass), nextT, beat * 3.5, 'triangle', 0.16);
-        tone(musBus, N(ch[b % 4]), nextT, beat * 0.9, 'square', 0.022);
+        const bar = Math.floor(step / 8) % 4, b = step % 8, [bass, ch] = (hell ? PROG_HELL : PROG)[bar];
+        if (b === 0 || b === 4) tone(musBus, N(bass - (hell ? 12 : 0)), nextT, beat * 3.5, hell ? 'sawtooth' : 'triangle', hell ? 0.08 : 0.16);
+        tone(musBus, N(ch[b % 4] - (hell ? 12 : 0)), nextT, beat * 0.9, 'square', hell ? 0.015 : 0.022);
         const m = MEL[step % 32];
-        if (m && Math.floor(step / 32) % 2 === 1) tone(musBus, N(m), nextT, beat * 1.6, 'triangle', 0.06);
+        if (!hell && m && Math.floor(step / 32) % 2 === 1) tone(musBus, N(m), nextT, beat * 1.6, 'triangle', 0.06);
         nextT += beat; step += 1;
       }
     }
@@ -1588,7 +1620,10 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       region = b.dataset.rg;
       $('regions').querySelectorAll('[data-rg]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
     });
-    $('diffs').innerHTML = Object.entries(M.DIFFS).map(([id, d]) => `<button class="dif" role="radio" data-df="${id}" aria-checked="${id === diff}"><b>${L(d.label, d.zh)}</b><i>${L(d.hint, d.zhHint)}</i></button>`).join('');
+    if (diff === 'hell' && !hellOpen()) diff = 'normal';
+    const shown = Object.entries(M.DIFFS).filter(([id, d]) => !d.hidden || hellOpen()).sort((a, b) => (a[0] === 'hell') - (b[0] === 'hell'));
+    $('diffs').style.gridTemplateColumns = `repeat(${shown.length}, minmax(0, 1fr))`;
+    $('diffs').innerHTML = shown.map(([id, d]) => `<button class="dif ${id === 'hell' ? 'hell' : ''}" role="radio" data-df="${id}" aria-checked="${id === diff}"><b>${id === 'hell' ? '☠ ' : ''}${L(d.label, d.zh)}</b><i>${L(d.hint, d.zhHint)}</i></button>`).join('');
     $('diffs').querySelectorAll('[data-df]').forEach(b => b.onclick = () => {
       diff = b.dataset.df; store.set('cc2050-diff', diff);
       $('diffs').querySelectorAll('[data-df]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
@@ -1596,11 +1631,15 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     $('ovIntro').hidden = false;
     playing = false;
   }
+  function startGame() {
+    S = M.newGame(undefined, region, diff); particles.length = 0; toastN = 0; findN = 0; headN = 0;
+    document.documentElement.classList.toggle('hell', S.diff === 'hell');
+    SND.unlock(); SND.play(S.diff === 'hell' ? 'hell' : 'click');
+    $('ovIntro').hidden = true; setTab('city'); renderAll(); setSpeed(1); playing = true;
+  }
   $('startBtn').onclick = () => {
     store.set('cc2050-nick', nick());   // optional: without a nickname the game is played but not ranked
-    S = M.newGame(undefined, region, diff); particles.length = 0; toastN = 0; findN = 0; headN = 0;
-    SND.unlock(); SND.play('click');
-    $('ovIntro').hidden = true; setTab('city'); renderAll(); setSpeed(1); playing = true;
+    startGame();
   };
 
   // ---------- scene ----------
@@ -1646,7 +1685,30 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     if (id === '__lab') openLab(); else if (id === '__add') openBuild(); else if (id === '__price') openPrice(); else if (id === '__crowd') openAnger(); else openPlant(id);
   });
   // the lab in the town opens the research panel (a tab on phones; a highlight on wide screens)
-  function openLab() { coachDone('lab'); renderLab(); $('ovLab').hidden = false; }
+  function openLab() { coachDone('lab'); labTap(); renderLab(); $('ovLab').hidden = false; }
+  // ---- easter egg: tap the lab ten times fast and something wakes up ----
+  const labTaps = [];
+  const hellOpen = () => !!store.get('cc2050-hell');
+  function labTap() {
+    const now = Date.now();
+    labTaps.push(now);
+    while (labTaps.length && now - labTaps[0] > 3500) labTaps.shift();
+    if (labTaps.length >= 10 && !hellOpen()) { labTaps.length = 0; unlockHell(); }
+  }
+  function unlockHell() {
+    store.set('cc2050-hell', '1');
+    $('ovLab').hidden = true;
+    document.body.classList.remove('hellflash'); void document.body.offsetWidth; document.body.classList.add('hellflash');
+    SND.play('hell');
+    $('hellText').textContent = L('Something in the lab woke up. The CO₂ limit will hunt you, money is scarce, and the news never stops. Hell difficulty is unlocked.',
+      '研究所裡有什麼東西醒了。CO₂ 限額會追殺你,錢很少,壞消息停不下來。地獄難度已解鎖。');
+    $('hellGo').textContent = L('Enter Hell now (restart)', '現在進入地獄(重新開始)');
+    $('hellLater').textContent = L('Later', '之後再說');
+    $('ovHell').hidden = false;
+  }
+  $('hellLater').onclick = () => { $('ovHell').hidden = true; };
+  $('hellGo').onclick = () => { $('ovHell').hidden = true; diff = 'hell'; store.set('cc2050-diff', 'hell'); startGame(); };
+  $('ovLab').addEventListener('pointerdown', e => { if (!e.target.closest('button, a, summary, input, details')) labTap(); });
   $('labBtn').onclick = () => { SND.play('click'); openLab(); };
   $('labX').onclick = () => { $('ovLab').hidden = true; };
   $('ovLab').addEventListener('click', e => { if (e.target === $('ovLab')) $('ovLab').hidden = true; });
@@ -1903,6 +1965,29 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     if (coach.lab && labTip) drawArrow(labTip.x, labTip.y, 'down', L('Tap the lab to research', '點研究所做研發'), '__lab', 1.2, layoutOnly);
     if (coach.crowd) drawArrow(W * (lay.town + 0.025), streetY - 6, 'left', L('Tap the people: why angry?', '點民眾:為什麼生氣?'), '__crowd', 2.4, layoutOnly);
   }
+  // ---- Hell: a red wash over the town, rising embers and the odd lightning strike ----
+  const embers = [];
+  let boltT = 0, boltX = 0;
+  function drawHell(horizon, now) {
+    ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(95,22,22,.72)'; ctx.fillRect(0, 0, W, H); ctx.restore();
+    if (embers.length < 60 && Math.random() < 0.6) embers.push({ x: Math.random() * W, y: H - BOT, v: 20 + Math.random() * 40, w: Math.random() * 6, r: 1 + Math.random() * 2 });
+    for (let i = embers.length - 1; i >= 0; i--) {
+      const e = embers[i];
+      e.y -= e.v / 60; e.x += Math.sin(now * 2 + e.w) * 0.4;
+      if (e.y < TOP) { embers.splice(i, 1); continue; }
+      ctx.fillStyle = `rgba(255,${80 + Math.round(e.w * 20)},30,${Math.min(1, (e.y - TOP) / 120)})`;
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 7); ctx.fill();
+    }
+    if (!REDUCED && now > boltT + 7 + Math.random() * 40) { boltT = now; boltX = W * (0.15 + Math.random() * 0.7); }
+    const age = now - boltT;
+    if (!REDUCED && age < 0.25) {
+      ctx.fillStyle = `rgba(255,220,220,${0.28 * (1 - age / 0.25)})`; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = 'rgba(255,240,240,.9)'; ctx.lineWidth = 2; ctx.beginPath();
+      let x = boltX, y = TOP; ctx.moveTo(x, y);
+      while (y < horizon - 30) { y += 18 + Math.random() * 18; x += (Math.random() - 0.5) * 40; ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+  }
   // ---- weather for what is happening this month ----
   function drawWeather(horizon) {
     const m = (S.m + 11) % 12, winter = m >= 10 || m <= 2;
@@ -1939,22 +2024,24 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     const Ls = S.last;
     SH = Math.min(H, Math.max(300, W * 0.62));
     const horizon = SH >= H ? H * 0.74 : H - BOT - Math.max(80, SH * 0.3);   // portrait: the town stands at the bottom
+    const HELL = S.diff === 'hell', now = performance.now() / 1000;
     const sky = ctx.createLinearGradient(0, 0, 0, horizon);
-    sky.addColorStop(0, mix('#6FB6EA', '#7C7466', g));
-    sky.addColorStop(1, mix('#D6EEFB', '#C7AE86', g));
+    sky.addColorStop(0, HELL ? '#12020A' : mix('#6FB6EA', '#7C7466', g));
+    sky.addColorStop(1, HELL ? '#7A1606' : mix('#D6EEFB', '#C7AE86', g));
     ctx.fillStyle = sky; ctx.fillRect(0, 0, W, horizon);
     const mm = (S.m + 11) % 12, hot = S.demandMult > 1 && !(mm >= 10 || mm <= 2);
     const sx = W * (W < 520 ? 0.08 : 0.17), sy = TOP + (horizon - TOP) * 0.3, sr = Math.max(14, W * 0.035) * (hot ? 1.35 : 1);
     const glow = ctx.createRadialGradient(sx, sy, sr * 0.3, sx, sy, sr * 3);
-    glow.addColorStop(0, mix('#FFF4C2', '#FFB36B', hot ? 1 : g)); glow.addColorStop(1, 'rgba(255,220,150,0)');
-    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(sx, sy, sr * 3, 0, 7); ctx.fill();
-    ctx.fillStyle = mix('#FFE680', '#FF9A4D', hot ? 1 : g); ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 7); ctx.fill();
-    ctx.fillStyle = mix('#8FC99A', '#8E8A64', g);
+    glow.addColorStop(0, HELL ? 'rgba(255,40,20,.8)' : mix('#FFF4C2', '#FFB36B', hot ? 1 : g)); glow.addColorStop(1, HELL ? 'rgba(120,0,0,0)' : 'rgba(255,220,150,0)');
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(sx, sy, sr * (HELL ? 3.6 + 0.3 * Math.sin(now * 1.3) : 3), 0, 7); ctx.fill();
+    ctx.fillStyle = HELL ? '#8E0E0A' : mix('#FFE680', '#FF9A4D', hot ? 1 : g); ctx.beginPath(); ctx.arc(sx, sy, sr * (HELL ? 1.25 : 1), 0, 7); ctx.fill();
+    if (HELL) { ctx.fillStyle = 'rgba(40,0,0,.35)'; ctx.beginPath(); ctx.arc(sx - sr * 0.35, sy - sr * 0.2, sr * 0.3, 0, 7); ctx.arc(sx + sr * 0.3, sy + sr * 0.35, sr * 0.22, 0, 7); ctx.fill(); }   // the blood moon's craters
+    ctx.fillStyle = HELL ? '#1E0A0A' : mix('#8FC99A', '#8E8A64', g);
     ctx.beginPath(); ctx.moveTo(0, horizon);
     for (let x = 0; x <= W; x += 20) ctx.lineTo(x, horizon - 18 - 10 * Math.sin(x / W * 5.5));
     ctx.lineTo(W, horizon); ctx.fill();
-    ctx.fillStyle = mix('#6DB36F', '#8C7B4F', g); ctx.fillRect(0, horizon, W, H - horizon);
-    ctx.fillStyle = mix('#5E6B73', '#4A4A46', g); ctx.fillRect(0, horizon + (H - horizon) * 0.42, W * (LAY().town + 0.02), (H - horizon) * 0.18); // street
+    ctx.fillStyle = HELL ? '#24100C' : mix('#6DB36F', '#8C7B4F', g); ctx.fillRect(0, horizon, W, H - horizon);
+    ctx.fillStyle = HELL ? '#140808' : mix('#5E6B73', '#4A4A46', g); ctx.fillRect(0, horizon + (H - horizon) * 0.42, W * (LAY().town + 0.02), (H - horizon) * 0.18); // street
 
     drawBoard(horizon, true);
     // town (left half): the research lab, then houses
@@ -1967,8 +2054,10 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       const y = horizon - hh + 4;
       ctx.fillStyle = h.hue; ctx.fillRect(hx, y, hw, hh);
       ctx.fillStyle = '#7A4E3C'; ctx.beginPath(); ctx.moveTo(hx - 3, y); ctx.lineTo(hx + hw / 2, y - hh * 0.28); ctx.lineTo(hx + hw + 3, y); ctx.fill();
-      ctx.fillStyle = blackout ? '#2B2F38' : '#FFE08A';
-      for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) ctx.fillRect(hx + hw * (0.18 + c * 0.42), y + hh * (0.22 + r * 0.36), hw * 0.22, hh * 0.18);
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
+        ctx.fillStyle = blackout ? '#2B2F38' : HELL ? (Math.sin(now * 9 + hx * 0.7 + r * 3 + c * 5) > 0.55 ? '#2A0505' : '#FF3B1F') : '#FFE08A';
+        ctx.fillRect(hx + hw * (0.18 + c * 0.42), y + hh * (0.22 + r * 0.36), hw * 0.22, hh * 0.18);
+      }
       hx += hw + W * 0.01;
     });
     ctx.strokeStyle = 'rgba(40,40,40,.55)'; ctx.lineWidth = 1;
@@ -2108,13 +2197,14 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(0.5, q.r), 0, 7); ctx.fill();
     }
     if (particles.length > 400) particles.splice(0, particles.length - 400);
+    if (HELL) { drawHell(horizon, now); drawBoard(horizon); }   // the price board stays readable over the red wash
     drawCoach(streetY, lay, true);
     queueLabel(W - 158, TOP + 2, 154, 22, -1, -2, () => {});   // the CO2-stored label (drawn last)
     if (boardBox) queueLabel(boardBox.x - 3, boardBox.y - 3, boardBox.w + 6, boardBox.h + 6, -1, -2, () => {});   // and the price board
     flushLabels();
 
     if (!REDUCED) drawWeather(horizon);
-    if (g > 0.05) { ctx.fillStyle = `rgba(150,120,80,${0.28 * g})`; ctx.fillRect(0, 0, W, H); }
+    if (g > 0.05 && S.diff !== 'hell') { ctx.fillStyle = `rgba(150,120,80,${0.28 * g})`; ctx.fillRect(0, 0, W, H); }
     drawCoach(streetY, lay);
     ctx.fillStyle = 'rgba(15,26,43,.75)'; ctx.fillRect(W - 156, TOP + 4, 150, 18);
     ctx.fillStyle = S.captureOff > 0 ? '#EF6351' : '#8FE6DC'; ctx.font = FONT(600, 12);
