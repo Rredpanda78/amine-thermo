@@ -361,6 +361,41 @@ html:not([lang|="zh"]) .paper .body::first-letter { float: left; font-family: va
 
 .intro ul { padding-left: 18px; margin: 8px 0 14px; display: grid; gap: 6px; }
 /* how-to-play page: the goal and the two ways to lose, each with a small copy of its meter */
+/* overview: research on the left, one row per plant on the right */
+.manage { width: min(1120px, 96vw); }
+.mgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.1fr); gap: 16px; align-items: start; }
+.mgrid h4 { margin: 4px 0 8px; }
+.mtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 6px; }
+.mtile { display: grid; gap: 3px; text-align: left; padding: 7px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); cursor: pointer; font: 700 12.5px var(--mono); min-height: 52px; align-content: start; }
+.mtile small { font: 600 11px var(--mono); color: var(--muted); }
+.mtile.run { border-color: var(--amine); } .mtile.done { opacity: .6; } .mtile.done small { color: var(--good); }
+.mbar { display: block; height: 5px; border-radius: 3px; background: #0B1422; overflow: hidden; }
+.mbar i { display: block; height: 100%; background: var(--co2); }
+.mnote { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+.prow { display: grid; grid-template-columns: 42px minmax(0, 1.1fr) minmax(0, 1.3fr) auto; gap: 8px; align-items: center; padding: 7px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); margin-bottom: 6px; }
+.prow .pid { width: 38px; height: 38px; border-radius: 9px; display: grid; place-items: center; font: 700 16px var(--mono); color: #fff; cursor: pointer; border: 0; }
+.prow .pn { font-size: 13px; color: var(--muted); } .prow .pn b { color: var(--fg); font-size: 13.5px; }
+.prow .pc { display: inline-block; margin-top: 2px; font: 700 11.5px var(--mono); padding: 1px 6px; border-radius: 6px; color: #0B1422; }
+.prow .pc.none { background: #3A2A2A; color: #FF9A85; }
+.prow .pj { font: 600 12px var(--mono); color: var(--fg); display: grid; gap: 3px; }
+.prow .pq { display: flex; gap: 3px; flex-wrap: wrap; }
+.prow .pq span { font: 700 10.5px var(--mono); padding: 1px 4px; border-radius: 4px; color: #0B1422; }
+.prow .pa { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.prow .pa button { min-height: 32px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: #0F1B2D; color: var(--fg); font: 700 12px var(--mono); cursor: pointer; }
+.prow .pa button small { display: block; font-size: 10px; color: var(--muted); font-weight: 600; }
+.prow .pa button:hover { border-color: var(--amine); }
+@media (max-width: 760px) { .mgrid { grid-template-columns: minmax(0, 1fr); } .prow { grid-template-columns: 40px minmax(0, 1fr); } .prow .pj, .prow .pa { grid-column: 2; } .prow .pa { justify-content: flex-start; } }
+/* activity strip on the scene: what is being built or researched right now (and an idle lab) */
+.activity { position: absolute; top: 6px; right: 6px; z-index: 5; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 48%; pointer-events: none; }
+.activity .act { pointer-events: auto; min-width: 46px; padding: 3px 6px 4px; border-radius: 8px; background: rgba(11, 20, 34, .86); border: 1px solid var(--line); color: var(--fg); font: 700 11px var(--mono); display: grid; gap: 3px; cursor: pointer; text-align: center; }
+.activity .act .mbar { height: 4px; }
+.activity .act.stat { cursor: default; color: #8FE6DC; align-content: center; }
+.activity .act.stat.warn { color: var(--anger); }
+.activity .act.idle { border-color: var(--co2); color: var(--co2); animation: idlepulse 1.2s ease-in-out infinite; }
+@keyframes idlepulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(244, 183, 64, .0); } 50% { box-shadow: 0 0 0 3px rgba(244, 183, 64, .45); } }
+@media (prefers-reduced-motion: reduce) { .activity .act.idle { animation: none; } }
+.cbtn .ic { display: none; }
+@media (max-width: 480px) { .cbtn .t { display: none; } .cbtn .ic { display: inline; font-size: 18px; line-height: 1; } .cbtn { padding: 5px 12px; } }
 /* guided tour: a dimmed screen with lit holes and a caption that types itself */
 #tour { position: fixed; inset: 0; z-index: 30; }
 #tour svg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -580,9 +615,9 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     <div class="led meter" id="mGrid"><div class="lab"><span data-i18n="mGrid">Grid</span></div><div class="val" id="vGrid">— MW</div><div class="sub" id="sGrid">demand — MW</div></div>
     <div class="sys" role="group" aria-label="Sound and language"><button id="sfxBtn" aria-pressed="true" title="Sound effects" aria-label="Sound effects">🔊</button><button id="musBtn" aria-pressed="false" title="Music" aria-label="Music">♪</button><button class="langbtn" id="langBtn" title="English / 繁體中文">中文</button><button id="helpBtn" title="What you can do" aria-label="What you can do">?</button></div>
   </header>
-  <div class="scene" id="sceneBox"><canvas id="cv" aria-label="The town and its power plants. Tap a plant, the lab, the price board or the empty lot."></canvas><button class="paused-badge" id="pausedBadge" hidden><span data-i18n="pausedB">❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div></div>
+  <div class="scene" id="sceneBox"><canvas id="cv" aria-label="The town and its power plants. Tap a plant, the lab, the price board or the empty lot."></canvas><button class="paused-badge" id="pausedBadge" hidden><span data-i18n="pausedB">❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div><div class="activity" id="activity"></div></div>
   <footer class="ctrlbar" id="ticker">
-    <div class="cb-btns"><button class="cbtn gold" id="labBtn"><span data-i18n="labB">LAB</span><span class="dot" id="labDot" hidden></span></button><button class="cbtn" id="buildBtn"><span data-i18n="buildB">+ Build</span></button></div>
+    <div class="cb-btns"><button class="cbtn gold" id="labBtn"><span data-i18n="labB">LAB</span><span class="dot" id="labDot" hidden></span></button><button class="cbtn" id="buildBtn"><span class="t" data-i18n="buildB">+ Build</span><span class="ic">＋</span></button><button class="cbtn" id="mgBtn" title="Overview"><span class="t" data-i18n="mgB">☰ Overview</span><span class="ic">☰</span></button></div>
     <div class="cb-news"><div class="status" id="status"></div><div class="tickwrap"><span class="tick" id="tick"></span></div></div>
     <div class="speed" role="group" aria-label="Game speed">
       <button id="sp0" aria-pressed="false" title="Pause">❚❚</button>
@@ -710,6 +745,14 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   </article>
 </div>
 
+<div class="overlay" id="ovManage" hidden>
+  <div class="sheet manage" role="dialog" aria-modal="true" aria-labelledby="mgTitle">
+    <button class="xclose" id="mgX" aria-label="Close">×</button>
+    <h3 id="mgTitle" data-i18n="mgT">Overview</h3>
+    <p class="lead" id="mgLead"></p>
+    <div class="mgrid"><section><h4 data-i18n="mgRes">Research</h4><div id="mgLab"></div></section><section><h4 data-i18n="mgPlants">Plants</h4><div id="mgPlants"></div></section></div>
+  </div>
+</div>
 <div id="tour" hidden><svg id="tourSvg" aria-hidden="true"></svg>
   <div class="tour-box" id="tourBox" role="dialog" aria-live="polite"><div class="tstep" id="tourStep"></div><p id="tourText"></p>
     <div class="btn-row"><button class="btn ghost" id="tourSkip"></button><button class="btn" id="tourNext"></button></div></div>
@@ -808,7 +851,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     hMoneyT: ['Money', '資金'],
     hMoney: ['The price board sets your income. Below −$500M you go bankrupt.', '電價看板決定收入。資金低於 −5 億美元就破產。'],
     introNext: ['Next: what you can do ›', '下一步：你可以做的事 ›'], introNextB: ['Next: choose a region ›', '下一步：選地區 ›'],
-    tourB: ['▶ Guided tour', '▶ 一步步導覽'],
+    tourB: ['▶ Guided tour', '▶ 一步步導覽'], mgB: ['☰ Overview', '☰ 總覽'], mgT: ['Overview', '總覽'], mgRes: ['Research', '研發'], mgPlants: ['Plants', '電廠'],
     statsL: ['Send an anonymous summary when a game ends (region, level, result, score; no names) to help us balance the game.', '每局結束時送出一筆匿名摘要(地區、難度、結果、分數;不含暱稱),幫我們調整遊戲平衡。'],
     introBack: ['‹ Back', '‹ 上一頁'], guideT: ['What you can do', '你可以做的事'],
     nickL: ['Nickname <small style="font-weight:400;color:var(--muted)">(optional)</small>', '暱稱 <small style="font-weight:400;color:var(--muted)">(選填)</small>'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
@@ -868,7 +911,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   let speed = 1, playing = false, acc = 0, lastT = 0;
   let toastN = 0, toastTimer = null;
   const MS_PER_MONTH = 1600;   // one game month every 1.6 s at 1×
-  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard', 'ovHell', 'ovGuide', 'tour'].some(id => !$(id).hidden);
+  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard', 'ovHell', 'ovGuide', 'tour', 'ovManage'].some(id => !$(id).hidden);
 
   // ---------- best score per region (shown on the region cards) ----------
   const BEST_KEY = 'cc2050-best-v10';
@@ -1140,6 +1183,52 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     if (j.kind === 'sf') return { c: '#B39DDB', l: 'SF' };
     if (j.kind === 'convert') return { c: CV[j.toType][3], l: CV[j.toType][0] };
     return { c: '#E2A93B', l: L('new', '新廠') };
+  }
+  // ---- overview (one place to see and steer everything) and the activity strip on the scene ----
+  const jobText = j => j.kind === 'tech' ? M.TECHS[j.tech].short : j.kind === 'deep' ? '99%' : j.kind === 'ic' || j.kind === 'sf' ? j.kind.toUpperCase() : j.kind === 'convert' ? CV[j.toType][0] : L('BUILD', '施工');
+  const jobFrac = j => j.total ? Math.max(0, Math.min(1, 1 - j.left / j.total)) : 0;
+  const labDone = id => id === 'screen' ? M.canResearch(S, 'screen', 'exp').why === 'Every solvent found' : !!S.unlocked[id];
+  function renderManage() {
+    if ($('ovManage').hidden) return;
+    const runId = Object.keys(S.research)[0], lq = S.labQueue || [];
+    const found = Object.keys(M.DROPS).filter(k => S.unlocked[k]).length, drops = Object.keys(M.DROPS).length;
+    $('mgLead').textContent = `${dateStr(S.m)} · ${money(S.funds)} · ${S.plants.length} ${L('plants', '座電廠')}`;
+    $('mgLab').innerHTML = '<div class="mtiles">' + M.LAB_ORDER.map(id => {
+      const pr = M.project(id), run = runId === id, qi = lq.findIndex(x => x.id === id), done = labDone(id);
+      const total = run ? Math.max(S.research[id], S.resTotal || S.research[id]) : 1;
+      const state = run ? mo(S.research[id]) : qi >= 0 ? L(`queued #${qi + 1}`, `排隊 #${qi + 1}`) : done ? '✓' : id === 'screen' ? `${found}/${drops} ★` : '$' + M.researchCost(S, id, 'exp') + 'M';
+      return `<button class="mtile ${run ? 'run' : ''} ${done ? 'done' : ''}" data-lab="${id}"><span>${id === 'screen' ? L('Screen', '篩選') : pr.short}</span><small>${state}</small>${run ? `<span class="mbar"><i style="width:${Math.round(100 * (1 - S.research[id] / total))}%"></i></span>` : ''}</button>`;
+    }).join('') + '</div>' + `<p class="mnote">${runId ? '' : L('The lab is idle.', '研究所閒置中。')} ${L('Tap a tile to open the lab.', '點方塊打開研究所。')}</p>`;
+    $('mgPlants').innerHTML = S.plants.map(p => {
+      const t = p.tech ? M.TECHS[p.tech] : null, b = p.build;
+      const capTxt = t ? t.short + (p.deep ? ' 99%' : '') + (p.ic ? ' +IC' : '') + (p.sf ? ' +SF' : '') : L('no capture', '無捕捉');
+      const job = b ? `<span>${jobText(b)} · ${mo(b.left)}</span><span class="mbar"><i style="width:${Math.round(100 * jobFrac(b))}%"></i></span>` : `<span style="color:var(--muted)">${p.down > 0 ? plantStatus(p) : L('idle', '閒置')}</span>`;
+      const q = (p.queue || []).map(j => `<span style="background:${jobLook(j).c}">${jobText(j)}</span>`).join('');
+      const acts = ['deep', 'ic', 'sf'].map(k => { const c = M.canQueue(S, p, { kind: k }); return c.ok ? `<button data-mq="${p.id}" data-k="${k}">${k === 'deep' ? '99%' : k.toUpperCase()}<small>$${fmt(c.cost)}M</small></button>` : ''; }).join('');
+      return `<div class="prow"><button class="pid" data-mp="${p.id}" style="background:${TYPE_COL[p.type]}">${p.id}</button>
+        <div class="pn"><b>${typeName(p.type)}</b> · ${p.gross} MW<br><span class="pc ${t ? '' : 'none'}" style="${t ? `background:${t.color}` : ''}">${capTxt}</span></div>
+        <div class="pj">${job}${q ? `<div class="pq">${q}</div>` : ''}</div>
+        <div class="pa">${acts}<button data-mp="${p.id}">${L('More ›', '更多 ›')}</button></div></div>`;
+    }).join('');
+    $('mgLab').querySelectorAll('[data-lab]').forEach(x => x.onclick = () => { $('ovManage').hidden = true; openLab(); });
+    $('mgPlants').querySelectorAll('[data-mp]').forEach(x => x.onclick = () => { $('ovManage').hidden = true; openPlant(x.dataset.mp); });
+    $('mgPlants').querySelectorAll('[data-mq]').forEach(x => x.onclick = () => {
+      const r = M.enqueue(S, x.dataset.mq, { kind: x.dataset.k });
+      SND.play(r.ok ? 'queue' : 'nope'); renderAll();
+    });
+  }
+  function openManage() { $('ovManage').hidden = false; renderManage(); }
+  $('mgBtn').onclick = () => { SND.play('click'); openManage(); };
+  $('mgX').onclick = () => { $('ovManage').hidden = true; };
+  $('ovManage').addEventListener('click', e => { if (e.target === $('ovManage')) $('ovManage').hidden = true; });
+  function renderActivity() {
+    const runId = Object.keys(S.research)[0], chips = [];
+    if (runId) { const total = Math.max(S.research[runId], S.resTotal || S.research[runId]); chips.push({ t: L('LAB', '研究所'), f: 1 - S.research[runId] / total, open: 'lab', tip: mo(S.research[runId]) }); }
+    else if (M.canResearch(S, 'screen', 'comp').ok) chips.push({ t: L('LAB idle', '研究所閒'), idle: true, open: 'lab' });
+    S.plants.filter(p => p.build).forEach(p => chips.push({ t: `${p.id} ${jobText(p.build)}`, f: jobFrac(p.build), open: p.id, tip: mo(p.build.left) + ((p.queue || []).length ? ` · +${p.queue.length}` : '') }));
+    const co2 = S.captureOff > 0 ? `<span class="act stat warn">${L('Capture paused', '捕捉暫停')}</span>` : `<span class="act stat">CO₂ ${L('stored', '已封存')} ${fmt(S.captured, 1)} Mt</span>`;
+    $('activity').innerHTML = co2 + chips.map(c => `<button class="act ${c.idle ? 'idle' : ''}" data-open="${c.open}" title="${c.tip || ''}">${c.t}${c.idle ? '' : `<span class="mbar"><i style="width:${Math.round(100 * c.f)}%"></i></span>`}</button>`).join('');
+    $('activity').querySelectorAll('[data-open]').forEach(x => x.onclick = () => { SND.play('click'); if (x.dataset.open === 'lab') openLab(); else openPlant(x.dataset.open); });
   }
   // the card's icons in three groups: solvents (found by screening), processes (developed in the lab), the plant itself
   const isSolvent = k => k === 'mea90' || !!M.DROPS[k];
@@ -1555,7 +1644,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     }
   }
   function renderAll() {
-    renderMeters(); renderStatus(); renderChips(); renderLab(); renderNews();
+    renderMeters(); renderStatus(); renderChips(); renderLab(); renderNews(); renderActivity(); renderManage();
     if (!$('ovPlant').hidden) renderPlant();
     if (!$('ovBuild').hidden) renderBuild();
     fitNews();
@@ -2124,7 +2213,8 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   // ---- the price billboard in the sky over the town: − / + change the price, the middle opens the sheet ----
   function drawBoard(horizon, polesOnly) {
     const bw = Math.min(210, Math.max(150, W * 0.2)), bh = Math.min(74, Math.max(58, H * 0.17));   // full screen: keep the board sign-sized
-    const x = Math.max(4, Math.min(W * 0.27, W * 0.48 - bw)), y = Math.max(TOP + 6, horizon - SH * 0.6 - bh);   // tall screens: not up in the sky
+    const tallest = Math.max(...houses.slice(0, LAY().houses).map(hh => hh.h)) * SH, roofTop = horizon - tallest * 1.28 + 4;
+    const x = Math.max(4, Math.min(W * 0.27, W * 0.48 - bw)), y = Math.max(TOP + 6, roofTop - bh - 12);   // just above the roofs, on short poles
     const fair = M.fairPrice(S), d = S.price - fair;
     boardBox = { x, y, w: bw, h: bh };
     if (polesOnly) { ctx.fillStyle = '#5B4636'; ctx.fillRect(x + bw * 0.2, y + bh, 3, horizon - y - bh); ctx.fillRect(x + bw * 0.8 - 3, y + bh, 3, horizon - y - bh); return; }
@@ -2441,16 +2531,13 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     if (particles.length > 400) particles.splice(0, particles.length - 400);
     if (HELL) { drawHell(horizon, now); drawBoard(horizon); }   // the price board stays readable over the red wash
     drawCoach(streetY, lay, true);
-    queueLabel(W - 158, TOP + 2, 154, 22, -1, -2, () => {});   // the CO2-stored label (drawn last)
+    if ($('activity').childElementCount) { const ar = $('activity').getBoundingClientRect(), cr = cv.getBoundingClientRect(); queueLabel(ar.left - cr.left - 3, ar.top - cr.top - 3, ar.width + 6, ar.height + 6, -1, -2, () => {}); }   // and the activity strip
     if (boardBox) queueLabel(boardBox.x - 3, boardBox.y - 3, boardBox.w + 6, boardBox.h + 6, -1, -2, () => {});   // and the price board
     flushLabels();
 
     if (!REDUCED) drawWeather(horizon);
     if (g > 0.05 && S.diff !== 'hell') { ctx.fillStyle = `rgba(150,120,80,${0.28 * g})`; ctx.fillRect(0, 0, W, H); }
     drawCoach(streetY, lay);
-    ctx.fillStyle = 'rgba(15,26,43,.75)'; ctx.fillRect(W - 156, TOP + 4, 150, 18);
-    ctx.fillStyle = S.captureOff > 0 ? '#EF6351' : '#8FE6DC'; ctx.font = FONT(600, 12);
-    ctx.fillText(S.captureOff > 0 ? L('Capture paused', '捕捉暫停') : L('CO₂ stored ', 'CO₂ 已封存 ') + fmt(S.captured, 1) + ' Mt', W - 150, TOP + 17);
   }
 
   // ---------- main loop ----------

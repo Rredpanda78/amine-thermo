@@ -64,6 +64,7 @@ DIFF=hell PX=1 node tools/extreme.js texas  # 極端打法;PX = 電價相對可�
 
 - 三段版面:上 `.topbar#hud`(資訊)、中 `#sceneBox` 的 canvas(城市)、下 `.ctrlbar#ticker`(研究所、蓋廠、新聞、倍速)。
 - 「你可以做的事」動畫說明(`guideHTML()`,SVG + CSS 動畫):開場第 2 頁,遊戲中右上角 `?` 也能開。新增可點的功能時,一併補一張說明卡。
+- 總覽頁 `renderManage()`(左:研發方塊+進度條;右:每座電廠一列,含捕捉、目前工程、佇列、一鍵 99%/IC/SF),下方列「☰ 總覽」開啟。場景右上的即時動態列 `renderActivity()`(CO₂ 已封存、研發中、施工中,研究所閒置會閃)。
 - 一步步導覽 `TOUR`(變暗遮罩 + 亮框 + 逐字說明):第一局開始時跑一次(`cc2050-tour`),`?` 視窗可重看。目標用 `domRect(選擇器)` 或 `sceneRect(id)` 指定。
 - 場景裡的文字(電廠名牌、進度條、引導箭頭)一律經過 `queueLabel()` / `flushLabels()` 排版,不會互相蓋住;新增場景文字也要走這條。
 - 難度在 `M.DIFFS`:easy / normal / hard,以及隱藏的 hell(彩蛋:3.5 秒內點研究所 10 次解鎖,整個畫面換成恐怖風格 `html.hell`)。
