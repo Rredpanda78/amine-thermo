@@ -14,7 +14,6 @@
  *   QM + MD screening, 28 amines ...... Chien, Wu & Lin, GHGT-18 (2026): reaction \u0394G MAE 3.6 kJ/mol
  *   PZ + advanced stripper 2.45 GJ/t .. Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021 (net, 90 % capture,
  *                                       same at 4 % and 12 % CO2); stripper pilot: Lin, Chen & Rochelle, Faraday Discuss. 2016
- *   CESAR1 (AMP + PZ) ~3.1 GJ/t ....... pilot campaigns (TCM, Niederaussem); ~10 % below MEA, low degradation
  *
  * Game rules that are NOT from papers: plant sizes and prices, fuel prices, the CO2 limit path,
  * event odds, start-up failure odds, research costs and times, the gas-capture penalty,
@@ -132,15 +131,7 @@
     fact: 'Piperazine is the second-generation benchmark: fast, thermally stable, high capacity. With the advanced stripper, pilot plants measured a net 2.45 GJ per tonne CO\u2082 at 90 % capture, the same at 4 % (gas) and 12 % (coal) CO\u2082. Prof. Yu-Jeng Lin pilot-tested this stripper during his PhD. Catch: solid PZ can precipitate if the solvent gets too cold.',
     src: 'Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016',
   };
-  TECHS.cesar1 = {
-    name: 'CESAR1 (AMP + PZ blend)', short: 'CESAR1', capture: 0.90, duty: 3.1, capex: 0.90, opex: 9, rate: 1.5,
-    unlocked: false, research: { cost: 60, months: 12, exp: 0.95, comp: 0.75 }, color: '#B08968', est: ['capex', 'opex'],
-    stage: 'Pilot-tested', startup: 0.008, deepEasy: true, solvent: true, fail: 'the blend foamed during start-up',
-    pitch: 'The European benchmark blend: a safe step up from MEA, very stable, and the cheapest way to 99 %.',
-    fact: 'CESAR1 mixes AMP (3 M) with piperazine (1.5 M). Pilot plants report about 3.0\u20133.1 GJ per tonne CO\u2082, roughly 10 % less than MEA, with much less solvent degradation and a shorter absorber (piperazine speeds up the slow AMP), and campaigns have run it at 98\u201399.95 % capture.',
-    src: 'CESAR1 pilot campaigns (Technology Centre Mongstad; Niederaussem)',
-  };
-  const TECH_ORDER = ['mea90', 'afs', 'cesar1', 'pz', 'ampnmp', 'pe2eg'];
+  const TECH_ORDER = ['mea90', 'afs', 'pz', 'ampnmp', 'pe2eg'];
   // how a new solvent is found: lab experiments (slow, likely to work) or computer screening (fast, riskier)
   // Solvent screening: each campaign discovers ONE random solvent you do not have yet (rarer = better/newer).
   // Lab experiments are slow but usually find something; computer screening (QM + MD) is fast and cheap but can come
@@ -149,7 +140,7 @@
     exp: { label: 'Lab experiments', cost: 120, months: 18, odds: 0.9 },
     comp: { label: 'Computer screening (QM + MD)', cost: 50, months: 6, odds: 0.5, learn: 0.15 },
   };
-  const DROPS = { cesar1: { weight: 40, stars: 2 }, pz: { weight: 30, stars: 3 }, ampnmp: { weight: 20, stars: 3 }, pe2eg: { weight: 15, stars: 4 } };
+  const DROPS = { pz: { weight: 40, stars: 3 }, ampnmp: { weight: 35, stars: 3 }, pe2eg: { weight: 25, stars: 4 } };
 
   // research projects that are not a capture technology
   const PROJECTS = {};
@@ -558,7 +549,7 @@
   function setPrice(state, price) { state.price = Math.max(40, Math.min(220, Math.round(price))); }
 
   // ---- events -----------------------------------------------------------------
-  const CFG = { P_CHOICE: 0.015, P_FORCED: 0.024 };
+  const CFG = { P_CHOICE: 0.010, P_FORCED: 0.014, GAP: 12 };   // \u2248 5\u20136 events a game, never two within a year
   const SHIP = { months: 4, perTonne: 12 };   // backup CO2 shipping while the storage site is reviewed
   function capturing(state) {
     return state.plants.filter(p => p.tech && online(p) && p.outage <= 0);
@@ -921,10 +912,12 @@
     else if (state.m >= MONTHS) state.over = { win: true, why: 'survived' };
 
     // random events for next month (a choice pauses the game until answered)
-    if (!state.over && state.m > 6) {
+    if (!state.over && state.m > 6 && state.m - (state.lastEventM || -99) >= CFG.GAP) {
       const r = R();
+      const hl = state.headlineN;
       if (r < CFG.P_CHOICE) offerChoice(state, R);
       else if (r < CFG.P_CHOICE + CFG.P_FORCED) forcedEvent(state, R);
+      if (state.pending || state.headlineN !== hl) state.lastEventM = state.m;
     }
     return state;
   }

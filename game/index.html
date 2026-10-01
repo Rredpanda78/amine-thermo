@@ -103,6 +103,8 @@ button { font: inherit; color: inherit; }
 .pane-t { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .pane-t b { font-family: var(--mono); color: var(--fg); letter-spacing: 0; text-transform: none; font-size: 13px; font-weight: 600; }
 .tabs { display: none; }
+.p-research.flash .o-lab { animation: flash 1.2s ease-out; }
+@keyframes flash { 0%, 40% { box-shadow: 0 0 0 3px var(--co2); } 100% { box-shadow: 0 0 0 0 transparent; } }
 .tabs button { background: var(--panel); border: 0; padding: 10px; font-weight: 700; cursor: pointer; color: var(--muted); position: relative; }
 .tabs button[aria-selected="true"] { background: var(--amine); color: #062320; }
 .tabs .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--co2); margin-left: 6px; vertical-align: 1px; }
@@ -155,7 +157,9 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .ic.sel { border-color: #FFF; box-shadow: 0 0 0 2px var(--co2); }
 .ic.done::after { content: '✓'; position: absolute; top: 2px; right: 6px; font-size: 13px; }
 .ic:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
-.info { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; background: #0F1B2D; padding: 10px 12px; display: grid; gap: 6px; min-height: 170px; align-content: start; }
+/* fixed-size info box and a top-anchored card: switching icons never moves the icons under the pointer */
+#ovPlant { place-items: start center; padding-top: max(16px, 4vh); }
+.info { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; background: #0F1B2D; padding: 10px 12px; display: grid; gap: 6px; height: 300px; overflow: auto; align-content: start; overscroll-behavior: contain; }
 .info .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .info .nm { font-weight: 700; font-size: 16px; }
 .info .pitch { font-size: 13.5px; }
@@ -307,6 +311,7 @@ details p { margin: 6px 0 0; }
   .qs { width: 40px; height: 40px; }
   .qrow { gap: 6px; }
   .qrow .ql { display: none; }
+  .info { height: 330px; }
   .news { max-height: 130px; }
   .top { gap: 8px; }
   .meter { padding: 6px 8px; }
@@ -661,7 +666,7 @@ details p { margin: 6px 0 0; }
       + row('Running cost', '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
       + '</div><div class="barkey">Bars run from the best to the worst solvent: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.</div>';
   }
-  const ICON = { mea90: ['MEA', 'solvent'], afs: ['AS', 'MEA + stripper'], cesar1: ['CESAR1', 'AMP + PZ'], pz: ['PZ', '+ stripper'], ampnmp: ['AMP', '– NMP'], pe2eg: ['2PE', '– EG'] };
+  const ICON = { mea90: ['MEA', 'solvent'], afs: ['AS', 'MEA + stripper'], pz: ['PZ', '+ stripper'], ampnmp: ['AMP', '– NMP'], pe2eg: ['2PE', '– EG'] };
   const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' || k === 'convert' ? { kind: k } : null;
   function jobLook(j) {
     if (j.kind === 'tech') return { c: M.TECHS[j.tech].color, l: ICON[j.tech][0] };
@@ -1111,7 +1116,6 @@ details p { margin: 6px 0 0; }
     if (u.ampnmp) return ['Kinetics chaser', 'You bet on AMP–NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '10.1016/j.cej.2025.160544'];
     if (u.afs) return ['Process optimizer', 'You kept MEA but recovered its heat with an advanced stripper, cutting the steam bill from 3.5 to 2.8 GJ per tonne.', '10.1021/acs.iecr.5c03760'];
     if (u.pz) return ['Piperazine pro', 'You ran the city on piperazine with the advanced stripper: the least steam measured in pilot plants, the same on coal and gas flue gas.', null];
-    if (u.cesar1) return ['Blend strategist', 'You chose CESAR1, the AMP + piperazine blend: a stable, proven step up from MEA that reaches 99 % capture cheaply.', null];
     if (deepN >= 2) return ['99 % engineer', 'You pushed amine capture to 99 % with taller columns: costly, slow to build, and it works.', '10.1016/j.seppur.2024.130120'];
     if (coalN === 0) return ['Fuel switcher', 'You left coal for gas: 60 % less CO₂ per MWh, but pricier fuel and supply scares.', null];
     if (u.mea90) return ['MEA workhorse', 'You relied on the industry-standard solvent. It works, but it eats the most steam, which is what better solvents fix.', '10.1016/j.cej.2026.174224'];
@@ -1163,7 +1167,18 @@ details p { margin: 6px 0 0; }
     for (let i = hits.length - 1; i >= 0; i--) { const h = hits[i]; if (x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1) return h.id; }
     return null;
   }
-  cv.addEventListener('click', e => { const id = hitAt(...scenePos(e)); if (id) { SND.play('click'); openPlant(id); } });
+  cv.addEventListener('click', e => {
+    const id = hitAt(...scenePos(e));
+    if (!id) return;
+    SND.play('click');
+    if (id === '__lab') openLab(); else if (id === '__add') openBuild(); else openPlant(id);
+  });
+  // the lab in the town opens the research panel (a tab on phones; a highlight on wide screens)
+  function openLab() {
+    if (innerWidth <= 860) { setTab('research'); window.scrollTo({ top: 0 }); return; }
+    const pr = document.querySelector('.p-research');
+    pr.classList.remove('flash'); void pr.offsetWidth; pr.classList.add('flash');
+  }
   cv.addEventListener('mousemove', e => { hoverId = hitAt(...scenePos(e)); cv.style.cursor = hoverId ? 'pointer' : 'default'; });
   cv.addEventListener('mouseleave', () => { hoverId = null; });
 
@@ -1176,7 +1191,8 @@ details p { margin: 6px 0 0; }
 
   const particles = [];
   const people = Array.from({ length: 14 }, (_, i) => ({ x: Math.random(), v: (Math.random() < .5 ? -1 : 1) * (0.02 + Math.random() * 0.03), sign: i % 3 === 0, phase: Math.random() * 6 }));
-  const houses = Array.from({ length: 7 }, (_, i) => ({ w: 0.07 + (i % 3) * 0.012, h: 0.16 + ((i * 37) % 5) * 0.035, hue: ['#D9C6A5', '#C9D6E3', '#E3C9C9', '#CFE3CF', '#E6DDB8'][i % 5] }));
+  const houses = Array.from({ length: 5 }, (_, i) => ({ w: 0.07 + (i % 3) * 0.012, h: 0.16 + ((i * 37) % 5) * 0.035, hue: ['#D9C6A5', '#C9D6E3', '#E3C9C9', '#CFE3CF', '#E6DDB8'][i % 5] }));
+  const PLOT_X = 0.958;   // the empty lot where a new plant can be built
 
   // plants fill the right half; more than 5 go on two rows (back row smaller)
   function plantSlots(n) {
@@ -1187,13 +1203,13 @@ details p { margin: 6px 0 0; }
       const r = rows === 2 && i >= perRow ? 0 : rows - 1;   // later plants go to the back row
       const k = r === rows - 1 ? i : i - perRow;
       const count = r === rows - 1 ? perRow : n - perRow;
-      const x0 = 0.52, x1 = 0.96;
+      const x0 = 0.51, x1 = 0.9;
       out.push({ x: x0 + (x1 - x0) * (k + 0.5) / count, back: rows === 2 && r === 0, scale: Math.min(1, 4 / Math.max(4, count)) * (rows === 2 && r === 0 ? 0.8 : 1) });
     }
     return out;
   }
 
-  // name tag on the ground under a plant: id + capture, a build bar, and the number of queued jobs
+  // name tag on the ground under a plant: id + capture, and the number of queued jobs
   function drawTag(p, cx, base, k, down) {
     const t = p.tech ? M.TECHS[p.tech] : null;
     const what = p.build && p.build.kind === 'new' ? 'building' : p.build && p.build.kind === 'convert' ? '→ ' + p.build.toType
@@ -1204,16 +1220,133 @@ details p { margin: 6px 0 0; }
     ctx.fillStyle = 'rgba(15,26,43,.85)'; ctx.fillRect(cx - tw / 2, y, tw, th);
     ctx.fillStyle = down ? '#EF6351' : t ? t.color : '#E9EFF7';
     ctx.textAlign = 'center'; ctx.fillText(txt, cx, y + th - 4);
-    if (p.build) {
-      ctx.fillStyle = '#0B1422'; ctx.fillRect(cx - tw / 2, y + th, tw, 3);
-      ctx.fillStyle = '#F4B740'; ctx.fillRect(cx - tw / 2, y + th, tw * (1 - p.build.left / p.build.total), 3);
-    }
     const q = (p.queue || []).length;
     if (q) {
       ctx.fillStyle = '#F4B740'; ctx.beginPath(); ctx.arc(cx + tw / 2, y, 7, 0, 7); ctx.fill();
       ctx.fillStyle = '#0B1422'; ctx.font = "700 9px 'IBM Plex Mono', monospace"; ctx.fillText('+' + q, cx + tw / 2, y + 3);
     }
     ctx.textAlign = 'left';
+  }
+
+  // ---- construction site pieces ----
+  // a progress pill: yellow fill = share done, text = what and how far
+  function drawProgress(cx, y, w, frac, label) {
+    const h = 14, x = cx - w / 2;
+    ctx.fillStyle = 'rgba(15,26,43,.9)'; ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+    ctx.fillStyle = '#F4B740'; ctx.fillRect(x, y, w * Math.max(0, Math.min(1, frac)), h);
+    ctx.font = "700 9px 'IBM Plex Mono', monospace"; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(15,26,43,.9)'; ctx.strokeText(label, cx, y + 10);
+    ctx.fillStyle = '#FFF'; ctx.fillText(label, cx, y + 10); ctx.textAlign = 'left';
+  }
+  // tower crane: lattice mast, a jib whose trolley slides back and forth, and a swinging load
+  function drawCrane(x, base, top, reach, k, phase) {
+    const now = performance.now() / 1000 + phase;
+    ctx.strokeStyle = '#E2A93B'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x - 3 * k, base); ctx.lineTo(x - 3 * k, top); ctx.moveTo(x + 3 * k, base); ctx.lineTo(x + 3 * k, top);
+    for (let y = base; y > top; y -= 8 * k) { ctx.moveTo(x - 3 * k, y); ctx.lineTo(x + 3 * k, y - 4 * k); }
+    ctx.moveTo(x - reach, top); ctx.lineTo(x + reach * 0.35, top); ctx.moveTo(x, top - 7 * k); ctx.lineTo(x - reach * 0.7, top); ctx.moveTo(x, top - 7 * k); ctx.lineTo(x + reach * 0.35, top);
+    ctx.stroke();
+    ctx.fillStyle = '#6B6B6B'; ctx.fillRect(x + reach * 0.22, top - 1, 7 * k, 6 * k);   // counterweight
+    const tx = x - reach * (0.2 + 0.7 * (0.5 + 0.5 * Math.sin(now * 0.6)));
+    const drop = (base - top) * (0.45 + 0.2 * Math.sin(now * 0.9));
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(tx, top); ctx.lineTo(tx, top + drop); ctx.stroke();
+    ctx.fillStyle = '#8A6D3B'; ctx.fillRect(tx - 4 * k, top + drop, 8 * k, 5 * k);
+  }
+  function drawWorkers(x0, x1, base, k, n) {
+    const now = performance.now() / 1000;
+    for (let i = 0; i < n; i++) {
+      const f = 0.5 + 0.5 * Math.sin(now * (0.5 + i * 0.23) + i * 2);
+      const x = x0 + (x1 - x0) * f;
+      ctx.fillStyle = '#E07A2F'; ctx.fillRect(x - 1.5 * k, base - 7 * k, 3 * k, 6 * k);
+      ctx.fillStyle = '#F2C9A0'; ctx.beginPath(); ctx.arc(x, base - 9 * k, 2 * k, 0, 7); ctx.fill();
+      ctx.fillStyle = '#F4D03F'; ctx.fillRect(x - 2.5 * k, base - 11.5 * k, 5 * k, 2 * k);   // hard hat
+    }
+  }
+  function drawScaffold(x, y, w, h) {
+    ctx.strokeStyle = 'rgba(201,162,74,.9)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= 4; i++) { ctx.moveTo(x + w * i / 4, y); ctx.lineTo(x + w * i / 4, y + h); }
+    for (let yy = y + h; yy >= y; yy -= 9) { ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); }
+    ctx.stroke();
+  }
+
+  // ---- the research lab (tap it to open the research panel) ----
+  function drawLab(horizon, blackout) {
+    const x = W * 0.02, w = W * 0.095, h = H * 0.2, y = horizon - h + 4;
+    const busy = Object.keys(S.research)[0];
+    ctx.fillStyle = '#E4EAF0'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#9DB0CB'; ctx.fillRect(x - 2, y - 4, w + 4, 5);
+    ctx.fillStyle = blackout ? '#2B2F38' : '#8CC8EE';
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) ctx.fillRect(x + w * (0.1 + c * 0.3), y + h * (0.22 + r * 0.3), w * 0.2, h * 0.16);
+    ctx.fillStyle = '#5B6F8A'; ctx.fillRect(x + w * 0.42, y + h * 0.78, w * 0.16, h * 0.22);
+    // dish on the roof + sign
+    ctx.strokeStyle = '#6B7C93'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + w * 0.8, y - 4); ctx.lineTo(x + w * 0.8, y - 14); ctx.stroke();
+    ctx.fillStyle = '#C9D3DE'; ctx.beginPath(); ctx.arc(x + w * 0.8, y - 16, 6, Math.PI * 0.9, Math.PI * 2.1); ctx.fill();
+    ctx.fillStyle = '#16243A'; ctx.fillRect(x + w * 0.08, y - 16, w * 0.5, 11);
+    ctx.fillStyle = '#E2A93B'; ctx.font = "700 9px 'IBM Plex Mono', monospace"; ctx.textAlign = 'center';
+    ctx.fillText('LAB', x + w * 0.33, y - 7); ctx.textAlign = 'left';
+    const hit = { id: '__lab', x0: x - 4, x1: x + w + 4, y0: y - 44, y1: horizon + 6 };
+    hits.push(hit);
+    if (hoverId === '__lab') { ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.strokeRect(hit.x0, hit.y0, hit.x1 - hit.x0, hit.y1 - hit.y0); ctx.setLineDash([]); }
+    const cx = x + w / 2, by = y - 46;
+    if (busy) {
+      // bubbling flask + progress of the running project
+      const left = S.research[busy], total = Math.max(left, S.resTotal || left);
+      const now = performance.now() / 1000;
+      for (let i = 0; i < 3; i++) {
+        const f = (now * 0.8 + i / 3) % 1;
+        ctx.fillStyle = `rgba(46,196,182,${0.8 * (1 - f)})`; ctx.beginPath(); ctx.arc(cx - 8 + i * 8, by + 4 - f * 14, 2 + f * 2, 0, 7); ctx.fill();
+      }
+      drawProgress(cx, by + 10, Math.max(56, w * 1.1), 1 - left / total, (S.resMethod[busy] === 'comp' ? 'QM+MD ' : busy === 'screen' ? 'EXP ' : 'PILOT ') + left + ' mo');
+    } else if (!(S.labQueue || []).length && M.canResearch(S, 'screen', 'comp').ok) {
+      const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 300);
+      ctx.fillStyle = `rgba(244,183,64,${pulse})`; ctx.beginPath(); ctx.arc(cx, by + 12, 9, 0, 7); ctx.fill();
+      ctx.fillStyle = '#0B1422'; ctx.font = "700 12px 'IBM Plex Mono', monospace"; ctx.textAlign = 'center'; ctx.fillText('!', cx, by + 16); ctx.textAlign = 'left';
+    }
+  }
+  // ---- the empty lot: tap to build a plant ----
+  function drawPlot(horizon) {
+    if (S.plants.length >= M.MAX_PLANTS) return;
+    const x = W * PLOT_X, k = Math.max(0.7, Math.min(1, W / 700));
+    const hit = { id: '__add', x0: x - 26 * k, x1: Math.min(W - 2, x + 26 * k), y0: horizon - 46 * k, y1: horizon + 16 };
+    hits.push(hit);
+    ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.strokeRect(x - 22 * k, horizon - 4, 44 * k, 14); ctx.setLineDash([]);
+    ctx.fillStyle = '#6B4A2E'; ctx.fillRect(x - 1.5, horizon - 40 * k, 3, 38 * k);
+    ctx.fillStyle = hoverId === '__add' ? '#2EC4B6' : '#F3EEE2'; ctx.fillRect(x - 20 * k, horizon - 44 * k, 40 * k, 20 * k);
+    ctx.strokeStyle = '#1A1A1A'; ctx.lineWidth = 1; ctx.strokeRect(x - 20 * k, horizon - 44 * k, 40 * k, 20 * k);
+    ctx.fillStyle = '#1A1A1A'; ctx.font = `700 ${Math.round(9 * k)}px 'IBM Plex Mono', monospace`; ctx.textAlign = 'center';
+    ctx.fillText('+ BUILD', x, horizon - 31 * k); ctx.textAlign = 'left';
+  }
+  // ---- weather for what is happening this month ----
+  function drawWeather(horizon) {
+    const mo = (S.m + 11) % 12, winter = mo >= 10 || mo <= 2;
+    const now = performance.now() / 1000;
+    const storm = S.gasFreeze > 0, typhoon = S.plants.some(p => p.down > 0 && p.downWhy === 'typhoon repair');
+    const snowy = storm || (S.demandMult > 1 && winter) || (S.region === 'norway' && (mo === 11 || mo <= 1));
+    if (typhoon) {
+      ctx.fillStyle = 'rgba(60,70,80,.35)'; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = 'rgba(200,215,230,.55)'; ctx.lineWidth = 1; ctx.beginPath();
+      for (let i = 0; i < 70; i++) { const x = (i * 53 + now * 260) % (W + 40) - 20, y = (i * 97 + now * 520) % H; ctx.moveTo(x, y); ctx.lineTo(x - 6, y + 14); }
+      ctx.stroke();
+    }
+    if (snowy) {
+      if (S.region === 'norway' || storm) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(0, horizon, W, H - horizon); }
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      for (let i = 0; i < (storm ? 90 : 45); i++) {
+        const x = (i * 71 + Math.sin(now + i) * 12 + now * 14) % W, y = (i * 43 + now * (28 + (i % 5) * 6)) % H;
+        ctx.beginPath(); ctx.arc(x, y, 1.2 + (i % 3) * 0.6, 0, 7); ctx.fill();
+      }
+    } else if (S.demandMult > 1) {
+      // heat wave: shimmering air over the ground
+      ctx.strokeStyle = 'rgba(255,170,80,.22)'; ctx.lineWidth = 2;
+      for (let j = 0; j < 3; j++) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 8) ctx.lineTo(x, horizon - 30 - j * 22 + Math.sin(x / 18 + now * 3 + j) * 3);
+        ctx.stroke();
+      }
+    }
   }
 
   function drawScene(dt) {
@@ -1228,12 +1361,13 @@ details p { margin: 6px 0 0; }
     sky.addColorStop(0, mix('#6FB6EA', '#7C7466', g));
     sky.addColorStop(1, mix('#D6EEFB', '#C7AE86', g));
     ctx.fillStyle = sky; ctx.fillRect(0, 0, W, horizon);
-    // sun
-    const sx = W * 0.12, sy = H * 0.2, sr = Math.max(14, W * 0.035);
+    // sun (bigger and redder in a heat wave)
+    const hot = S.demandMult > 1 && !((S.m + 11) % 12 >= 10 || (S.m + 11) % 12 <= 2);
+    const sx = W * 0.2, sy = H * 0.2, sr = Math.max(14, W * 0.035) * (hot ? 1.35 : 1);
     const glow = ctx.createRadialGradient(sx, sy, sr * 0.3, sx, sy, sr * 3);
-    glow.addColorStop(0, mix('#FFF4C2', '#FFB36B', g)); glow.addColorStop(1, 'rgba(255,220,150,0)');
+    glow.addColorStop(0, mix('#FFF4C2', '#FFB36B', hot ? 1 : g)); glow.addColorStop(1, 'rgba(255,220,150,0)');
     ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(sx, sy, sr * 3, 0, 7); ctx.fill();
-    ctx.fillStyle = mix('#FFE680', '#FF9A4D', g); ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 7); ctx.fill();
+    ctx.fillStyle = mix('#FFE680', '#FF9A4D', hot ? 1 : g); ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 7); ctx.fill();
     // hills + ground
     ctx.fillStyle = mix('#8FC99A', '#8E8A64', g);
     ctx.beginPath(); ctx.moveTo(0, horizon);
@@ -1242,22 +1376,23 @@ details p { margin: 6px 0 0; }
     ctx.fillStyle = mix('#6DB36F', '#8C7B4F', g); ctx.fillRect(0, horizon, W, H - horizon);
     ctx.fillStyle = mix('#5E6B73', '#4A4A46', g); ctx.fillRect(0, horizon + (H - horizon) * 0.42, W * 0.5, (H - horizon) * 0.18); // street
 
-    // town (left half)
+    // town (left half): the research lab, then houses
     const blackout = L && L.unservedFrac > 0.01;
-    let hx = W * 0.02;
+    drawLab(horizon, blackout);
+    let hx = W * 0.13;
     houses.forEach(h => {
-      const hw = h.w * W, hh = h.h * H;
+      const hw = h.w * W * 0.68, hh = h.h * H;
       const y = horizon - hh + 4;
       ctx.fillStyle = h.hue; ctx.fillRect(hx, y, hw, hh);
       ctx.fillStyle = '#7A4E3C'; ctx.beginPath(); ctx.moveTo(hx - 3, y); ctx.lineTo(hx + hw / 2, y - hh * 0.28); ctx.lineTo(hx + hw + 3, y); ctx.fill();
       ctx.fillStyle = blackout ? '#2B2F38' : '#FFE08A';
       for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) ctx.fillRect(hx + hw * (0.18 + c * 0.42), y + hh * (0.22 + r * 0.36), hw * 0.22, hh * 0.18);
-      hx += hw + W * 0.012;
+      hx += hw + W * 0.01;
     });
     // power line
     ctx.strokeStyle = 'rgba(40,40,40,.55)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(W * 0.46, horizon - H * 0.2);
-    ctx.quadraticCurveTo(W * 0.5, horizon - H * 0.14, W * 0.54, horizon - H * 0.2); ctx.stroke();
+    ctx.quadraticCurveTo(W * 0.49, horizon - H * 0.14, W * 0.52, horizon - H * 0.2); ctx.stroke();
     ctx.fillStyle = '#444'; ctx.fillRect(W * 0.46 - 1, horizon - H * 0.2, 2, H * 0.2);
 
     // people
@@ -1279,10 +1414,12 @@ details p { margin: 6px 0 0; }
       }
     });
 
+    drawPlot(horizon);
+
     // plants (right half); back row first so the front row overlaps it
     const slots = plantSlots(S.plants.length);
-    const order = S.plants.map((p, i) => ({ p, s: slots[i] })).sort((a, b) => (a.s.back ? 0 : 1) - (b.s.back ? 0 : 1));
-    order.forEach(({ p, s }) => {
+    const order = S.plants.map((p, i) => ({ p, s: slots[i], i })).sort((a, b) => (a.s.back ? 0 : 1) - (b.s.back ? 0 : 1));
+    order.forEach(({ p, s, i }) => {
       const k = s.scale;
       const base = horizon - (s.back ? H * 0.07 : 0);
       const cx = s.x * W;
@@ -1294,9 +1431,16 @@ details p { margin: 6px 0 0; }
         ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
         ctx.strokeRect(hit.x0, hit.y0, hit.x1 - hit.x0, hit.y1 - hit.y0); ctx.setLineDash([]);
       }
+      const frac = p.build ? 1 - p.build.left / p.build.total : 0;
       if (p.build && p.build.kind === 'new') {
-        ctx.fillStyle = 'rgba(244,183,64,.55)'; ctx.fillRect(cx - bw / 2, by, bw, bh);
-        ctx.strokeStyle = '#E2A93B'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx + bw * 0.6, base); ctx.lineTo(cx + bw * 0.6, by - bh); ctx.lineTo(cx - bw * 0.3, by - bh); ctx.stroke();
+        // construction site: footprint, the building rising inside scaffolding, a tower crane and workers
+        ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeRect(cx - bw / 2, by, bw, bh); ctx.setLineDash([]);
+        const rise = Math.max(3, bh * frac);
+        ctx.fillStyle = p.type === 'coal' ? 'rgba(110,63,51,.9)' : 'rgba(90,110,134,.9)'; ctx.fillRect(cx - bw / 2, base - rise + 6 * k, bw, rise - 6 * k);
+        drawScaffold(cx - bw / 2 - 2, by - 4, bw + 4, bh + 4 - 6 * k);
+        drawCrane(cx + bw * 0.62, base, by - bh * 0.55, bw * 1.1, k, i);
+        drawWorkers(cx - bw / 2, cx + bw / 2, base + 2, k, 2);
+        drawProgress(cx, by - bh * 0.55 - 22 - (i % 2) * 16, Math.max(50, bw * 1.25), frac, `BUILD ${Math.round(frac * 100)}%`);
         drawTag(p, cx, base, k, false);
         return;
       }
@@ -1312,22 +1456,39 @@ details p { margin: 6px 0 0; }
         ctx.fillRect(chx - 4 * k, base - chH, 8 * k, chH);
         ctx.fillStyle = '#C0392B'; ctx.fillRect(chx - 4 * k, base - chH + 6 * k, 8 * k, 3 * k);
       });
-      // capture unit
+      // capture unit (grows while it is being built; the 99 % upgrade makes the columns taller)
       const t = p.tech ? M.TECHS[p.tech] : null;
-      if (t || p.build) {
-        const col = t ? t.color : '#E2A93B';
-        const ax = cx + bw / 2 + 3 * k, aw = Math.max(5, W * 0.014) * k, ah = H * (p.deep ? 0.32 : 0.26) * k;
+      const job = p.build && (p.build.kind === 'tech' || p.build.kind === 'deep') ? p.build : null;
+      const ax = cx + bw / 2 + 3 * k, aw = Math.max(5, W * 0.014) * k;
+      if (t || job) {
+        const nt = job && job.kind === 'tech' ? M.TECHS[job.tech] : t;
+        const h90 = H * 0.26 * k, h99 = H * 0.32 * k;
+        let ah = p.deep ? h99 : h90;
+        if (job && job.kind === 'deep') ah = h90 + (h99 - h90) * frac;
+        else if (job && !t) ah = Math.max(4, h90 * frac);
+        const col = job && job.kind === 'tech' && t ? t.color : nt.color;
+        if (job) { ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.strokeRect(ax, base - (job.kind === 'deep' ? h99 : h90), aw * 2 + 2 * k, (job.kind === 'deep' ? h99 : h90)); ctx.setLineDash([]); }
         ctx.fillStyle = col; ctx.fillRect(ax, base - ah, aw, ah);
         ctx.fillRect(ax + aw + 2 * k, base - ah * 0.7, aw * 0.8, ah * 0.7);
         ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(ax + 1, base - ah, 2, ah);
-        if (p.build) { ctx.strokeStyle = '#E2A93B'; ctx.setLineDash([3, 3]); ctx.strokeRect(ax - 2, base - ah - 2, aw * 2 + 6 * k, ah + 2); ctx.setLineDash([]); }
-        if (t && p.outage <= 0 && !down && S.captureOff <= 0 && !s.back) {
+        if (t && !job && p.outage <= 0 && !down && S.captureOff <= 0 && !s.back) {
           ctx.strokeStyle = 'rgba(46,196,182,.7)'; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(ax + aw / 2, base); ctx.lineTo(ax + aw / 2, H - 8); ctx.stroke();
           const ph = (performance.now() / 300) % 1;
           ctx.fillStyle = '#2EC4B6';
           for (let q = 0; q < 3; q++) { const yy = base + ((ph + q / 3) % 1) * (H - 8 - base); ctx.beginPath(); ctx.arc(ax + aw / 2, yy, 2, 0, 7); ctx.fill(); }
         }
+      }
+      if (job) {
+        const top = base - H * 0.36 * k;
+        drawCrane(ax + aw * 2 + 8 * k, base, top, aw * 3.2, k * 0.8, i);
+        drawWorkers(ax - 2, ax + aw * 2 + 4 * k, base + 2, k, 1);
+        const lab = job.kind === 'deep' ? '99%' : ICON[job.tech][0];
+        drawProgress(ax + aw, top - 18 - (i % 2) * 16, Math.max(52, aw * 5), frac, `${lab} ${Math.round(frac * 100)}%`);
+      } else if (p.build && p.build.kind === 'convert') {
+        drawScaffold(cx - bw / 2 - 2, by - 4, bw + 4, bh);
+        drawCrane(cx - bw * 0.62, base, by - bh * 0.6, bw * 0.9, k, i);
+        drawProgress(cx, by - bh * 0.6 - 22 - (i % 2) * 16, Math.max(56, bw * 1.25), frac, `→${p.build.toType.toUpperCase()} ${Math.round(frac * 100)}%`);
       }
       drawTag(p, cx, base, k, down);
       if (down) return;
@@ -1358,6 +1519,7 @@ details p { margin: 6px 0 0; }
     }
     if (particles.length > 400) particles.splice(0, particles.length - 400);
 
+    if (!REDUCED) drawWeather(horizon);
     // haze overlay
     if (g > 0.05) { ctx.fillStyle = `rgba(150,120,80,${0.28 * g})`; ctx.fillRect(0, 0, W, H); }
     // storage label
