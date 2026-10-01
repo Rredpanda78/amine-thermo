@@ -178,6 +178,7 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .qs.job:hover .x, .qs.job:focus-visible .x { opacity: 1; color: #7A1308; }
 .qs .pg { position: absolute; left: 0; bottom: 0; height: 5px; background: rgba(11, 20, 34, .55); }
 .qs small { font-size: 11px; font-weight: 600; opacity: .85; }
+.qs { line-height: 1.05; }
 .icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px; margin-top: 10px; }
 .ic { position: relative; aspect-ratio: 1 / 1; border-radius: 12px; border: 2px solid transparent; display: grid; place-items: center; align-content: center; gap: 1px; cursor: pointer; font-weight: 700; font-size: 14px; color: #0B1422; padding: 4px; line-height: 1.1; text-align: center; }
 .ic small { font-size: 11.5px; font-weight: 700; opacity: .8; }
@@ -214,9 +215,12 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 #ovPlant .sheet .lead { font-size: 13px; }
 #ovPlant .qrow .ql { font-size: 11px; }
 #ovPlant .qs { width: 40px; height: 40px; font-size: 11px; border-radius: 8px; }
-#ovPlant .icons { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 6px; margin-top: 8px; }
-#ovPlant .ic { font-size: 12.5px; border-radius: 10px; padding: 3px; }
-#ovPlant .ic small { font-size: 10px; }
+#ovPlant .igrps { display: grid; gap: 6px 14px; margin-top: 8px; }
+#ovPlant .igh { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0 0 4px; }
+#ovPlant .icons { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 5px; margin-top: 0; }
+@media (min-width: 600px) { #ovPlant .igrps { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } #ovPlant .igrp.g0 { grid-column: 1 / -1; } }
+#ovPlant .ic { font-size: 12.5px; border-radius: 10px; padding: 2px; }
+#ovPlant .ic small { font-size: 9.5px; line-height: 1.05; letter-spacing: -.2px; }
 #ovPlant .ic.done::after { font-size: 12px; }
 #ovPlant .info { margin-top: 8px; padding: 8px 10px; gap: 5px; height: clamp(200px, 36vh, 300px); }
 #ovPlant .info .nm { font-size: 15px; }
@@ -1032,41 +1036,51 @@ html, body { height: 100%; overflow: hidden; }
       + row(L('Running cost', '運轉費'), '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
       + `</div><div class="barkey">${L('Bars run from the best to the worst option for this plant: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.', '長條從這座廠最好到最差的選項排列：<b style="color:var(--good)">綠色</b>越長越好，<b style="color:#E07A5F">橘色</b>越長越花錢。')}</div>`;
   }
-  const ICON = { mea90: ['MEA', 'solvent', '溶劑'], afs: ['AS', 'MEA + stripper', 'MEA + 汽提'], rpb: ['RPB', 'rotating bed', '旋轉床'], amp: ['AMP', 'in water', '水溶液'], aas: ['AAS', 'amino salt', '胺基酸鹽'], mdeapz: ['M/PZ', 'MDEA + PZ', 'MDEA + PZ'], pz: ['PZ', '+ stripper', '+ 汽提'], ampnmp: ['NMP', 'AMP + NMP', 'AMP + NMP'], pe2eg: ['2PE', '– EG', '– EG'], mcfc: ['MCFC', 'fuel cell', '燃料電池'] };
-  const CV = { gasb: ['→ GB', 'gas boiler', '燃氣鍋爐', '#B9B2E8'], gas: ['→ CC', 'combined cycle', '複循環', '#9CC7F2'], coal: ['→ coal', 'back to coal', '改回燃煤', '#F0A58A'] };
+  // one naming rule everywhere: blends A/B (MDEA/PZ), solvent + process A+B (MEA+AS), processes as acronyms (RPB, IC)
+  const ICON = k => M.TECHS[k].short;
+  const icon2 = lab => lab.replace(/([^/+])([/+])/, '$1<br>$2');   // two lines in a small square: MDEA / /PZ
+  const PROC_SUB = { afs: ['stripper', '進階汽提'], rpb: ['rotor', '旋轉床'], mcfc: ['fuel cell', '燃料電池'], deep: ['deeper', '深度捕捉'], ic: ['cooling', '中間冷卻'], sf: ['split flow', '分流汽提'] };
+  const CV = { gasb: ['→GB', 'gas boiler', '燃氣鍋爐', '#B9B2E8'], gas: ['→CC', 'comb. cycle', '複循環', '#9CC7F2'], coal: ['→COAL', 'back to coal', '改回燃煤', '#F0A58A'] };
   const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' || k === 'ic' || k === 'sf' ? { kind: k } : k.startsWith('cv_') ? { kind: 'convert', to: k.slice(3) } : null;
   function jobLook(j) {
-    if (j.kind === 'tech') return { c: M.TECHS[j.tech].color, l: ICON[j.tech][0] };
+    if (j.kind === 'tech') return { c: M.TECHS[j.tech].color, l: icon2(ICON(j.tech)) };
     if (j.kind === 'deep') return { c: '#7BD389', l: '99%' };
     if (j.kind === 'ic') return { c: '#5FB3B3', l: 'IC' };
     if (j.kind === 'sf') return { c: '#B39DDB', l: 'SF' };
     if (j.kind === 'convert') return { c: CV[j.toType][3], l: CV[j.toType][0] };
     return { c: '#E2A93B', l: L('new', '新廠') };
   }
-  function iconKeys(p) {
+  // the card's icons in three groups: solvents (found by screening), processes (developed in the lab), the plant itself
+  const isSolvent = k => k === 'mea90' || !!M.DROPS[k];
+  function iconGroups(p) {
     const v = M.planned(p);
-    return [...M.TECH_ORDER, 'deep', 'ic', 'sf', ...M.convertOptions(v.type).map(t => 'cv_' + t), 'demolish'];
+    return [
+      [L('Solvent', '溶劑'), M.TECH_ORDER.filter(isSolvent)],
+      [L('Process', '製程'), [...M.TECH_ORDER.filter(k => !isSolvent(k)), 'deep', 'ic', 'sf']],
+      [L('Plant', '電廠'), [...M.convertOptions(v.type).map(t => 'cv_' + t), 'demolish']],
+    ];
   }
+  const iconKeys = p => iconGroups(p).flatMap(g => g[1]);
   function iconHTML(p, k) {
     const v = M.planned(p);
     let bg, label, sub = '', locked = false, done = false, name;
     if (M.TECHS[k]) {
       const t = M.TECHS[k];
-      bg = t.color; label = ICON[k][0]; sub = L(ICON[k][1], ICON[k][2]); name = tName(t);
+      bg = t.color; label = icon2(ICON(k)); sub = PROC_SUB[k] ? L(...PROC_SUB[k]) : ''; name = tName(t);
       locked = !S.unlocked[k]; done = v.tech === k;
-      if (locked) sub = M.DROPS[k] ? '★'.repeat(M.DROPS[k].stars) : L('develop first', '先研發');
+      if (locked) sub = M.DROPS[k] ? '★'.repeat(M.DROPS[k].stars) : L('R&D', '先研發');
       else if (t.gasOnly && v.type !== 'gas') { locked = true; sub = L('gas only', '限燃氣'); }
     } else if (k === 'ic' || k === 'sf') {
-      bg = k === 'ic' ? '#5FB3B3' : '#B39DDB'; label = k.toUpperCase(); sub = k === 'ic' ? L('intercool', '中間冷卻') : L('split flow', '分流汽提');
+      bg = k === 'ic' ? '#5FB3B3' : '#B39DDB'; label = k.toUpperCase(); sub = L(...PROC_SUB[k]);
       done = !!v[k]; name = zhOf(M.project(k).name, M.project(k).zh.name);
       locked = !S.unlocked[k] || !v.tech || !!M.TECHS[v.tech].power || (k === 'sf' && !v.deep);
-      if (!S.unlocked[k]) sub = L('develop first', '先研發');
+      if (!S.unlocked[k]) sub = L('R&D', '先研發');
     } else if (k === 'deep') {
-      bg = '#7BD389'; label = '99%'; sub = L('upgrade', '升級'); done = !!v.deep; locked = !v.tech || !!M.TECHS[v.tech].noDeep; name = L('Upgrade to 99 % capture', '升級到 99 % 捕捉');
+      bg = '#7BD389'; label = '99%'; sub = L(...PROC_SUB.deep); done = !!v.deep; locked = !v.tech || !!M.TECHS[v.tech].noDeep; name = L('Upgrade to 99 % capture', '升級到 99 % 捕捉');
     } else if (k.startsWith('cv_')) {
       const c = CV[k.slice(3)]; bg = c[3]; label = c[0]; sub = L(c[1], c[2]); name = L('Convert: ', '改建：') + L(c[1], c[2]);
     } else { bg = '#EF6351'; label = '✕'; sub = L('demolish', '拆除'); name = L('Demolish', '拆除'); }
-    return `<button class="ic ${locked ? 'locked' : ''} ${done ? 'done' : ''} ${(hoverK || sel) === k ? 'sel' : ''}" data-k="${k}" style="background:${bg}${label.length > 4 ? ';font-size:12px' : ''}" aria-label="${esc(name)}${locked ? L(' (locked)', '(未解鎖)') : ''}">${label}${sub ? `<small>${sub}</small>` : ''}</button>`;
+    return `<button class="ic ${locked ? 'locked' : ''} ${done ? 'done' : ''} ${(hoverK || sel) === k ? 'sel' : ''}" data-k="${k}" style="background:${bg}" aria-label="${esc(name)}${locked ? L(' (locked)', '(未解鎖)') : ''}">${label}${sub ? `<small>${sub}</small>` : ''}</button>`;
   }
   function markSel() {
     document.querySelectorAll('#icons .ic').forEach(x => x.classList.toggle('sel', x.dataset.k === (hoverK || sel)));
@@ -1088,9 +1102,9 @@ html, body { height: 100%; overflow: hidden; }
       const pg = j.run ? `<span class="pg" style="width:${Math.round(100 * (1 - j.left / j.total))}%"></span>` : '';
       q += `<button class="qs job ${j.run ? 'run' : ''}" style="background:${lk.c}" data-cx="${i}" ${can ? '' : 'disabled'} title="${can ? L(`Cancel for a full refund ($${j.paid || 0}M)`, `取消並全額退費($${j.paid || 0}M)`) : L('New plant under construction', '新電廠興建中')}">${can ? '<span class="x">×</span>' : ''}${lk.l}<small>${mo(j.run ? j.left : j.months)}</small>${pg}</button>`;
     }
-    const keys = iconKeys(p);
+    const groups = iconGroups(p).map(([h, ks], i) => `<div class="igrp g${i}"><div class="igh">${h}</div><div class="icons">${ks.map(k => iconHTML(p, k)).join('')}</div></div>`).join('');
     $('plBody').innerHTML = `<div class="qrow">${q}</div>`
-      + `<div class="icons" id="icons">${keys.map(k => iconHTML(p, k)).join('')}</div><div class="info" id="info"></div>`
+      + `<div class="igrps" id="icons">${groups}</div><div class="info" id="info"></div>`
       + `<p class="cmd-hint">${lastPtr === 'mouse' ? L('Hover an icon for details, click it to queue.', '滑鼠移到圖示上看說明，點一下排入佇列。') : L('Tap an icon for details, tap it again to queue.', '點圖示看說明，再點一次排入佇列。')} ${L('Jobs are paid when queued; tap a job in the queue to cancel it for a full refund. Capture can be queued while a plant is still being built.', '排入就付錢；點佇列裡的工程可取消並全額退費。電廠還在興建時也能先排捕捉。')}</p>`;
     $('plBody').querySelectorAll('[data-cx]').forEach(b => b.onclick = () => {
       const r = M.cancelJob(S, p.id, +b.dataset.cx);
@@ -1679,7 +1693,7 @@ html, body { height: 100%; overflow: hidden; }
   function drawTag(p, cx, base, k, down) {
     const t = p.tech ? M.TECHS[p.tech] : null;
     const what = p.build && p.build.kind === 'new' ? L('building', '興建中') : p.build && p.build.kind === 'convert' ? '→ ' + typeName(p.build.toType)
-      : t ? ICON[p.tech][0] + (p.deep ? ' 99%' : '') : '';
+      : t ? ICON(p.tech) + (p.deep ? ' 99%' : '') : '';
     const fs = Math.max(10, Math.min(13, W * 0.018)) * Math.max(0.85, k);
     ctx.font = FONT(600, fs.toFixed(1));
     const txt = what ? p.id + ' · ' + what : p.id, tw = ctx.measureText(txt).width + 8, th = fs + 5, y = base + 4;
@@ -2022,7 +2036,7 @@ html, body { height: 100%; overflow: hidden; }
         const top = base - SH * 0.36 * k;
         drawCrane(ax + aw * 2 + 8 * k, base, top, aw * 3.2, k * 0.8, i);
         drawWorkers(ax - 2, ax + aw * 2 + 4 * k, base + 2, k, 1);
-        const lab = job.kind === 'deep' ? '99%' : job.kind === 'ic' || job.kind === 'sf' ? job.kind.toUpperCase() : ICON[job.tech][0];
+        const lab = job.kind === 'deep' ? '99%' : job.kind === 'ic' || job.kind === 'sf' ? job.kind.toUpperCase() : ICON(job.tech);
         drawProgress(ax + aw, top - 18 - (i % 2) * 16, Math.max(52, aw * 5), frac, `${lab} ${Math.round(frac * 100)}%`);
       } else if (p.build && p.build.kind === 'convert') {
         drawScaffold(cx - bw / 2 - 2, by - 4, bw + 4, bh);

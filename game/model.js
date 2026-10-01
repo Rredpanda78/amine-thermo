@@ -6,11 +6,11 @@
  * everything marked `est` is a game estimate (the paper does not give that number).
  *   MEA regeneration 3.5 GJ/t ......... Chen, Wu & Lin, Chem. Eng. J. 2026 (155 kJ/mol CO2)
  *   Advanced MEA stripper 2.8 GJ/t .... Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (122 kJ/mol)
- *   AMP\u2013NMP 3\u00d7 faster, ~2\u00d7 capacity ... Cheng, Chen & Lin, Chem. Eng. J. 2025 (duty not reported -> est. 3.0)
+ *   AMP/NMP 3\u00d7 faster, ~2\u00d7 capacity ... Cheng, Chen & Lin, Chem. Eng. J. 2025 (duty not reported -> est. 3.0)
  *   Aqueous AMP (trade-off find) ...... Chen, Closmann & Rochelle, Energy Procedia 2011: rate 0.56\u00d7 MEA, capacity 2\u00d7,
  *                                       73 vs 82 kJ/mol, 1.8\u00d7 packing; Le Li 2015 dissertation: 3.5\u00d7 more volatile;
  *                                       Luo et al. 2016: regeneration about 7 % below MEA (-> 3.25 GJ/t, est.)
- *   2PE\u2013EG 2.9 GJ/t (128 kJ/mol) ...... Chen, Wu & Lin, Chem. Eng. J. 2026 (4.5\u00d7 rate, 2.8\u00d7 capacity, 25.8 cP)
+ *   2PE/EG 2.9 GJ/t (128 kJ/mol) ...... Chen, Wu & Lin, Chem. Eng. J. 2026 (4.5\u00d7 rate, 2.8\u00d7 capacity, 25.8 cP)
  *   99 %+ capture ..................... Hirata et al., Int. J. Greenh. Gas Control 2020 (with Lin): about +50 % absorber
  *                                       packing reaches 99.5 %, CAPEX per tonne +6 % (+9 % duty is est.)
  *   QM + MD screening, 28 amines ...... Chien, Wu & Lin, GHGT-18 (2026): reaction \u0394G MAE 3.6 kJ/mol
@@ -111,7 +111,7 @@
 
   // capture: fraction captured; duty: regeneration GJ/t; capex: \u00d7 CAPEX_SCALE $M per MW gross (coal basis); opex: $/t
   // rate: CO2 absorption speed relative to MEA. Build cost = half absorber + half the rest; packed height goes
-  // roughly as 1/sqrt(rate), floored at 0.5. The rest: advanced stripper 1.3, viscous 2PE-EG 1.1, else 1.0.
+  // roughly as 1/sqrt(rate), floored at 0.5. The rest: advanced stripper 1.3, viscous 2PE/EG 1.1, else 1.0.
   // stage: how far it has been scaled up; startup: monthly failure odds until proven; risk: forever (riskText says why)
   const TECHS = {
     mea90: {
@@ -123,7 +123,7 @@
       zh: { name: 'MEA', stage: '\u5546\u8f49', pitch: '\u6210\u719f\u3001\u73fe\u5728\u5c31\u80fd\u7528\uff0c\u4f46\u6700\u8017\u84b8\u6c7d\u3002', fact: '30 wt% MEA \u662f\u696d\u754c\u57fa\u6e96\u3002\u518d\u751f\u80fd\u8017\u7d04\u6bcf\u5678 CO\u2082 3.5 GJ\u3002' },
     },
     afs: {
-      name: 'MEA + advanced stripper', short: 'MEA-AS', capture: 0.90, duty: 2.8, capex: 1.15, opex: 10, rate: 1,
+      name: 'MEA + advanced stripper', short: 'MEA+AS', capture: 0.90, duty: 2.8, capex: 1.15, opex: 10, rate: 1,
       unlocked: false, research: { cost: 80, months: 12, process: true }, color: '#2BB3C0', stage: 'Pilot-tested', startup: 0.012,
       fail: 'the new stripper would not hold steady',
       pitch: 'Same MEA, smarter heat recovery: less steam, safe bet, pricier to build.',
@@ -176,29 +176,29 @@
         fact: "\u808c\u80fa\u9178\u9240\u662f\u80fa\u57fa\u9178\u7684\u9e7d\u985e\u3002\u9e7d\u4e0d\u6703\u63ee\u767c\uff0c\u6240\u4ee5\u5e7e\u4e4e\u6c92\u6709\u80fa\u9032\u5230\u7a7a\u6c23\u88e1\u3002\u4f46\u5b83\u6bcf\u516c\u65a4\u53ea\u80fd\u5e36\u8d70\u7d04 0.6 \u500d\u65bc MEA \u7684 CO\u2082\uff0c\u800c\u4e14\u53ef\u80fd\u7d50\u6676\u6790\u51fa\u3002\u7368\u7acb\u524d\u5c0e\u5ee0\u91cf\u5230\u7684\u518d\u751f\u80fd\u8017\u53cd\u800c\u300c\u9ad8\u65bc\u300dMEA\uff1b\u5ee0\u5546\u7684\u9032\u968e\u6d41\u7a0b(Siemens POSTCAP)\u5ba3\u7a31 2.4\u20132.7 GJ/t\u3002\u5be6\u9a57\u5ba4\u4e5f\u767c\u73fe\u5b83\u6703\u6c27\u5316\uff1a\u6bd4 MEA \u5c11\uff0c\u4f46\u4e0d\u50cf\u5ba3\u50b3\u7684\u90a3\u6a23\u514d\u75ab\u3002\u5b83\u5728\u7a00\u8584\u7684\u71c3\u6c23\u5ee0\u7159\u6c23\u4e0a\u76f8\u5c0d\u8f03\u597d\uff0c\u5438\u6536\u901f\u5ea6\u7d04\u70ba MEA \u7684 1.6 \u500d\u3002" },
     },
     ampnmp: {
-      name: 'AMP\u2013NMP (semi-aqueous)', short: 'AMP-NMP', capture: 0.90, hiCap: true, duty: 3.0, capex: 1.45, opex: 6, rate: 0.3,
+      name: 'AMP/NMP (semi-aqueous)', short: 'AMP/NMP', capture: 0.90, hiCap: true, duty: 3.0, capex: 1.45, opex: 6, rate: 0.3,
       unlocked: false, research: { cost: 100, months: 18, exp: 0.9, comp: 0.6 }, color: '#0E9F6E', est: ['duty', 'opex', 'capex'], stage: 'Lab scale',
       startup: 0.025, risk: 0.006, solvent: true, scaleUp: true, fail: 'AMP carbamate precipitated and clogged a line', riskText: 'AMP carbamate precipitated',
       pitch: 'Cheapest to run, but it absorbs slowly: the tallest absorber, the priciest to build, and it can clog.',
       fact: 'NMP does not react with CO\u2082; it makes the hindered amine AMP 3\u00d7 faster than in water, and AMP holds about twice the CO\u2082 of MEA, so only half the solvent has to circulate: smaller pumps and less make-up, the cheapest to run. Catch: AMP carbamate can precipitate at high loading and clog lines, even years after start-up.',
       src: 'Cheng, Chen & Lin, Chem. Eng. J. 2025',
-      zh: { name: 'AMP\u2013NMP(\u534a\u6c34\u6eb6\u6db2)', stage: '\u5be6\u9a57\u5ba4\u898f\u6a21', fail: 'AMP \u80fa\u7532\u9178\u9e7d\u6790\u51fa\u585e\u4f4f\u7ba1\u7dda', riskText: 'AMP \u80fa\u7532\u9178\u9e7d\u6790\u51fa',
+      zh: { name: 'AMP/NMP(\u534a\u6c34\u6eb6\u6db2)', stage: '\u5be6\u9a57\u5ba4\u898f\u6a21', fail: 'AMP \u80fa\u7532\u9178\u9e7d\u6790\u51fa\u585e\u4f4f\u7ba1\u7dda', riskText: 'AMP \u80fa\u7532\u9178\u9e7d\u6790\u51fa',
         pitch: '\u904b\u8f49\u6700\u4fbf\u5b9c\uff0c\u4f46\u5438\u6536\u6162\uff1a\u5438\u6536\u5854\u6700\u9ad8\u3001\u6700\u8cb4\uff0c\u800c\u4e14\u6703\u5835\u585e\u3002',
         fact: 'NMP \u4e0d\u8ddf CO\u2082 \u53cd\u61c9\uff0c\u537b\u8b93\u7acb\u9ad4\u969c\u7919\u80fa AMP \u6bd4\u5728\u6c34\u4e2d\u5feb 3 \u500d\uff1bAMP \u7684 CO\u2082 \u5bb9\u91cf\u7d04\u662f MEA \u7684\u5169\u500d\uff0c\u6eb6\u5291\u5faa\u74b0\u91cf\u6e1b\u534a\uff1a\u6cf5\u6d66\u66f4\u5c0f\u3001\u88dc\u5145\u66f4\u5c11\uff0c\u904b\u8f49\u6700\u4fbf\u5b9c\u3002\u4ee3\u50f9\uff1a\u9ad8\u8ca0\u8f09\u6642 AMP \u80fa\u7532\u9178\u9e7d\u6703\u6790\u51fa\u5835\u7ba1\uff0c\u5373\u4f7f\u958b\u6a5f\u591a\u5e74\u5f8c\u4e5f\u6703\u767c\u751f\u3002' },
     },
     pe2eg: {
-      name: '2PE\u2013EG (water-lean)', short: '2PE-EG', capture: 0.90, hiCap: true, duty: 2.9, capex: 0.80, opex: 9, rate: 4.5,
+      name: '2PE/EG (water-lean)', short: '2PE/EG', capture: 0.90, hiCap: true, duty: 2.9, capex: 0.80, opex: 9, rate: 4.5,
       unlocked: false, research: { cost: 180, months: 24, exp: 0.85, comp: 0.5 }, color: '#E2A93B', est: ['capex'], star: true, stage: 'Lab scale',
       startup: 0.035, solvent: true, scaleUp: true, fail: 'the viscous solvent overloaded the heat exchanger',
       pitch: 'The rarest find and shaky first years, then fast, compact and efficient: the best all-rounder.',
       fact: 'Ethylene glycol reacts: it turns the carbamate into alkyl carbonate and frees the amine again, so 2-piperidineethanol gets both 4.5\u00d7 faster reaction and 2.8\u00d7 cyclic capacity vs MEA; regeneration 128 kJ/mol (\u2248 2.9 GJ/t). Catch: 15\u00d7 more viscous than MEA.',
       src: 'Chen, Wu & Lin, Chem. Eng. J. 2026',
-      zh: { name: '2PE\u2013EG(\u4f4e\u6c34\u6eb6\u5291)', stage: '\u5be6\u9a57\u5ba4\u898f\u6a21', fail: '\u9ecf\u7a20\u6eb6\u5291\u8b93\u71b1\u4ea4\u63db\u5668\u8d85\u8f09',
+      zh: { name: '2PE/EG(\u4f4e\u6c34\u6eb6\u5291)', stage: '\u5be6\u9a57\u5ba4\u898f\u6a21', fail: '\u9ecf\u7a20\u6eb6\u5291\u8b93\u71b1\u4ea4\u63db\u5668\u8d85\u8f09',
         pitch: '\u6700\u7a00\u6709\uff0c\u524d\u5e7e\u5e74\u4e0d\u7a69\uff0c\u4e4b\u5f8c\u53c8\u5feb\u3001\u53c8\u5c0f\u3001\u53c8\u7701\uff1a\u6700\u5168\u80fd\u3002',
         fact: '\u4e59\u4e8c\u9187\u6703\u53c3\u8207\u53cd\u61c9\uff1a\u628a\u80fa\u7532\u9178\u9e7d\u8f49\u6210\u70f7\u57fa\u78b3\u9178\u9e7d\u3001\u628a\u80fa\u91cb\u653e\u51fa\u4f86\uff0c\u6240\u4ee5 2-\u54cc\u5576\u4e59\u9187\u6bd4 MEA \u53cd\u61c9\u5feb 4.5 \u500d\u3001\u5faa\u74b0\u5bb9\u91cf 2.8 \u500d\uff1b\u518d\u751f 128 kJ/mol(\u7d04 2.9 GJ/t)\u3002\u4ee3\u50f9\uff1a\u9ecf\u5ea6\u662f MEA \u7684 15 \u500d\u3002' },
     },
     pz: {
-      name: 'Piperazine (PZ) + advanced stripper', short: 'PZ', capture: 0.90, hiCap: true, duty: 2.45, capex: 0.90, opex: 11, rate: 9.5,
+      name: 'Piperazine (PZ) + advanced stripper', short: 'PZ+AS', capture: 0.90, hiCap: true, duty: 2.45, capex: 0.90, opex: 11, rate: 9.5,
       unlocked: false, research: { cost: 90, months: 18, exp: 0.95, comp: 0.7 }, color: '#8E7CC3', est: ['capex', 'opex'],
       stage: 'Pilot-tested', startup: 0.015, risk: 0.003, gasOK: true, solvent: true, fail: 'solid piperazine froze out in a cold line', riskText: 'solid piperazine froze out',
       pitch: 'Least steam in pilot plants, even on dilute gas-plant flue gas, and so fast the absorber is short; PZ is costly to buy and can freeze out when cold.',
@@ -235,9 +235,9 @@
   };
   const PROJECTS = {
     ic: { name: 'Absorber intercooling', short: 'IC', cost: PROCESS.ic.cost, months: PROCESS.ic.months, process: true,
-      desc: 'Pump the half-loaded solvent out of the middle of the absorber, cool it to 40 \u00b0C and send it back: it removes the temperature bulge that chokes high-capacity solvents. Best with AMP, AMP\u2013NMP, MDEA/PZ, PZ and 2PE\u2013EG (about \u221210 % steam); almost nothing for MEA (\u22123 %).',
+      desc: 'Pump the half-loaded solvent out of the middle of the absorber, cool it to 40 \u00b0C and send it back: it removes the temperature bulge that chokes high-capacity solvents. Best with AMP, AMP/NMP, MDEA/PZ, PZ and 2PE/EG (about \u221210 % steam); almost nothing for MEA (\u22123 %).',
       src: 'Chen, Hsu & Lin, Ind. Eng. Chem. Res. 2025 (AMP: solvent rate \u221239 %); Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (MEA: \u22123.8 %)',
-      zh: { name: '\u5438\u6536\u5854\u4e2d\u9593\u51b7\u537b', desc: '\u628a\u5438\u6536\u5854\u4e2d\u6bb5\u7684\u534a\u5bcc\u6db2\u62bd\u51fa\u3001\u51b7\u5230 40 \u00b0C \u518d\u6253\u56de\u53bb\uff0c\u6d88\u9664\u6eab\u5ea6\u9f13\u5305\u5c0d\u9ad8\u5bb9\u91cf\u6eb6\u5291\u7684\u9650\u5236\u3002\u6700\u9069\u5408 AMP\u3001AMP\u2013NMP\u3001MDEA/PZ\u3001PZ\u30012PE\u2013EG(\u84b8\u6c7d\u7d04 \u221210 %)\uff1b\u5c0d MEA \u5e7e\u4e4e\u6c92\u7528(\u22123 %)\u3002' } },
+      zh: { name: '\u5438\u6536\u5854\u4e2d\u9593\u51b7\u537b', desc: '\u628a\u5438\u6536\u5854\u4e2d\u6bb5\u7684\u534a\u5bcc\u6db2\u62bd\u51fa\u3001\u51b7\u5230 40 \u00b0C \u518d\u6253\u56de\u53bb\uff0c\u6d88\u9664\u6eab\u5ea6\u9f13\u5305\u5c0d\u9ad8\u5bb9\u91cf\u6eb6\u5291\u7684\u9650\u5236\u3002\u6700\u9069\u5408 AMP\u3001AMP/NMP\u3001MDEA/PZ\u3001PZ\u30012PE/EG(\u84b8\u6c7d\u7d04 \u221210 %)\uff1b\u5c0d MEA \u5e7e\u4e4e\u6c92\u7528(\u22123 %)\u3002' } },
     sf: { name: 'Split-flow, multi-pressure stripper', short: 'SF', cost: PROCESS.sf.cost, months: PROCESS.sf.months, process: true,
       desc: 'For 99 % capture: a semi-lean solvent does most of the work at the bottom of the absorber and a deeply stripped lean solvent polishes the top. Cuts the reboiler duty of 99 % capture by about 12 %, but needs more solvent circulation and an extra compressor stage. Only matters on plants upgraded to 99 %.',
       src: 'Chang, Chou & Lin, Sep. Purif. Technol. 2025 (doi 10.1016/j.seppur.2024.130120): reboiler 3.68 \u2192 3.25 GJ/t',
