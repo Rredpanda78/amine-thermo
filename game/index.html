@@ -606,8 +606,8 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     introBack: ['‹ How to play', '‹ 怎麼玩'],
     nickL: ['Nickname <small style="font-weight:400;color:var(--muted)">(optional, for the leaderboard)</small>', '暱稱 <small style="font-weight:400;color:var(--muted)">(選填，上排行榜用)</small>'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
     credits: [
-      '<b>Where the numbers come from.</b> Capture technologies use values from Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Sep. Purif. Technol. 2025) and pilot-plant literature; costs, carbon prices and build times were checked against NETL, EIA and IEAGHG. Values marked <span class="est">est.</span> are game estimates. Plants, the CO₂ limit, events and regions are simplified for play and are not forecasts.',
-      '<b>數字從哪來。</b>捕捉技術的數值來自林育正實驗室的論文(Chem. Eng. J. 2025、2026；Ind. Eng. Chem. Res. 2025；Sep. Purif. Technol. 2025)與前導廠文獻；成本、碳價與工期對照過 NETL、EIA、IEAGHG。標 <span class="est">est.</span> 的是遊戲估計值。電廠、CO₂ 限額、事件和地區都為了好玩而簡化，不是預測。'],
+      '<b>Where the numbers come from.</b> Capture technologies use values from Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Int. J. Greenh. Gas Control 2020) and pilot-plant literature; costs, carbon prices and build times were checked against NETL, EIA and IEAGHG. Values marked <span class="est">est.</span> are game estimates. Plants, the CO₂ limit, events and regions are simplified for play and are not forecasts.',
+      '<b>數字從哪來。</b>捕捉技術的數值來自林育正實驗室的論文(Chem. Eng. J. 2025、2026；Ind. Eng. Chem. Res. 2025；Int. J. Greenh. Gas Control 2020)與前導廠文獻；成本、碳價與工期對照過 NETL、EIA、IEAGHG。標 <span class="est">est.</span> 的是遊戲估計值。電廠、CO₂ 限額、事件和地區都為了好玩而簡化，不是預測。'],
     close: ['Close', '關閉'], buildT: ['Build a new plant', '蓋新電廠'], priceT: ['Electricity price', '電價'],
     angerT: ['Where public anger comes from', '民怨從哪裡來'],
     boardT: ['Leaderboard · top 10', '排行榜 · 前 10 名'], boardLead: ['Saved on this device only. Finish a game in 2050 to get on the board.', '只存在這台裝置上。撐到 2050 年才能上榜。'],
@@ -1023,7 +1023,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       h = `<div class="row"><span class="nm" style="color:var(--good)">${L('Upgrade to 99 % capture', '升級到 99 % 捕捉')}</span><span class="chip">${L('taller packing', '更高填料')}</span></div>
         <div class="pitch">${L('A costly last resort: 99 % instead of 90 %, but the taller columns take a year to build and need more steam.', '昂貴的最後手段：捕捉率從 90 % 到 99 %，但更高的塔要蓋一年，也更耗蒸汽。')}</div>
         ${v.tech ? `<div class="mini"><span>${L('captures', '捕捉')} <b>99 %</b></span><span>${L('output', '出力')} <b>−${Math.round(pen * 100)} %</b></span></div>` : ''}
-        <details><summary>${L('Details', '詳細')}</summary><p>${L('Pushing amine capture past 99 % needs 20–30 m of packing and about 9 % more regeneration energy', '要把胺捕捉推到 99 % 以上，需要 20–30 m 填料，再生能耗約多 9 %')} <span class="est">est.</span></p><p class="src">Chang, Chou &amp; Lin, Sep. Purif. Technol. 2025</p></details>
+        <details><summary>${L('Details', '詳細')}</summary><p>${L('A commercial design study (with Prof. Lin as co-author) reached 99.5 % capture with about 50 % more absorber packing, raising the capital cost per tonne by about 6 %. The extra regeneration energy used here (about +9 %) is a game estimate', '一份商業設計研究(林育正教授為共同作者)只要多約 50 % 的吸收塔填料就能達到 99.5 % 捕捉，每噸資本成本約多 6 %。這裡用的再生能耗增量(約 +9 %)是遊戲估計')} <span class="est">est.</span></p><p class="src">Hirata et al., Int. J. Greenh. Gas Control 2020 (doi 10.1016/j.ijggc.2019.102847)</p></details>
         <div class="row">${chk.ok ? `<button class="btn" data-go="deep">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (k.startsWith('cv_')) {
       const to = k.slice(3), chk = M.canQueue(S, p, jobFor(k)), pt = M.PLANT_TYPES[to];
@@ -1414,7 +1414,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     if (u.rpb) return [L('Process intensifier', '製程強化派'), L('You shrank the absorber ten-fold with rotating packed beds: cheap, fast to build, as long as the rotors keep spinning.', '你用旋轉填充床把吸收器縮小十倍：便宜、蓋得快，只要轉子別壞。'), '10.1021/acs.iecr.4c01614'];
     if (u.afs) return [L('Process optimizer', '製程優化派'), L('You kept MEA but recovered its heat with an advanced stripper, cutting the steam bill from 3.5 to 2.8 GJ per tonne.', '你保留 MEA，但用進階汽提回收熱量，把每噸蒸汽從 3.5 降到 2.8 GJ。'), '10.1021/acs.iecr.5c03760'];
     if (u.pz) return [L('Piperazine pro', '哌嗪高手'), L('You ran the city on piperazine with the advanced stripper: the least steam measured in pilot plants, the same on coal and gas flue gas.', '你用哌嗪搭配進階汽提：前導廠實測最省蒸汽，燃煤燃氣煙氣都一樣好。'), null];
-    if (deepN >= 2) return [L('99 % engineer', '99 % 工程師'), L('You pushed amine capture to 99 % with taller columns: costly, slow to build, and it works.', '你用更高的塔把胺捕捉推到 99 %：貴、蓋得慢，但有效。'), '10.1016/j.seppur.2024.130120'];
+    if (deepN >= 2) return [L('99 % engineer', '99 % 工程師'), L('You pushed amine capture to 99 % with taller columns: costly, slow to build, and it works.', '你用更高的塔把胺捕捉推到 99 %：貴、蓋得慢，但有效。'), '10.1016/j.ijggc.2019.102847'];
     if (coalN === 0) return [L('Fuel switcher', '燃料轉換派'), L('You left coal for gas: far less CO₂ per MWh, but pricier fuel and supply scares.', '你從燃煤轉向燃氣：每 MWh 的 CO₂ 少很多，但燃料較貴、供應也不穩。'), null];
     if (u.mea90) return [L('MEA workhorse', 'MEA 老黃牛'), L('You relied on the industry-standard solvent. It works, but it eats the most steam, which is what better solvents fix.', '你靠業界標準溶劑撐過來。它有效，但最耗蒸汽，這正是更好的溶劑要解決的問題。'), '10.1016/j.cej.2026.174224'];
     return [L('Business as usual', '一切照舊'), L('No capture at all: the carbon price and the shrinking limit caught up with the city.', '完全沒有捕捉：碳價和不斷縮小的限額追上了這座城市。'), null];

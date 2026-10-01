@@ -11,7 +11,8 @@
  *                                       73 vs 82 kJ/mol, 1.8\u00d7 packing; Le Li 2015 dissertation: 3.5\u00d7 more volatile;
  *                                       Luo et al. 2016: regeneration about 7 % below MEA (-> 3.25 GJ/t, est.)
  *   2PE\u2013EG 2.9 GJ/t (128 kJ/mol) ...... Chen, Wu & Lin, Chem. Eng. J. 2026 (4.5\u00d7 rate, 2.8\u00d7 capacity, 25.8 cP)
- *   99 % capture needs 20\u201330 m packing  Chang, Chou & Lin, Sep. Purif. Technol. 2025 (+9 % duty is est.)
+ *   99 %+ capture ..................... Hirata et al., Int. J. Greenh. Gas Control 2020 (with Lin): about +50 % absorber
+ *                                       packing reaches 99.5 %, CAPEX per tonne +6 % (+9 % duty is est.)
  *   QM + MD screening, 28 amines ...... Chien, Wu & Lin, GHGT-18 (2026): reaction \u0394G MAE 3.6 kJ/mol
  *   PZ + advanced stripper 2.45 GJ/t .. Suresh Babu & Rochelle, IJGGC 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016
  *   Rotating packed bed ............... Ind. Eng. Chem. Res. 2025 (10.1021/acs.iecr.4c01614): 10\u201320\u00d7 smaller absorber,
