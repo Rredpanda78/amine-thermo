@@ -750,7 +750,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   const TIPS = [
     { id: 'start', when: s => s.m >= 1, text: () => L('Tap a power plant in the town (or its chip under the town) to add CO₂ capture. Coal Plant A is the biggest emitter.', '點城市裡的電廠(或下方的電廠標籤)加裝 CO₂ 捕捉。燃煤電廠 A 排放最多。') },
     { id: 'box', when: s => s.m >= 4, text: () => L('Keep the orange bar inside the green box: that box is the legal CO₂ limit, and it shrinks every year. Building capture takes a year, so start early.', '讓橘色條留在綠框裡：綠框就是法定 CO₂ 限額，每年縮小。捕捉設備要蓋一年，早點開始。') },
-    { id: 'lab', when: s => s.m >= 10 || s.plants.some(p => p.tech || p.build), text: () => L('Tap the LAB building to research. Experiments are slow but usually work; computer screening (QM + MD) is fast and cheap but can miss. Pilot tests unlock new processes such as the rotating packed bed and the fuel cell.', '點 LAB 研究所做研發。實驗慢但通常成功；電腦篩選(QM + MD)又快又便宜但可能落空。前導測試可以解鎖旋轉填充床、燃料電池等新製程。') + (innerWidth <= 860 ? L(' It is also in the Research tab.', ' 也可以從上方「研發」分頁進入。') : '') },
+    { id: 'lab', when: s => s.m >= 10 || s.plants.some(p => p.tech || p.build), text: () => L('Tap the LAB building to research. Experiments cost 10× more but almost always work, and their finds fail less; computer screening (QM + MD) is fast and cheap but can miss. Pilot tests unlock new processes such as the rotating packed bed and the fuel cell.', '點 LAB 研究所做研發。實驗貴 10 倍但幾乎都成功，找到的溶劑也比較少故障；電腦篩選(QM + MD)又快又便宜但可能落空。前導測試可以解鎖旋轉填充床、燃料電池等新製程。') + (innerWidth <= 860 ? L(' It is also in the Research tab.', ' 也可以從上方「研發」分頁進入。') : '') },
     { id: 'price', when: s => s.m >= 18, text: () => L('The price board in the town sets what everyone pays. Above what people accept, anger rises; tap the Public anger meter to see what is driving it.', '城市裡的電價看板決定大家付多少電費。超過大家能接受的價格，民怨就會上升；點「民怨」計量看是什麼在推高它。') },
     { id: 'deep', when: s => s.m >= 144, text: () => L('Plan ahead: by the 2040s 90 % capture is not enough. The 99 % upgrade takes a year; a fuel cell stops at 85 %. The dashed line on the CO₂ bar is the limit 5 years from now.', '提早規劃：到 2040 年代 90 % 捕捉就不夠了。升級 99 % 要一年；燃料電池只到 85 %。CO₂ 條上的虛線是 5 年後的限額。') },
   ];
@@ -1108,7 +1108,9 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     $('findHow').textContent = (d.method === 'comp' ? L('Computer screening', '電腦篩選') : L('Lab experiments', '實驗')) + L(' found · ', '找到 · ') + rarity;
     $('findStars').textContent = '★'.repeat(st);
     $('findName').textContent = tName(t);
-    $('findPitch').textContent = tPitch(t);
+    $('findPitch').textContent = tPitch(t) + ' ' + (d.method === 'comp'
+      ? L('Found by computer: still a prediction, so start-up failures are 1.5× until it is proven.', '電腦找到的：還只是預測，成熟前開機故障率 1.5 倍。')
+      : L('Lab-tested: start-up failures are halved until it is proven.', '實驗驗證過：成熟前開機故障率減半。'));
     $('findFact').textContent = tFact(t);
     $('findSrc').textContent = t.src;
     $('ovFind').hidden = false;

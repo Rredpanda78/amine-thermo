@@ -223,8 +223,8 @@
   const TECH_ORDER = ['mea90', 'afs', 'rpb', 'amp', 'aas', 'mdeapz', 'pz', 'ampnmp', 'pe2eg', 'mcfc'];
   // Solvent screening: each campaign discovers ONE random solvent you do not have yet (rarer = better/newer).
   const METHODS = {
-    exp: { label: 'Lab experiments', zh: '\u5be6\u9a57', cost: 120, months: 18, odds: 0.9 },
-    comp: { label: 'Computer screening (QM + MD)', zh: '\u96fb\u8166\u7be9\u9078(QM + MD)', cost: 50, months: 6, odds: 0.5, learn: 0.15 },
+    exp: { label: 'Lab experiments', zh: '\u5be6\u9a57', cost: 150, months: 12, odds: 0.9 },
+    comp: { label: 'Computer screening (QM + MD)', zh: '\u96fb\u8166\u7be9\u9078(QM + MD)', cost: 15, months: 4, odds: 0.4, learn: 0.15 },
   };
   const DROPS = { amp: { weight: 40, stars: 2 }, aas: { weight: 35, stars: 2 }, mdeapz: { weight: 30, stars: 3 }, pz: { weight: 28, stars: 3 }, ampnmp: { weight: 22, stars: 3 }, pe2eg: { weight: 16, stars: 4 } };
   const PROJECTS = {};
@@ -318,14 +318,16 @@
     const t = TECHS[techId];
     const exp = state.exp[techId] || 0;
     const proven = !t.startup || exp >= PROVEN_MONTHS;
-    const risk = proven ? 0 : t.startup;
+    // how it was found: lab-tested solvents fail half as often at start-up, computer predictions 1.5\u00d7 as often
+    const how = state.foundBy && state.foundBy[techId];
+    const risk = proven ? 0 : t.startup * (how === 'comp' ? 1.5 : how === 'exp' ? 0.5 : 1);
     return { stage: t.stage, exp, proven, risk, needs: PROVEN_MONTHS };
   }
 
   function project(id) {
     if (id === 'screen') return { id, name: 'Solvent screening', short: 'screening', cost: METHODS.exp.cost, months: METHODS.exp.months,
-      desc: 'Finds one new solvent you do not have yet (rarer = better). Experiments are slow but reliable; QM + MD computer screening, like our GHGT-18 poster, is fast and cheap but can miss, and every miss improves the next.',
-      zh: { name: '\u6eb6\u5291\u7be9\u9078', desc: '\u6bcf\u6b21\u627e\u5230\u4e00\u7a2e\u4f60\u9084\u6c92\u6709\u7684\u65b0\u6eb6\u5291(\u8d8a\u7a00\u6709\u8d8a\u597d)\u3002\u5be6\u9a57\u6162\u4f46\u53ef\u9760\uff1bQM + MD \u96fb\u8166\u7be9\u9078(\u5c31\u662f\u6211\u5011 GHGT-18 \u6d77\u5831\u7684\u65b9\u6cd5)\u53c8\u5feb\u53c8\u4fbf\u5b9c\u4f46\u53ef\u80fd\u843d\u7a7a\uff0c\u6bcf\u6b21\u843d\u7a7a\u90fd\u8b93\u4e0b\u4e00\u6b21\u66f4\u6e96\u3002' } };
+      desc: 'Finds one new solvent you do not have yet (rarer = better). Lab experiments are 10\u00d7 dearer but almost always work, and a lab-tested solvent fails half as often at start-up. QM + MD computer screening, like our GHGT-18 poster, is fast and cheap but can miss, and its finds are predictions: 1.5\u00d7 the start-up failures until proven.',
+      zh: { name: '\u6eb6\u5291\u7be9\u9078', desc: '\u6bcf\u6b21\u627e\u5230\u4e00\u7a2e\u4f60\u9084\u6c92\u6709\u7684\u65b0\u6eb6\u5291(\u8d8a\u7a00\u6709\u8d8a\u597d)\u3002\u5be6\u9a57\u8cb4 10 \u500d\u4f46\u5e7e\u4e4e\u90fd\u6703\u6210\u529f\uff0c\u5be6\u9a57\u9a57\u8b49\u904e\u7684\u6eb6\u5291\u958b\u6a5f\u6545\u969c\u7387\u6e1b\u534a\u3002QM + MD \u96fb\u8166\u7be9\u9078(\u5c31\u662f\u6211\u5011 GHGT-18 \u6d77\u5831\u7684\u65b9\u6cd5)\u53c8\u5feb\u53c8\u4fbf\u5b9c\u4f46\u53ef\u80fd\u843d\u7a7a\uff0c\u627e\u5230\u7684\u53ea\u662f\u9810\u6e2c\uff1a\u6210\u719f\u524d\u958b\u6a5f\u6545\u969c\u7387 1.5 \u500d\u3002' } };
     if (PROJECTS[id]) return Object.assign({ id }, PROJECTS[id]);
     const t = TECHS[id];
     return { id, name: t.name, short: t.short, cost: t.research.cost, months: t.research.months, star: t.star,
@@ -911,6 +913,7 @@
         } else if (R() < odds && undiscovered(state).length) {
           const found = drawSolvent(state, R);
           state.unlocked[found] = true;
+          state.foundBy = state.foundBy || {}; state.foundBy[found] = mt;
           state.tries.screen = 0;
           state.discovery = { n: (state.discovery ? state.discovery.n : 0) + 1, id: found, method: mt };
           addNews(state, 'lab', `Discovery! ${mt === 'comp' ? 'Computer screening' : 'Lab experiments'} found ${TECHS[found].name} (${'\u2605'.repeat(DROPS[found].stars)}).`,
