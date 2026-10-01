@@ -67,4 +67,5 @@ DIFF=hell PX=1 node tools/extreme.js texas  # 極端打法;PX = 電價相對可�
 - 一步步導覽 `TOUR`(變暗遮罩 + 亮框 + 逐字說明):第一局開始時跑一次(`cc2050-tour`),`?` 視窗可重看。目標用 `domRect(選擇器)` 或 `sceneRect(id)` 指定。
 - 場景裡的文字(電廠名牌、進度條、引導箭頭)一律經過 `queueLabel()` / `flushLabels()` 排版,不會互相蓋住;新增場景文字也要走這條。
 - 難度在 `M.DIFFS`:easy / normal / hard,以及隱藏的 hell(彩蛋:3.5 秒內點研究所 10 次解鎖,整個畫面換成恐怖風格 `html.hell`)。
-- localStorage 鍵:`cc2050-board-v10`(排行榜)、`cc2050-coach`(引導箭頭)、`cc2050-diff`、`cc2050-hell`、`cc2050-lang`、`cc2050-nick`、`cc2050-sfx`、`cc2050-tour`。
+- 匿名統計:每局結束送一筆摘要(`statPayload()`)到 Google 試算表(`tools/stats_apps_script.gs`,`STATS_URL` 空字串 = 關閉)。只收遊戲數據,**絕不加暱稱或任何個資**;`?debug` 的局不送;玩家可在選地區頁取消勾選。
+- localStorage 鍵:`cc2050-board-v10`(排行榜)、`cc2050-coach`(引導箭頭)、`cc2050-diff`、`cc2050-hell`、`cc2050-lang`、`cc2050-nick`、`cc2050-sfx`、`cc2050-tour`、`cc2050-stats`。

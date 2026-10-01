@@ -73,6 +73,8 @@ button, input { font: inherit; color: inherit; }
 .cprice.credit b { color: var(--good); }
 .limbar s { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed #CFE9D5; transition: left .5s; }
 .regions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+.statsopt { display: flex; gap: 6px; align-items: flex-start; margin-top: 8px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.statsopt input { margin-top: 2px; }
 .diffs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: -4px 0 12px; }
 .dif { display: grid; gap: 1px; text-align: left; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; color: var(--fg); }
 .dif b { font-size: 14px; }
@@ -637,6 +639,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     <div class="diffs" id="diffs" role="radiogroup" aria-label="Difficulty"></div>
     <div class="btn-row"><button class="btn" id="startBtn" data-i18n="start">Start 2026</button><button class="btn ghost" id="boardBtn" data-i18n="boardB">Leaderboard</button></div>
     <p class="credits" style="margin:12px 0 0" data-i18n="credits">Where the numbers come from.</p>
+    <label class="statsopt"><input type="checkbox" id="statsOpt" checked> <span data-i18n="statsL">Send an anonymous summary when a game ends (region, level, result, score; no names) to help us balance the game.</span></label>
     </div>
   </div>
 </div>
@@ -806,6 +809,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     hMoney: ['The price board sets your income. Below −$500M you go bankrupt.', '電價看板決定收入。資金低於 −5 億美元就破產。'],
     introNext: ['Next: what you can do ›', '下一步：你可以做的事 ›'], introNextB: ['Next: choose a region ›', '下一步：選地區 ›'],
     tourB: ['▶ Guided tour', '▶ 一步步導覽'],
+    statsL: ['Send an anonymous summary when a game ends (region, level, result, score; no names) to help us balance the game.', '每局結束時送出一筆匿名摘要(地區、難度、結果、分數;不含暱稱),幫我們調整遊戲平衡。'],
     introBack: ['‹ Back', '‹ 上一頁'], guideT: ['What you can do', '你可以做的事'],
     nickL: ['Nickname <small style="font-weight:400;color:var(--muted)">(optional)</small>', '暱稱 <small style="font-weight:400;color:var(--muted)">(選填)</small>'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
     credits: ['<b>Sources.</b> Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Int. J. Greenh. Gas Control 2020), pilot-plant literature, NETL, EIA and IEAGHG. <span class="est">est.</span> = game estimate; plants, events and regions are simplified.', '<b>資料來源。</b>林育正實驗室論文(Chem. Eng. J. 2025、2026;Ind. Eng. Chem. Res. 2025;Int. J. Greenh. Gas Control 2020)、前導廠文獻、NETL、EIA、IEAGHG。<span class="est">est.</span> = 遊戲估計;電廠、事件與地區皆已簡化。'],
@@ -1586,10 +1590,36 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   }
 
   // ---------- end ----------
+  // ---- anonymous game-end statistics (a Google Sheet behind an Apps Script web app; see tools/stats_apps_script.gs) ----
+  const STATS_URL = '';   // the web-app URL ending in /exec; empty = statistics off
+  const STATS_V = 'v30';
+  let statHist = [], statT0 = Date.now();
+  $('statsOpt').checked = store.get('cc2050-stats') !== '0';
+  $('statsOpt').onchange = e => store.set('cc2050-stats', e.target.checked ? '1' : '0');
+  function statSample() { if (S.m % 12 === 0 && S.last) statHist.push([+S.rate.toFixed(2), Math.round(S.anger), Math.round(S.funds), Math.round(S.greenhouse)]); }
+  function statPayload(s) {
+    return {
+      v: STATS_V, region: s.region, diff: s.diff, win: !!(s.over && s.over.win), why: !s.over ? 'unfinished' : s.over.win ? '' : s.over.why,
+      endYear: M.START_YEAR + Math.floor(Math.max(0, s.m - 1) / 12), month: s.m, score: M.score(s), stars: M.stars(s),
+      cumCO2: +s.cumCO2.toFixed(1), captured: +s.captured.toFixed(1), anger: Math.round(s.anger), funds: Math.round(s.funds),
+      blackouts: s.blackouts, fails: s.fails, maxBreach: Math.round(s.maxDebt), plants: s.plants.length,
+      fleet: s.plants.map(p => p.type[0] + ':' + (p.tech || '-') + (p.deep ? '99' : '') + (p.ic ? '+ic' : '') + (p.sf ? '+sf' : '')).join(','),
+      techs: Object.keys(s.techUsed || {}).join(','), found: Object.keys(M.DROPS).filter(k => s.unlocked[k]).join(','),
+      price: s.price, lang, device: innerWidth < 700 ? 'phone' : 'desktop', minutes: Math.round((Date.now() - statT0) / 60000), years: statHist,
+    };
+  }
+  function sendStats(s) {
+    if (!STATS_URL || s._sent || store.get('cc2050-stats') === '0' || /[?&]debug/.test(location.search)) return;
+    s._sent = true;
+    const body = JSON.stringify(statPayload(s));
+    try { fetch(STATS_URL, { method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain' }, body }); }
+    catch (e) { try { navigator.sendBeacon(STATS_URL, body); } catch (e2) { /* statistics are optional */ } }
+  }
   let lastEntry = null;
   function showEnd() {
     playing = false;
     const s = S, win = s.over.win;
+    sendStats(s);
     const why = {
       greenhouse: L('The limit-breach meter hit 100 %. The government revoked your operating licence.', '超標計量到了 100 %，政府吊銷了你的營運執照。'),
       anger: L('Protesters filled the streets. The city council voted your company out.', '抗議人潮塞滿街頭，市議會把你的公司趕下台。'),
@@ -1822,7 +1852,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     playing = false;
   }
   function startGame() {
-    S = M.newGame(undefined, region, diff); particles.length = 0; toastN = 0; findN = 0; headN = 0;
+    S = M.newGame(undefined, region, diff); particles.length = 0; toastN = 0; findN = 0; headN = 0; statHist = []; statT0 = Date.now();
     document.documentElement.classList.toggle('hell', S.diff === 'hell');
     SND.unlock(); SND.play(S.diff === 'hell' ? 'hell' : 'click');
     $('ovIntro').hidden = true; setTab('city'); renderAll(); setSpeed(1); playing = true;
@@ -2433,7 +2463,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         acc = Math.max(0, acc) + dt * speed;
         let ticked = false;
         const top = S.news[0], breach0 = S.greenhouse, hl0 = S.headlineN;
-        while (acc >= MS_PER_MONTH && !S.over && !S.pending && S.headlineN === hl0) { acc -= MS_PER_MONTH; M.step(S); ticked = true; }
+        while (acc >= MS_PER_MONTH && !S.over && !S.pending && S.headlineN === hl0) { acc -= MS_PER_MONTH; M.step(S); statSample(); ticked = true; }
         if (ticked) { renderAll(); showToast(); soundsSince(top, breach0); }
         if (S.over) showEnd();
         else if (S.pending) { acc = 0; openEvent(); }
@@ -2453,6 +2483,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       get state() { return S; },
       plant(id) { openPlant(id); },
       get hits() { return hits.slice(); },
+      stats() { return statPayload(S); },
       run(frames) {
         for (let i = 0; i < frames && !S.over; i++) {
           frame((lastT || performance.now()) + 100);
