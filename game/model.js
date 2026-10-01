@@ -37,6 +37,13 @@
   const MONTHS = (END_YEAR - START_YEAR + 1) * 12;   // Jan 2026 .. Dec 2050
   const FAIR_PRICE = 135;             // $/MWh the public accepts (Taiwan; each region sets its own)
   const START_FUNDS = 1500;           // $M capital budget at the start
+  // difficulty: the CO2 limit tightens by up to `tighten` (ramping in 2026-2035, so the opening years stay the same),
+  // and the starting money changes; harder games score more
+  const DIFFS = {
+    easy: { label: 'Easy', zh: '\u7c21\u55ae', tighten: 0, funds: 1500, bonus: 1, hint: 'the gentle version', zhHint: '\u8f15\u9b06\u7248' },
+    normal: { label: 'Normal', zh: '\u666e\u901a', tighten: 0.12, funds: 1400, bonus: 1.15, hint: 'tighter CO\u2082 limit, a bit less money', zhHint: 'CO\u2082 \u9650\u984d\u66f4\u7dca\u3001\u8cc7\u91d1\u7565\u5c11' },
+    hard: { label: 'Hard', zh: '\u56f0\u96e3', tighten: 0.18, funds: 1000, bonus: 1.3, hint: 'much tighter limit, \u2153 less money', zhHint: '\u9650\u984d\u7dca\u5f88\u591a\u3001\u8cc7\u91d1\u5c11 \u2153' },
+  };
   const CAPEX_SCALE = 1.3;            // capture unit \u2248 $1,300 per kW (MEA, coal) before the first-of-a-kind premium
   const FOAK = [1.2, 1.1, 1.0];      // cost of the 1st, 2nd and later unit of the same technology (learning by doing)
 
@@ -320,7 +327,10 @@
     }
     return P[P.length - 1][1];
   }
-  function limitFor(state, t) { return limitAt(t) * RG(state).limitMul; }
+  function limitFor(state, t) {
+    const d = DIFFS[(state && state.diff) || 'easy'] || DIFFS.easy;
+    return limitAt(t) * RG(state).limitMul * (1 - d.tighten * Math.max(0, Math.min(1, (t - 2026) / 9)));
+  }
   function limit(state) { return limitFor(state, START_YEAR + Math.min(state.m, MONTHS - 1) / 12); }
   function fairPrice(state) { return RG(state).fair; }
   function breachStep(ratio) {
@@ -400,14 +410,15 @@
     p.name = pName(p);
     return p;
   }
-  function newGame(seed, region) {
+  function newGame(seed, region, diff) {
     region = REGIONS[region] ? region : 'taiwan';
+    diff = DIFFS[diff] ? diff : 'normal';
     const unlocked = {};
     TECH_ORDER.forEach(id => { unlocked[id] = !!TECHS[id].unlocked; });
     const four = region !== 'taiwan';
     return {
       seed: seed || Math.floor(Math.random() * 1e9),
-      region, m: 0, funds: START_FUNDS, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
+      region, diff, m: 0, funds: DIFFS[diff].funds, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
       greenhouse: 0, maxDebt: 0, rate: 0, recent: [], overMonths: 0, wasOver: false,
       over: null, subsidy: 0, resCut: 0, resSlow: 0, opexCut: 0, usCut: false, headline: null, headlineN: 0, labQueue: [], captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
       warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0, tsPaid: 0, built: {},
@@ -1185,18 +1196,20 @@
   }
 
   // ---- score --------------------------------------------------------------------
-  function score(s) {
-    return Math.round(Math.max(0, 250 - s.cumCO2) * 6 + (100 - s.anger) * 5 + Math.min(3000, Math.max(0, s.funds)) * 0.5 + s.captured * 1.5);
+  function rawScore(s) {
+    return Math.max(0, 250 - s.cumCO2) * 6 + (100 - s.anger) * 5 + Math.min(3000, Math.max(0, s.funds)) * 0.5 + s.captured * 1.5;
   }
+  // the leaderboard score carries the difficulty bonus; stars are judged on the plain score, so they mean the same everywhere
+  function score(s) { return Math.round(rawScore(s) * (DIFFS[s.diff || 'easy'] || DIFFS.easy).bonus); }
   function stars(s) {
     if (!s.over || !s.over.win) return 0;
-    const sc = score(s);
+    const sc = rawScore(s);
     const [two, three] = RG(s).stars;
     return sc >= three ? 3 : sc >= two ? 2 : 1;
   }
 
   const api = {
-    HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE, START_FUNDS, CAPEX_SCALE, FOAK,
+    HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE, START_FUNDS, DIFFS, CAPEX_SCALE, FOAK,
     BREACH, breachStep, REGIONS, SEASON, SURPLUS_SHARE, SHIP, METHODS, DROPS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG,
     newGame, step, choose, offCost, online, isGas, fuelOf, foak, pZh, tZh,
     install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost, convertOptions,

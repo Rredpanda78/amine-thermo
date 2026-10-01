@@ -73,6 +73,12 @@ button, input { font: inherit; color: inherit; }
 .cprice.credit b { color: var(--good); }
 .limbar s { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed #CFE9D5; transition: left .5s; }
 .regions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+.diffs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: -4px 0 12px; }
+.dif { display: grid; gap: 1px; text-align: left; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; color: var(--fg); }
+.dif b { font-size: 14px; }
+.dif i { font-style: normal; font-size: 12px; color: var(--muted); }
+.dif[aria-checked="true"] { border-color: var(--amine); box-shadow: 0 0 0 2px rgba(46, 196, 182, .35); }
+.dtag { font-size: 11px; color: var(--muted); margin-left: 4px; }
 .rgn { display: grid; gap: 3px; align-content: start; text-align: left; padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; }
 .rgn b { font-size: 16px; }
 .rgn i { font-style: normal; font-size: 12.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--amine); }
@@ -556,6 +562,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     <p class="lead" data-i18n="introLead">You run the power company of a coal-and-gas town. Keep the lights on until December 2050.</p>
     <div class="nick"><label for="nick" data-i18n="nickL">Nickname</label><input id="nick" maxlength="16" autocomplete="nickname"><span class="err" id="nickErr" hidden></span></div>
     <div class="regions" id="regions" role="radiogroup" aria-label="Region"></div>
+    <div class="diffs" id="diffs" role="radiogroup" aria-label="Difficulty"></div>
     <div class="btn-row"><button class="btn" id="startBtn" data-i18n="start">Start 2026</button><button class="btn ghost" id="boardBtn" data-i18n="boardB">Leaderboard</button></div>
     <p class="credits" style="margin:12px 0 0" data-i18n="credits">Where the numbers come from.</p>
     </div>
@@ -771,6 +778,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   function saveBest(b) { store.set(BEST_KEY, JSON.stringify(b)); }
 
   // ---------- leaderboard (this device; a shared online board would need a server) ----------
+  let diff = M.DIFFS[store.get('cc2050-diff')] ? store.get('cc2050-diff') : 'normal';
   const BOARD_KEY = 'cc2050-board-v10';
   function loadBoard() { try { const b = JSON.parse(store.get(BOARD_KEY) || '[]'); return Array.isArray(b) ? b : []; } catch (e) { return []; } }
   function saveBoard(b) { store.set(BOARD_KEY, JSON.stringify(b.slice(0, 300))); }
@@ -779,7 +787,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     const rows = loadBoard().filter(e => e.region === region).slice(0, 10);
     if (!rows.length) return `<table class="board"><tbody><tr class="empty"><td>${L('No finished games yet. Be the first!', '還沒有人完成，搶第一名！')}</td></tr></tbody></table>`;
     return `<table class="board"><thead><tr><th>#</th><th>${L('Name', '暱稱')}</th><th>${L('Score', '分數')}</th><th>★</th><th>${L('Date', '日期')}</th></tr></thead><tbody>` +
-      rows.map((e, i) => `<tr class="${e.ts === meTs ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(e.name)}</td><td class="n">${fmt(e.score)}</td><td class="st">${'★'.repeat(e.stars)}</td><td class="n">${esc(e.date)}</td></tr>`).join('') + '</tbody></table>';
+      rows.map((e, i) => `<tr class="${e.ts === meTs ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(e.name)}${e.diff && M.DIFFS[e.diff] ? `<span class="dtag">${L(M.DIFFS[e.diff].label, M.DIFFS[e.diff].zh)}</span>` : ''}</td><td class="n">${fmt(e.score)}</td><td class="st">${'★'.repeat(e.stars)}</td><td class="n">${esc(e.date)}</td></tr>`).join('') + '</tbody></table>';
   }
   let boardRegion = 'taiwan', clearArmed = false;
   function renderBoard() {
@@ -1508,7 +1516,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       [L('Blackout months', '停電月數'), String(s.blackouts)],
       [s.creditPaid > 0 ? L('45Q credit earned', '45Q 抵減收入') : L('Carbon price paid', '繳的碳費'), money(s.creditPaid > 0 ? s.creditPaid : s.taxPaid)],
       [L('Transport & storage paid', '運輸與封存費'), money(s.tsPaid || 0)],
-      [L('Score', '分數'), fmt(sc)],
+      [L('Score', '分數'), fmt(sc) + (M.DIFFS[s.diff] && M.DIFFS[s.diff].bonus > 1 ? ` <small>(${L(M.DIFFS[s.diff].label, M.DIFFS[s.diff].zh)} ×${M.DIFFS[s.diff].bonus})</small>` : '')],
     ];
     $('endGrid').innerHTML = cells.map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
     const used = Object.keys(s.techUsed).filter(id => LIN[id] && id !== 'mea90');
@@ -1533,7 +1541,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     if (win && !nick()) $('endRank').textContent = L('No nickname this time, so this game is not on the board. Add one on the start screen next time.', '這局沒有輸入暱稱，所以不會上榜。下次在開始畫面填一個吧。');
     else if (win) {
       const d = new Date();
-      lastEntry = { name: nick(), score: sc, stars: st, region: s.region, ts: Date.now(), date: `${d.getMonth() + 1}/${d.getDate()}` };
+      lastEntry = { name: nick(), score: sc, stars: st, region: s.region, diff: s.diff, ts: Date.now(), date: `${d.getMonth() + 1}/${d.getDate()}` };
       const board = addScore(lastEntry).filter(e => e.region === s.region);
       const rank = board.findIndex(e => e.ts === lastEntry.ts) + 1;
       $('endRank').textContent = L(`${lastEntry.name}: #${rank} of ${board.length} in ${rgName}.`, `${lastEntry.name}：${rgName}第 ${rank} 名(共 ${board.length} 局)。`);
@@ -1580,12 +1588,17 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       region = b.dataset.rg;
       $('regions').querySelectorAll('[data-rg]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
     });
+    $('diffs').innerHTML = Object.entries(M.DIFFS).map(([id, d]) => `<button class="dif" role="radio" data-df="${id}" aria-checked="${id === diff}"><b>${L(d.label, d.zh)}</b><i>${L(d.hint, d.zhHint)}</i></button>`).join('');
+    $('diffs').querySelectorAll('[data-df]').forEach(b => b.onclick = () => {
+      diff = b.dataset.df; store.set('cc2050-diff', diff);
+      $('diffs').querySelectorAll('[data-df]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+    });
     $('ovIntro').hidden = false;
     playing = false;
   }
   $('startBtn').onclick = () => {
     store.set('cc2050-nick', nick());   // optional: without a nickname the game is played but not ranked
-    S = M.newGame(undefined, region); particles.length = 0; toastN = 0; findN = 0; headN = 0;
+    S = M.newGame(undefined, region, diff); particles.length = 0; toastN = 0; findN = 0; headN = 0;
     SND.unlock(); SND.play('click');
     $('ovIntro').hidden = true; setTab('city'); renderAll(); setSpeed(1); playing = true;
   };
