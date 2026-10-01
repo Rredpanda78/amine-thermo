@@ -136,7 +136,7 @@ button, input { font: inherit; color: inherit; }
 .status .ok { color: var(--good); font-weight: 700; }
 .paused-badge { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(15, 26, 43, .45); border: 0; color: #FFF; font: 700 18px var(--body); letter-spacing: 1px; cursor: pointer; }
 .paused-badge span { background: rgba(15, 26, 43, .9); border: 1px solid var(--line); border-radius: 999px; padding: 10px 18px; }
-.toast { position: absolute; left: 10px; right: 10px; top: var(--hudb, 10px); z-index: 7; background: rgba(15, 26, 43, .92); border: 1px solid var(--line); border-left: 4px solid var(--co2); border-radius: 10px; padding: 8px 12px; font-size: 15px; font-weight: 700; box-shadow: 0 6px 20px var(--shadow); }
+.toast { position: absolute; left: 50%; right: auto; top: auto; bottom: var(--botb, 60px); transform: translateX(-50%); width: max-content; max-width: min(640px, calc(100% - 20px)); z-index: 7; background: rgba(15, 26, 43, .92); border: 1px solid var(--line); border-left: 4px solid var(--co2); border-radius: 10px; padding: 8px 12px; font-size: 15px; font-weight: 700; box-shadow: 0 6px 20px var(--shadow); }
 .toast.event { border-left-color: var(--anger); }
 .toast.good { border-left-color: var(--good); }
 .toast.lab { border-left-color: var(--gold); }
@@ -454,7 +454,7 @@ html, body { height: 100%; overflow: hidden; }
 .paper { width: min(760px, 96vw); max-height: 94vh; }
 .rotate { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); z-index: 7; background: rgba(4, 8, 14, .9); border: 1px solid var(--amine); color: var(--amine); border-radius: 999px; padding: 8px 12px; font-weight: 700; font-size: 13px; display: none; align-items: center; gap: 8px; white-space: nowrap; }
 .rotate button { background: none; border: 0; color: var(--fg); font-size: 16px; cursor: pointer; }
-@media (orientation: portrait) and (max-width: 700px) { .rotate { display: flex; } }
+@media (orientation: portrait) and (max-width: 700px) { .rotate { display: flex; } .toast { bottom: calc(var(--botb, 60px) + 50px); } }
 /* phones and short windows: two rows of billboards */
 @media (max-width: 900px), (max-height: 520px) {
   .hud { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1588,7 +1588,8 @@ html, body { height: 100%; overflow: hidden; }
     H = Math.round(box.height);   // full screen: the canvas is the window
     const hud = document.getElementById('hud').getBoundingClientRect(), tk = document.getElementById('ticker').getBoundingClientRect();
     TOP = Math.round(hud.bottom) + 4; BOT = Math.round(box.bottom - tk.top) + 4;
-    document.documentElement.style.setProperty('--hudb', TOP + 'px');   // toasts sit just under the billboards
+    document.documentElement.style.setProperty('--hudb', TOP + 'px');
+    document.documentElement.style.setProperty('--botb', (BOT + 6) + 'px');   // toasts sit just above the ticker
     DPR = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     cv.style.height = H + 'px';
@@ -1662,17 +1663,45 @@ html, body { height: 100%; overflow: hidden; }
   let ptargets = [], labTip = null, plotTip = null;
 
   // name tag on the ground under a plant: id + capture, and the number of queued jobs
-  function drawTag(p, cx, base, k, down) {
+  // labels in the scene are queued while drawing, then placed together so none lands on another:
+  // sky labels (pills, back-row tags) move up, ground tags move down
+  let labelQ = [];
+  function queueLabel(x0, y0, w, h, dir, pri, paint) { labelQ.push({ x0, y0, w, h, dir, pri, paint }); }
+  function flushLabels() {
+    const placed = [];
+    labelQ.sort((a, b) => a.pri - b.pri || (a.dir < 0 ? b.y0 - a.y0 : a.y0 - b.y0));
+    for (const b of labelQ) {
+      const search = (y, dir) => {
+        for (let g = 0; g < 16; g++) {
+          const hit = placed.find(r => b.x0 < r.x1 && b.x0 + b.w > r.x0 && y < r.y1 && y + b.h > r.y0);
+          if (!hit) return y;
+          y = dir < 0 ? hit.y0 - b.h - 2 : hit.y1 + 2;
+        }
+        return y;
+      };
+      let y = search(b.y0, b.dir);
+      if (y < TOP + 2 || y + b.h > H - BOT) y = search(b.y0, -b.dir);   // no room that way: try the other way
+      y = Math.max(TOP + 2, Math.min(H - BOT - b.h, y));
+      placed.push({ x0: b.x0, x1: b.x0 + b.w, y0: y, y1: y + b.h });
+      b.paint(y - b.y0);
+    }
+    labelQ = [];
+  }
+  function drawTag(p, cx, base, k, down, back) {
     const t = p.tech ? M.TECHS[p.tech] : null;
     const what = p.build && p.build.kind === 'new' ? L('building', '興建中') : p.build && p.build.kind === 'convert' ? '→ ' + typeName(p.build.toType)
       : t ? ICON(p.tech) + (p.deep ? ' 99%' : '') : '';
     const fs = Math.max(10, Math.min(13, W * 0.018)) * Math.max(0.85, k);
     ctx.font = FONT(600, fs.toFixed(1));
-    const txt = what ? p.id + ' · ' + what : p.id, tw = ctx.measureText(txt).width + 8, th = fs + 5, y = base + 4;
+    const txt = what ? p.id + ' · ' + what : p.id, tw = ctx.measureText(txt).width + 8, th = fs + 5, y0 = base + 4;
+    const q = (p.queue || []).length;
+    queueLabel(cx - tw / 2, y0 - (q ? 7 : 0), tw + (q ? 7 : 0), th + (q ? 7 : 0), back ? -1 : 1, back ? 0.5 : 0, dy => paintTag(p, t, txt, cx, y0 + dy, tw, th, fs, down, q));
+  }
+  function paintTag(p, t, txt, cx, y, tw, th, fs, down, q) {
+    ctx.font = FONT(600, fs.toFixed(1));
     ctx.fillStyle = 'rgba(15,26,43,.85)'; ctx.fillRect(cx - tw / 2, y, tw, th);
     ctx.fillStyle = down ? '#EF6351' : t ? t.color : '#E9EFF7';
     ctx.textAlign = 'center'; ctx.fillText(txt, cx, y + th - 4);
-    const q = (p.queue || []).length;
     if (q) {
       ctx.fillStyle = '#F4B740'; ctx.beginPath(); ctx.arc(cx + tw / 2, y, 7, 0, 7); ctx.fill();
       ctx.fillStyle = '#0B1422'; ctx.font = FONT(700, 11); ctx.fillText('+' + q, cx + tw / 2, y + 4);
@@ -1682,6 +1711,9 @@ html, body { height: 100%; overflow: hidden; }
 
   // ---- construction site pieces ----
   function drawProgress(cx, y, w, frac, label) {
+    queueLabel(cx - w / 2 - 1, y - 1, w + 2, 19, -1, 1, dy => paintProgress(cx, y + dy, w, frac, label));
+  }
+  function paintProgress(cx, y, w, frac, label) {
     const h = 17, x = cx - w / 2;
     ctx.fillStyle = 'rgba(15,26,43,.9)'; ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
     ctx.fillStyle = '#F4B740'; ctx.fillRect(x, y, w * Math.max(0, Math.min(1, frac)), h);
@@ -1751,7 +1783,7 @@ html, body { height: 100%; overflow: hidden; }
         const f = (now * 0.8 + i / 3) % 1;
         ctx.fillStyle = `rgba(46,196,182,${0.8 * (1 - f)})`; ctx.beginPath(); ctx.arc(cx - 8 + i * 8, by + 4 - f * 14, 2 + f * 2, 0, 7); ctx.fill();
       }
-      drawProgress(cx, by + 10, Math.max(56, w * 1.1), 1 - left / total, (S.resMethod[busy] === 'comp' ? 'QM+MD ' : busy === 'screen' ? L('EXP ', '實驗 ') : L('R&D ', '研發 ')) + mo(left));
+      drawProgress(cx, by + 4, Math.max(56, w * 1.1), 1 - left / total, (S.resMethod[busy] === 'comp' ? 'QM+MD ' : busy === 'screen' ? L('EXP ', '實驗 ') : L('R&D ', '研發 ')) + mo(left));
     } else if (!(S.labQueue || []).length && M.canResearch(S, 'screen', 'comp').ok) {
       const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 300);
       ctx.fillStyle = `rgba(244,183,64,${pulse})`; ctx.beginPath(); ctx.arc(cx, by + 12, 9, 0, 7); ctx.fill();
@@ -1803,8 +1835,8 @@ html, body { height: 100%; overflow: hidden; }
     ctx.fillText(label, x, horizon - 30 * k); ctx.textAlign = 'left';
   }
   // ---- first-time arrows ----
-  function drawArrow(x, y, dir, text, id, ph) {
-    const b = REDUCED ? 0 : Math.abs(Math.sin(performance.now() / 260 + ph)) * 6;
+  function drawArrow(x, y, dir, text, id, ph, layoutOnly) {
+    const b = REDUCED || layoutOnly ? 0 : Math.abs(Math.sin(performance.now() / 260 + ph)) * 6;
     ctx.font = FONT(700, 13);
     const tw = ctx.measureText(text).width + 14, th = 22;
     let lx, ly;
@@ -1822,22 +1854,24 @@ html, body { height: 100%; overflow: hidden; }
       ctx.lineTo(t + 26, y + 4); ctx.lineTo(t + 12, y + 4); ctx.lineTo(t + 12, y + 11); ctx.closePath();
       lx = t + 28; ly = y - th / 2;
     }
-    ctx.fill(); ctx.stroke();
     lx = Math.max(4, Math.min(W - tw - 4, lx)); ly = Math.max(TOP + 2, ly);
+    if (ly < TOP + 26 && lx + tw > W - 160) lx = Math.max(4, W - 164 - tw);   // stay clear of the CO2-stored label
+    if (layoutOnly) { ctx.restore(); queueLabel(lx - 6, ly - 6, tw + 12, th + 12 + (dir === 'down' ? 28 : 0), -1, -1, () => {}); return; }   // keep pills off the arrow and its label
+    ctx.fill(); ctx.stroke();
     ctx.fillStyle = 'rgba(11,20,34,.92)'; ctx.fillRect(lx, ly, tw, th);
     ctx.strokeStyle = '#F4B740'; ctx.lineWidth = 1; ctx.strokeRect(lx + 0.5, ly + 0.5, tw - 1, th - 1);
     ctx.fillStyle = '#F4B740'; ctx.textAlign = 'left'; ctx.fillText(text, lx + 7, ly + 15.5);
     ctx.restore();
     hits.push({ id, x0: lx, x1: lx + tw, y0: ly, y1: ly + th });
   }
-  function drawCoach(streetY, lay) {
+  function drawCoach(streetY, lay, layoutOnly) {
     if (S.over || !playing) return;
-    if (coach.build && plotTip && (!coach.plant || S.m >= 9) && S.m <= 72) drawArrow(plotTip.x, plotTip.y, 'down', L('Build a new plant', '點這裡蓋新電廠'), '__add', 3.6);
+    if (coach.build && plotTip && (!coach.plant || S.m >= 9) && S.m <= 72) drawArrow(plotTip.x, plotTip.y, 'down', L('Build a new plant', '點這裡蓋新電廠'), '__add', 3.6, layoutOnly);
     if (S.m > 24) return;
     const pt = ptargets.find(t => S.plants.some(p => p.id === t.id && !p.build));
-    if (coach.plant && pt) drawArrow(pt.cx, pt.cy - pt.ry - 2, 'down', L('Tap a plant to add capture', '點電廠加裝捕捉'), pt.id, 0);
-    if (coach.lab && labTip) drawArrow(labTip.x, labTip.y, 'down', L('Tap the lab to research', '點研究所做研發'), '__lab', 1.2);
-    if (coach.crowd) drawArrow(W * (lay.town + 0.025), streetY - 6, 'left', L('Tap the people: why angry?', '點民眾:為什麼生氣?'), '__crowd', 2.4);
+    if (coach.plant && pt) drawArrow(pt.cx, pt.cy - pt.ry - 2, 'down', L('Tap a plant to add capture', '點電廠加裝捕捉'), pt.id, 0, layoutOnly);
+    if (coach.lab && labTip) drawArrow(labTip.x, labTip.y, 'down', L('Tap the lab to research', '點研究所做研發'), '__lab', 1.2, layoutOnly);
+    if (coach.crowd) drawArrow(W * (lay.town + 0.025), streetY - 6, 'left', L('Tap the people: why angry?', '點民眾:為什麼生氣?'), '__crowd', 2.4, layoutOnly);
   }
   // ---- weather for what is happening this month ----
   function drawWeather(horizon) {
@@ -1870,7 +1904,7 @@ html, body { height: 100%; overflow: hidden; }
 
   function drawScene(dt) {
     if (W < 10) return;   // the city pane is hidden (phone on the Research tab)
-    hits = [];
+    hits = []; labelQ = [];
     const g = S.last ? Math.max(0, Math.min(1, (S.rate - 0.5) / 10)) : 0.85;   // sky dirt follows today's emissions
     const Ls = S.last;
     SH = Math.min(H, Math.max(300, W * 0.62));
@@ -1939,7 +1973,6 @@ html, body { height: 100%; overflow: hidden; }
     // plants (right half); back row first so the front row overlaps it
     const slots = plantSlots(S.plants.length);
     ptargets = [];
-    const backTags = [];
     const order = S.plants.map((p, i) => ({ p, s: slots[i], i })).sort((a, b) => (a.s.back ? 0 : 1) - (b.s.back ? 0 : 1));
     order.forEach(({ p, s, i }) => {
       const k = s.scale;
@@ -1953,7 +1986,7 @@ html, body { height: 100%; overflow: hidden; }
       const target = s.back ? { id: p.id, cx: tcx, cy: base - SH * 0.24 * k, rx, ry: SH * 0.13 * k } : { id: p.id, cx: tcx, cy: base - SH * 0.12 * k, rx, ry: SH * 0.2 * k + 12 };
       ptargets.push(target);
       if (hoverId === p.id) outline({ x0: target.cx - target.rx, x1: target.cx + target.rx, y0: target.cy - target.ry, y1: target.cy + target.ry });
-      const tag = down => (s.back ? backTags.push([p, cx, base - SH * 0.36 * k - 16, k, down]) : drawTag(p, cx, base, k, down));
+      const tag = down => drawTag(p, cx, s.back ? base - SH * 0.36 * k - 16 : base, k, down, s.back);
       const frac = p.build ? 1 - p.build.left / p.build.total : 0;
       const bodyCol = { coal: '#6E3F33', gas: '#5A6E86', gasb: '#6D6A8A' }[p.type];
       if (p.build && p.build.kind === 'new') {
@@ -2017,7 +2050,7 @@ html, body { height: 100%; overflow: hidden; }
       } else if (p.build && p.build.kind === 'convert') {
         drawScaffold(cx - bw / 2 - 2, by - 4, bw + 4, bh);
         drawCrane(cx - bw * 0.62, base, by - bh * 0.6, bw * 0.9, k, i);
-        drawProgress(cx, by - bh * 0.6 - 22 - (i % 2) * 16, Math.max(56, bw * 1.25), frac, `→${CV[p.build.toType][0].replace('→ ', '')} ${Math.round(frac * 100)}%`);
+        drawProgress(cx, by - bh * 0.6 - 22 - (i % 2) * 16, Math.max(56, bw * 1.25), frac, `${CV[p.build.toType][0]} ${Math.round(frac * 100)}%`);
       }
       tag(down);
       if (down) return;
@@ -2037,7 +2070,6 @@ html, body { height: 100%; overflow: hidden; }
       });
     });
 
-    backTags.forEach(a => drawTag(...a));
     for (let i = particles.length - 1; i >= 0; i--) {
       const q = particles[i];
       q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000; q.r += dt / 1000 * (q.steam ? 4 : 5); q.life -= dt / 1000 * (q.steam ? 0.4 : 0.22);
@@ -2046,6 +2078,9 @@ html, body { height: 100%; overflow: hidden; }
       ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(0.5, q.r), 0, 7); ctx.fill();
     }
     if (particles.length > 400) particles.splice(0, particles.length - 400);
+    drawCoach(streetY, lay, true);
+    queueLabel(W - 158, TOP + 2, 154, 22, -1, -1, () => {});   // the CO2-stored label (drawn last)
+    flushLabels();
 
     if (!REDUCED) drawWeather(horizon);
     if (g > 0.05) { ctx.fillStyle = `rgba(150,120,80,${0.28 * g})`; ctx.fillRect(0, 0, W, H); }
@@ -2084,6 +2119,7 @@ html, body { height: 100%; overflow: hidden; }
     window.__cc = {
       get state() { return S; },
       plant(id) { openPlant(id); },
+      get hits() { return hits.slice(); },
       run(frames) {
         for (let i = 0; i < frames && !S.over; i++) {
           frame((lastT || performance.now()) + 100);
