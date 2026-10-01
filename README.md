@@ -5,5 +5,6 @@ Companion site for the GHGT-18 ePoster *Predicting Reaction Thermodynamics of CO
 
 - `game/` — **Capture City 2050**, a browser game about CO₂ capture. Capture-technology values come from the group's published papers; values marked *est.* are game estimates.
 - `amines/` — the amines studied (coming soon).
+- `tools/` — encoding helpers for `game/model.js` and balance simulators; see `CLAUDE.md` for how to contribute.
 
 Site: https://rredpanda78.github.io/amine-thermo/
