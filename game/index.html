@@ -50,6 +50,20 @@ button, input { font: inherit; color: inherit; }
 .snd button[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
 .langbtn { background: var(--panel-2); border: 2px solid var(--amine); color: var(--amine); border-radius: 10px; padding: 8px 16px; min-height: 42px; min-width: 64px; cursor: pointer; font-weight: 700; font-size: 16px; }
 .langbtn:hover { background: var(--amine); color: #062320; }
+/* × in the top-right corner of every sheet; it stays visible while the sheet scrolls */
+.xclose { position: sticky; top: 0; float: right; z-index: 3; width: 38px; height: 38px; margin: -6px -6px 4px 8px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); font: 700 20px/1 var(--body); cursor: pointer; display: grid; place-items: center; }
+.xclose:hover { border-color: var(--anger); color: var(--anger); }
+.limkey { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+.limkey i { display: inline-block; width: 0; height: 9px; border-left: 2px dashed #CFE9D5; margin: 0 3px -1px 0; }
+.limkey b { display: inline-block; width: 12px; height: 8px; border: 2px solid var(--good); border-radius: 2px; margin: 0 3px -1px 0; }
+/* which solvents a process suits: shown big so the player can judge */
+.fits { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 12px; margin-top: 4px; }
+.fits .lbl { font-weight: 700; color: var(--fg); margin-right: 2px; }
+.fits span.s { border-radius: 999px; padding: 1px 8px; font-family: var(--mono); font-weight: 600; }
+.fits span.good { background: rgba(123, 211, 137, .18); color: var(--good); border: 1px solid #2F5B3A; }
+.fits span.meh { background: #22324D; color: var(--muted); border: 1px solid var(--line); }
+.fits span.now { box-shadow: 0 0 0 2px var(--co2); }
+.flexbtn[aria-pressed="true"] { background: var(--good); color: #0B1422; }
 .speed button:focus-visible, .btn:focus-visible, input:focus-visible, summary:focus-visible, .langbtn:focus-visible, .meter[role=button]:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
 
 /* meters */
@@ -347,7 +361,8 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   .wrap { gap: 10px; padding-block: 10px 20px; }
   .pane-t { display: none; }
   .brand small { font-size: 10px; letter-spacing: .6px; }
-  .icons { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .icons { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+  .ic small { font-size: 9px; }
   .ic { font-size: 13px; border-radius: 10px; }
   .qs { width: 40px; height: 40px; }
   .qrow { gap: 6px; }
@@ -388,6 +403,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       <div class="lab"><span data-i18n="mCO2">CO₂ vs legal limit</span><span class="lim" id="gLim">limit — Mt/yr</span></div>
       <div class="top-row"><div class="val" id="vGh">—<small> Mt/yr</small></div><div class="sub" id="gNext"></div></div>
       <div class="limbar" role="img" id="gBar" aria-label="CO2 emissions against the legal limit"><b id="gCap"></b><i id="gFill"></i><em id="gOver"></em><s id="gFut"></s></div>
+      <div class="limkey" data-i18n="limKey"><b></b>green box = this year's limit · <i></i>dashed line = the limit 5 years from now</div>
       <div class="breach"><span data-i18n="mBreach">Limit breach</span><span class="bar"><i id="bBreach"></i></span><b id="vBreach">0 %</b></div>
       <div class="cprice" id="cPrice"></div>
     </div>
@@ -456,7 +472,8 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
 
 <div class="overlay" id="ovPlant" hidden>
   <div class="sheet cmd" role="dialog" aria-modal="true" aria-labelledby="plTitle">
-    <div class="cmd-top"><h3 id="plTitle">Plant</h3><button class="btn ghost" id="plClose" data-i18n="close">Close</button></div>
+    <button class="xclose" id="plClose" aria-label="Close">×</button>
+    <h3 id="plTitle">Plant</h3>
     <p class="lead" id="plLead"></p>
     <div id="plBody"></div>
   </div>
@@ -464,15 +481,16 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
 
 <div class="overlay" id="ovBuild" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="bdTitle">
+    <button class="xclose" id="bdClose" aria-label="Close">×</button>
     <h3 id="bdTitle" data-i18n="buildT">Build a new plant</h3>
     <p class="lead" id="bdLead"></p>
     <div class="opts" id="bdOpts"></div>
-    <div class="close-row"><button class="btn ghost" id="bdClose" data-i18n="close">Close</button></div>
   </div>
 </div>
 
 <div class="overlay" id="ovPrice" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="prTitle">
+    <button class="xclose" id="prClose" aria-label="Close">×</button>
     <h3 id="prTitle" data-i18n="priceT">Electricity price</h3>
     <p class="lead" id="prLead"></p>
     <div class="price-row">
@@ -480,27 +498,27 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       <input type="range" id="price" min="40" max="240" step="5" value="100" aria-label="Electricity price in dollars per MWh">
     </div>
     <div class="hint" id="priceHint"></div>
-    <div class="close-row"><button class="btn ghost" id="prClose" data-i18n="close">Close</button></div>
   </div>
 </div>
 
 <div class="overlay" id="ovAnger" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="agTitle">
+    <button class="xclose" id="agClose" aria-label="Close">×</button>
     <h3 id="agTitle" data-i18n="angerT">Where public anger comes from</h3>
     <p class="lead" id="agLead"></p>
     <div class="why" id="agRows"></div>
     <ul class="advice" id="agAdvice"></ul>
-    <div class="close-row"><button class="btn ghost" id="agClose" data-i18n="close">Close</button></div>
   </div>
 </div>
 
 <div class="overlay" id="ovBoard" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+    <button class="xclose" id="lbClose" aria-label="Close">×</button>
     <h3 id="lbTitle" data-i18n="boardT">Leaderboard · top 10</h3>
     <p class="lead" data-i18n="boardLead">Saved on this device only. Finish a game in 2050 to get on the board.</p>
     <div class="rtabs" id="lbTabs"></div>
     <div id="lbTable"></div>
-    <div class="close-row"><button class="btn danger" id="lbClear" data-i18n="clearB">Clear board</button><button class="btn ghost" id="lbClose" data-i18n="close">Close</button></div>
+    <div class="close-row"><button class="btn danger" id="lbClear" data-i18n="clearB">Clear board</button></div>
   </div>
 </div>
 
@@ -522,6 +540,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   <div class="sheet find" role="dialog" aria-modal="true" aria-labelledby="findName">
     <div class="lab-tag" id="findHow">Discovery</div>
     <div class="stars" id="findStars"></div>
+    <button class="xclose" id="findX" aria-label="Close">×</button>
     <h3 id="findName"></h3>
     <p class="lead" id="findPitch"></p>
     <p class="fact" id="findFact" style="text-align:left"></p>
@@ -589,6 +608,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       '<li><b>資金</b>來自電費：點城市裡的<b>電價看板</b>調整電價。封存 CO₂ 要付運輸與封存費。資金低於 −5 億美元就破產。</li>' +
       '<li>點<b>電廠</b>下指令：加裝 CO₂ 捕捉、升級到 99 %、換燃料或拆除。工程可以<b>排隊</b>：排入就付錢，取消全額退費。點<b>空地</b>蓋新電廠。</li>' +
       '<li>點<b>研究所</b>：用慢但可靠的<b>實驗</b>或快但有風險的<b>電腦篩選</b>找新溶劑，或前導測試新製程。新技術前 2 年可能故障。</li>'],
+    limKey: ['<b></b>green box = this year\'s limit · <i></i>dashed line = the limit 5 years from now', '<b></b>綠框 = 今年的限額 · <i></i>虛線 = 5 年後的限額'],
     howLead: ['How to play, in one minute.', '一分鐘看懂怎麼玩。'],
     hGoalT: ['Your goal', '你的目標'],
     hGoal: ['You run the power company of a coal-and-gas town. Keep the lights on every month until December 2050 while the law cuts the CO₂ you may emit, year after year, toward net zero.',
@@ -624,6 +644,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     'Already done': '已完成', 'Lab busy: one project at a time': '研究所忙碌中', 'Enough screens queued': '排的篩選已經夠了', 'Already done or queued': '已完成或已排隊',
     'Gas (combined-cycle) plants only': '只能裝在燃氣(複循環)廠', 'Fuel cells cannot reach 99 %': '燃料電池無法到 99 %', 'No conversion for this plant': '這座廠不能改建',
     'Remove the fuel cell first': '要先移除燃料電池', 'Cannot build this type': '不能蓋這種廠',
+    'Design it in the lab first': '要先在研究所完成設計', 'Not for fuel cells': '燃料電池不適用', 'Needs the 99 % upgrade first': '要先升級到 99 %',
   };
   const why = w => {
     if (lang !== 'zh' || !w) return w;
@@ -841,6 +862,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     if (S.gasFreeze > 0) n.push(L('<span class="hot">Winter storm: gas plants at 30 %.</span>', '<span class="hot">暴風雪：燃氣廠只剩 30 %。</span>'));
     if (S.shipMonths > 0) n.push(L(`CO₂ shipped to a backup site (${S.shipMonths} mo).`, `CO₂ 改船運到備用封存場(${S.shipMonths} 個月)。`));
     if (S.opexCut > 0) n.push(L(`<span class="hot">Subsidy cut: capture running costs +30 % (${S.opexCut} mo).</span>`, `<span class="hot">補助取消：捕捉運轉費 +30 %(${S.opexCut} 個月)。</span>`));
+    if (M.flexNow(S)) n.push(L('<span class="ok">Flexible capture: peak month, capture at 75 %.</span>', '<span class="ok">彈性捕捉：尖峰月份，捕捉 75 %。</span>'));
     if (S.subsidy > 0) n.push(L(`<span class="ok">Capture subsidy: −30 % (${S.subsidy} mo).</span>`, `<span class="ok">捕捉補助：−30 %(${S.subsidy} 個月)。</span>`));
     $('status').innerHTML = n.join(' ');
   }
@@ -883,7 +905,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     if (p.build && p.build.kind === 'convert') return '→ ' + typeName(p.build.toType);
     if (p.down > 0) return p.downWhy === 'tripped' ? L('tripped', '跳機') : L('under repair', '維修中');
     const t = p.tech ? M.TECHS[p.tech] : null;
-    let s = t ? t.short + (p.deep ? ' 99 %' : '') : L('no capture', '無捕捉');
+    let s = t ? t.short + (p.deep ? ' 99 %' : '') + (p.ic ? ' +IC' : '') + (p.sf ? ' +SF' : '') : L('no capture', '無捕捉');
     if (p.tech && (p.outage > 0 || S.captureOff > 0)) s += L(' (off)', '(停)');
     return s;
   }
@@ -922,16 +944,18 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   }
   const ICON = { mea90: ['MEA', 'solvent', '溶劑'], afs: ['AS', 'MEA + stripper', 'MEA + 汽提'], rpb: ['RPB', 'rotating bed', '旋轉床'], amp: ['AMP', 'in water', '水溶液'], aas: ['AAS', 'amino salt', '胺基酸鹽'], mdeapz: ['M/PZ', 'MDEA + PZ', 'MDEA + PZ'], pz: ['PZ', '+ stripper', '+ 汽提'], ampnmp: ['NMP', 'AMP + NMP', 'AMP + NMP'], pe2eg: ['2PE', '– EG', '– EG'], mcfc: ['MCFC', 'fuel cell', '燃料電池'] };
   const CV = { gasb: ['→ GB', 'gas boiler', '燃氣鍋爐', '#B9B2E8'], gas: ['→ CC', 'combined cycle', '複循環', '#9CC7F2'], coal: ['→ coal', 'back to coal', '改回燃煤', '#F0A58A'] };
-  const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' ? { kind: 'deep' } : k.startsWith('cv_') ? { kind: 'convert', to: k.slice(3) } : null;
+  const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' || k === 'ic' || k === 'sf' ? { kind: k } : k.startsWith('cv_') ? { kind: 'convert', to: k.slice(3) } : null;
   function jobLook(j) {
     if (j.kind === 'tech') return { c: M.TECHS[j.tech].color, l: ICON[j.tech][0] };
     if (j.kind === 'deep') return { c: '#7BD389', l: '99%' };
+    if (j.kind === 'ic') return { c: '#5FB3B3', l: 'IC' };
+    if (j.kind === 'sf') return { c: '#B39DDB', l: 'SF' };
     if (j.kind === 'convert') return { c: CV[j.toType][3], l: CV[j.toType][0] };
     return { c: '#E2A93B', l: L('new', '新廠') };
   }
   function iconKeys(p) {
     const v = M.planned(p);
-    return [...M.TECH_ORDER, 'deep', ...M.convertOptions(v.type).map(t => 'cv_' + t), 'demolish'];
+    return [...M.TECH_ORDER, 'deep', 'ic', 'sf', ...M.convertOptions(v.type).map(t => 'cv_' + t), 'demolish'];
   }
   function iconHTML(p, k) {
     const v = M.planned(p);
@@ -942,6 +966,11 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       locked = !S.unlocked[k]; done = v.tech === k;
       if (locked) sub = M.DROPS[k] ? '★'.repeat(M.DROPS[k].stars) : L('pilot test', '前導測試');
       else if (t.gasOnly && v.type !== 'gas') { locked = true; sub = L('gas only', '限燃氣'); }
+    } else if (k === 'ic' || k === 'sf') {
+      bg = k === 'ic' ? '#5FB3B3' : '#B39DDB'; label = k.toUpperCase(); sub = k === 'ic' ? L('intercool', '中間冷卻') : L('split flow', '分流汽提');
+      done = !!v[k]; name = zhOf(M.project(k).name, M.project(k).zh.name);
+      locked = !S.unlocked[k] || !v.tech || !!M.TECHS[v.tech].power || (k === 'sf' && !v.deep);
+      if (!S.unlocked[k]) sub = L('design first', '先設計');
     } else if (k === 'deep') {
       bg = '#7BD389'; label = '99%'; sub = L('upgrade', '升級'); done = !!v.deep; locked = !v.tech || !!M.TECHS[v.tech].noDeep; name = L('Upgrade to 99 % capture', '升級到 99 % 捕捉');
     } else if (k.startsWith('cv_')) {
@@ -992,6 +1021,16 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     renderInfo(p);
   }
   const LIN = { afs: 1, ampnmp: 1, pe2eg: 1, mea90: 1 };
+  // the "best with" line for a process: every solvent in green (big gain) or grey (small gain); the plant's own one is ringed
+  function fitsHTML(kind, cur) {
+    if (kind === 'flex') return `<div class="fits"><span class="lbl">${L('Works with:', '適用：')}</span><span class="s good">${L('every solvent', '所有溶劑')}</span><span class="s meh">${L('more CO₂ in peak months', '尖峰月份多排 CO₂')}</span></div>`;
+    if (kind === 'sf') return `<div class="fits"><span class="lbl">${L('Works on:', '適用：')}</span><span class="s good">${L('plants at 99 % capture', '已升級 99 % 的電廠')}</span><span class="s meh">${L('no effect at 90 %', '90 % 時沒有效果')}</span><span class="s meh">${L('not fuel cells', '燃料電池不適用')}</span></div>`;
+    const sol = M.TECH_ORDER.filter(id => !M.TECHS[id].power);
+    const good = sol.filter(id => M.TECHS[id].hiCap), meh = sol.filter(id => !M.TECHS[id].hiCap);
+    const chip = (id, cls) => `<span class="s ${cls} ${id === cur ? 'now' : ''}">${M.TECHS[id].short}</span>`;
+    return `<div class="fits"><span class="lbl">${L('Best with (−10 % steam):', '最適合(蒸汽 −10 %)：')}</span>${good.map(id => chip(id, 'good')).join('')}</div>`
+      + `<div class="fits"><span class="lbl">${L('Little effect (−3 %):', '效果很小(−3 %)：')}</span>${meh.map(id => chip(id, 'meh')).join('')}</div>`;
+  }
   function renderInfo(p) {
     const box = $('info');
     if (!box) return;
@@ -1025,6 +1064,17 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
         ${v.tech ? `<div class="mini"><span>${L('captures', '捕捉')} <b>99 %</b></span><span>${L('output', '出力')} <b>−${Math.round(pen * 100)} %</b></span></div>` : ''}
         <details><summary>${L('Details', '詳細')}</summary><p>${L('A commercial design study (with Prof. Lin as co-author) reached 99.5 % capture with about 50 % more absorber packing, raising the capital cost per tonne by about 6 %. The extra regeneration energy used here (about +9 %) is a game estimate', '一份商業設計研究(林育正教授為共同作者)只要多約 50 % 的吸收塔填料就能達到 99.5 % 捕捉，每噸資本成本約多 6 %。這裡用的再生能耗增量(約 +9 %)是遊戲估計')} <span class="est">est.</span></p><p class="src">Hirata et al., Int. J. Greenh. Gas Control 2020 (doi 10.1016/j.ijggc.2019.102847)</p></details>
         <div class="row">${chk.ok ? `<button class="btn" data-go="deep">${act(chk)}</button>` : whyHTML(chk)}</div>`;
+    } else if (k === 'ic' || k === 'sf') {
+      const pr = M.project(k), chk = M.canQueue(S, p, { kind: k });
+      const withIt = Object.assign({}, vp, { [k]: true });
+      const now = v.tech ? Math.round(M.penalty(vp, v.tech, k === 'sf' ? true : undefined) * vp.gross) : 0;
+      const after = v.tech ? Math.round(M.penalty(withIt, v.tech, k === 'sf' ? true : undefined) * vp.gross) : 0;
+      h = `<div class="row"><span class="nm" style="color:${k === 'ic' ? '#5FB3B3' : '#B39DDB'}">${zhOf(pr.name, pr.zh.name)}</span><span class="chip">${L('process', '製程')}</span></div>
+        ${fitsHTML(k, v.tech)}
+        <div class="pitch">${zhOf(pr.desc, pr.zh.desc)}</div>
+        ${v.tech && (k !== 'sf' || v.deep) ? `<div class="mini"><span>${L('this plant now', '這座廠目前')} <b>−${now} MW</b></span><span>${L('with it', '加裝後')} <b>−${after} MW</b></span></div>` : ''}
+        <p class="src">${pr.src}</p>
+        <div class="row">${chk.ok ? `<button class="btn" data-go="${k}">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (k.startsWith('cv_')) {
       const to = k.slice(3), chk = M.canQueue(S, p, jobFor(k)), pt = M.PLANT_TYPES[to];
       const text = to === 'gasb'
@@ -1093,24 +1143,26 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       let status = '', acts;
       if (left != null) {
         const mt = S.resMethod[id] || 'exp', total = Math.max(left, S.resTotal || M.researchMonths(S, id, mt));
-        status = `<div class="d" style="color:var(--amine)">${mt === 'comp' ? L('Computer screen', '電腦篩選') : pilot ? L('Pilot test', '前導測試') : L('Lab experiments', '實驗')} ${L('running', '進行中')} · ${L(`${left} mo left`, `剩 ${left} 個月`)}${pilot ? '' : ` · ${Math.round(M.researchOdds(S, id, mt) * 100)} % ${L('success', '成功率')}`}</div><div class="prog"><i style="width:${Math.round(100 * (1 - left / total))}%"></i></div>`;
+        status = `<div class="d" style="color:var(--amine)">${mt === 'comp' ? L('Computer screen', '電腦篩選') : pilot ? L('Develop process', '研發製程') : L('Lab experiments', '實驗')} ${L('running', '進行中')} · ${L(`${left} mo left`, `剩 ${left} 個月`)}${pilot ? '' : ` · ${Math.round(M.researchOdds(S, id, mt) * 100)} % ${L('success', '成功率')}`}</div><div class="prog"><i style="width:${Math.round(100 * (1 - left / total))}%"></i></div>`;
       }
-      if (S.unlocked[id] || allFound) acts = `<div class="acts"><span class="ready">${allFound ? L('Every solvent found ✓', '溶劑全部找到 ✓') : L('Ready ✓', '可安裝 ✓')}</span></div>`;
+      if (id === 'flex' && S.unlocked.flex) acts = `<div class="acts"><button class="btn rbtn ghost flexbtn" id="flexBtn" aria-pressed="${S.flexOn === true}"><b>${S.flexOn === true ? L('Flexible capture: ON', '彈性捕捉：開') : L('Flexible capture: OFF', '彈性捕捉：關')}</b><small>${L('peak months: capture at 75 %', '尖峰月份：捕捉 75 %')}</small></button></div>`;
+      else if (S.unlocked[id] || allFound) acts = `<div class="acts"><span class="ready">${allFound ? L('Every solvent found ✓', '溶劑全部找到 ✓') : M.TECHS[id] ? L('Ready ✓', '可安裝 ✓') : L('Ready: fit it from a plant ✓', '完成：到電廠加裝 ✓')}</span></div>`;
       else if (pilot && (left != null || lq.some(x => x.id === id))) acts = left != null ? '' : `<div class="acts"><span class="ready" style="color:var(--muted)">${L('queued', '已排隊')}</span></div>`;
       else {
         acts = '<div class="acts">' + methods.map(mt => {
           const chk = idle ? M.canResearch(S, id, mt) : M.canQueueResearch(S, id, mt);
           const cost = M.researchCost(S, id, mt), months = M.researchMonths(S, id, mt), odds = Math.round(M.researchOdds(S, id, mt) * 100);
-          const label = pilot ? L('Pilot test', '前導測試') : mt === 'comp' ? L('QM + MD screen', 'QM + MD 篩選') : L('Lab experiments', '實驗');
+          const label = pilot ? L('Develop process', '研發製程') : mt === 'comp' ? L('QM + MD screen', 'QM + MD 篩選') : L('Lab experiments', '實驗');
           return `<button class="btn rbtn ${mt === 'comp' ? 'ghost' : pr.star ? 'gold' : ''}" data-res="${id}" data-mt="${mt}" ${chk.ok ? '' : 'disabled'}><b>${idle ? '' : L('Queue · ', '排入 · ')}${label}</b><small>$${cost}M · ${mo(months)}${pilot ? '' : ` · ${odds} % ${L('success', '成功')}`}${chk.ok ? '' : ' · ' + why(chk.why)}</small></button>`;
         }).join('') + '</div>';
       }
       const name = zhOf(pr.name, pr.zh && pr.zh.name), desc = zhOf(pr.desc, pr.zh && pr.zh.desc);
       return `<div class="proj ${pilot ? 'pilot' : ''} ${pr.star ? 'star' : ''}">
-        <div><div class="t">${name}</div><div class="d">${desc}${tries ? L(` · ${tries} empty screen${tries > 1 ? 's' : ''} so far`, ` · 已落空 ${tries} 次`) : ''}</div>${id === 'screen'
+        <div><div class="t">${name}</div>${['ic', 'sf', 'flex'].includes(id) ? fitsHTML(id) : ''}<div class="d">${desc}${tries ? L(` · ${tries} empty screen${tries > 1 ? 's' : ''} so far`, ` · 已落空 ${tries} 次`) : ''}</div>${id === 'screen'
           ? '<div class="drops">' + Object.keys(M.DROPS).map(k => `<span class="${S.unlocked[k] ? 'got' : ''}">${S.unlocked[k] ? '✓ ' : ''}${M.TECHS[k].short} ${'★'.repeat(M.DROPS[k].stars)}</span>`).join('') + '</div>' : ''}${status}</div>
         ${acts}</div>`;
     }).join('');
+    if ($('flexBtn')) $('flexBtn').onclick = () => { M.setFlex(S, S.flexOn !== true); SND.play('click'); renderAll(); };
     $('lab').querySelectorAll('[data-res]').forEach(b => b.onclick = () => {
       const r = M.enqueueResearch(S, b.dataset.res, b.dataset.mt);
       SND.play(r.ok ? 'queue' : 'nope');
@@ -1118,7 +1170,8 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     });
     // lab queue: the running project, then what waits (tap to cancel, full refund)
     const runId = Object.keys(S.research)[0];
-    const look = j => j.id === 'screen' ? (j.method === 'comp' ? { c: '#2EC4B6', l: 'QM+MD' } : { c: '#E2A93B', l: L('Exp.', '實驗') }) : { c: M.TECHS[j.id].color, l: M.TECHS[j.id].short.replace('MEA-', '') };
+    const PCOL = { ic: '#5FB3B3', sf: '#B39DDB', flex: '#F4B740' };
+    const look = j => j.id === 'screen' ? (j.method === 'comp' ? { c: '#2EC4B6', l: 'QM+MD' } : { c: '#E2A93B', l: L('Exp.', '實驗') }) : PCOL[j.id] ? { c: PCOL[j.id], l: M.project(j.id).short } : { c: M.TECHS[j.id].color, l: M.TECHS[j.id].short.replace('MEA-', '') };
     let q = `<span class="ql">${L('Queue', '佇列')}</span>`;
     const slots = (runId ? [{ id: runId, method: S.resMethod[runId], run: true, left: S.research[runId] }] : []).concat(lq);
     for (let i = 0; i < 1 + M.QUEUE_MAX; i++) {
@@ -1160,7 +1213,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     if (!force) SND.play('find', st);
     return true;
   }
-  $('findOk').onclick = () => { $('ovFind').hidden = true; };
+  $('findOk').onclick = $('findX').onclick = () => { $('ovFind').hidden = true; };
 
   // ---------- front page: decisions and big news appear as a newspaper in the middle (the game waits) ----------
   const SKY = 'M0 160V122h18v-16h16v26h14v-38h20v38h12v-20h18v32h14v-48h22v48h12v-24h18v38h14v-10h24V160Z';
@@ -1796,7 +1849,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       });
       // capture unit (grows while it is being built; the 99 % upgrade makes the columns taller)
       const t = p.tech ? M.TECHS[p.tech] : null;
-      const job = p.build && (p.build.kind === 'tech' || p.build.kind === 'deep') ? p.build : null;
+      const job = p.build && ['tech', 'deep', 'ic', 'sf'].includes(p.build.kind) ? p.build : null;
       const ax = cx + bw / 2 + 3 * k, aw = Math.max(5, W * 0.014) * k;
       if (t || job) {
         const nt = job && job.kind === 'tech' ? M.TECHS[job.tech] : t;
@@ -1828,7 +1881,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
         const top = base - H * 0.36 * k;
         drawCrane(ax + aw * 2 + 8 * k, base, top, aw * 3.2, k * 0.8, i);
         drawWorkers(ax - 2, ax + aw * 2 + 4 * k, base + 2, k, 1);
-        const lab = job.kind === 'deep' ? '99%' : ICON[job.tech][0];
+        const lab = job.kind === 'deep' ? '99%' : job.kind === 'ic' || job.kind === 'sf' ? job.kind.toUpperCase() : ICON[job.tech][0];
         drawProgress(ax + aw, top - 18 - (i % 2) * 16, Math.max(52, aw * 5), frac, `${lab} ${Math.round(frac * 100)}%`);
       } else if (p.build && p.build.kind === 'convert') {
         drawScaffold(cx - bw / 2 - 2, by - 4, bw + 4, bh);

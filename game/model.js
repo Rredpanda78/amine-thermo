@@ -143,7 +143,7 @@
         fact: '\u6eb6\u5291\u88ab\u7529\u904e\u4ee5\u7d04 50 \u500d\u91cd\u529b\u9ad8\u901f\u65cb\u8f49\u7684\u586b\u6599\u74b0\uff0c\u6db2\u819c\u53c8\u8584\u53c8\u4e0d\u65b7\u66f4\u65b0\uff0c\u5438\u6536\u5feb\u5230\u5438\u6536\u5668\u53ea\u8981\u50b3\u7d71\u5854\u7684 1/10\u20131/20\uff0c\u9084\u80fd\u7528 70 wt% \u7684\u6fc3 MEA\u3002\u4ee3\u50f9\uff1a\u65cb\u8f49\u6a5f\u68b0\u6703\u6545\u969c\uff1b\u6bcf\u53f0\u4e0a\u9650\u7d04\u6bcf\u5e74 0.1 Mt CO\u2082\uff0c\u5927\u96fb\u5ee0\u8981\u5f88\u591a\u53f0\uff1b\u8f49\u5b50\u4e5f\u8981\u8017\u96fb\u3002' },
     },
     amp: {
-      name: 'Aqueous AMP (30 wt%)', short: 'AMP', capture: 0.90, duty: 3.25, capex: 1.4, opex: 12, rate: 0.56,
+      name: 'Aqueous AMP (30 wt%)', short: 'AMP', capture: 0.90, hiCap: true, duty: 3.25, capex: 1.4, opex: 12, rate: 0.56,
       unlocked: false, research: { cost: 60, months: 12, exp: 0.95, comp: 0.8 }, color: '#A3B18A', est: ['duty', 'opex'], stage: 'Pilot-tested',
       startup: 0.01, solvent: true, fail: 'AMP vapour escaped faster than the water wash could catch it',
       pitch: 'A trade-off, not an upgrade: twice the CO\u2082 per kilogram and a little less steam, but it absorbs slowly (tall, pricey absorber) and evaporates.',
@@ -154,7 +154,7 @@
         fact: '2-\u80fa\u57fa-2-\u7532\u57fa-1-\u4e19\u9187(AMP)\u662f\u7acb\u9ad4\u969c\u7919\u80fa\uff1a\u5e7e\u4e4e\u4e0d\u5f62\u6210\u80fa\u7532\u9178\u9e7d\uff0c\u6240\u4ee5\u6bcf\u516c\u65a4\u80fd\u5e36\u8d70\u7d04\u5169\u500d\u65bc MEA \u7684 CO\u2082\uff0c\u91cb\u653e\u6642\u7684\u71b1\u4e5f\u8f03\u5c11(73 vs 82 kJ/mol)\u3002\u4f46\u5b83\u7684\u53cd\u61c9\u6162\u7d04 10 \u500d\uff1b\u6fd5\u58c1\u5854\u5be6\u6e2c\u7684\u6574\u9ad4\u5438\u6536\u901f\u7387\u6bd4 MEA \u4f4e 45 %\uff0c\u5438\u6536\u5854\u8981\u7d04 1.8 \u500d\u7684\u586b\u6599\u3002\u5b83\u7684\u63ee\u767c\u6027\u4e5f\u7d04\u662f MEA \u7684 3.5 \u500d\uff0c\u8dd1\u6389\u7684\u80fa\u8981\u4e00\u76f4\u88dc\u3002\u7be9\u9078\u627e\u5230\u7684\u662f\u300c\u4e0d\u4e00\u6a23\u300d\uff0c\u4e0d\u662f\u300c\u66f4\u597d\u300d\uff1a\u503c\u4e0d\u503c\u5f97\uff0c\u770b\u4f60\u9700\u8981\u4ec0\u9ebc\u3002' },
     },
     mdeapz: {
-      name: 'MDEA/PZ (activated MDEA)', short: 'MDEA/PZ', capture: 0.90, duty: 3.1, capex: 0.88, opex: 10, rate: 1.8, work: 0.02,
+      name: 'MDEA/PZ (activated MDEA)', short: 'MDEA/PZ', capture: 0.90, hiCap: true, duty: 3.1, capex: 0.88, opex: 10, rate: 1.8, work: 0.02,
       unlocked: false, research: { cost: 90, months: 18, exp: 0.9, comp: 0.7 }, color: '#4EA8DE', est: ['duty', 'capex', 'opex'], stage: 'Pilot-tested',
       startup: 0.012, solvent: true, fail: 'the blend foamed and carried over into the stripper',
       pitch: 'A tertiary amine sped up by piperazine: twice the capacity of MEA, no freeze-out, but MDEA breaks down above ~120 \u00b0C, so the stripper runs cooler and compression costs more.',
@@ -176,7 +176,7 @@
         fact: "\u808c\u80fa\u9178\u9240\u662f\u80fa\u57fa\u9178\u7684\u9e7d\u985e\u3002\u9e7d\u4e0d\u6703\u63ee\u767c\uff0c\u6240\u4ee5\u5e7e\u4e4e\u6c92\u6709\u80fa\u9032\u5230\u7a7a\u6c23\u88e1\u3002\u4f46\u5b83\u6bcf\u516c\u65a4\u53ea\u80fd\u5e36\u8d70\u7d04 0.6 \u500d\u65bc MEA \u7684 CO\u2082\uff0c\u800c\u4e14\u53ef\u80fd\u7d50\u6676\u6790\u51fa\u3002\u7368\u7acb\u524d\u5c0e\u5ee0\u91cf\u5230\u7684\u518d\u751f\u80fd\u8017\u53cd\u800c\u300c\u9ad8\u65bc\u300dMEA\uff1b\u5ee0\u5546\u7684\u9032\u968e\u6d41\u7a0b(Siemens POSTCAP)\u5ba3\u7a31 2.4\u20132.7 GJ/t\u3002\u5be6\u9a57\u5ba4\u4e5f\u767c\u73fe\u5b83\u6703\u6c27\u5316\uff1a\u6bd4 MEA \u5c11\uff0c\u4f46\u4e0d\u50cf\u5ba3\u50b3\u7684\u90a3\u6a23\u514d\u75ab\u3002\u5b83\u5728\u7a00\u8584\u7684\u71c3\u6c23\u5ee0\u7159\u6c23\u4e0a\u76f8\u5c0d\u8f03\u597d\uff0c\u5438\u6536\u901f\u5ea6\u7d04\u70ba MEA \u7684 1.6 \u500d\u3002" },
     },
     ampnmp: {
-      name: 'AMP\u2013NMP (semi-aqueous)', short: 'AMP-NMP', capture: 0.90, duty: 3.0, capex: 1.45, opex: 6, rate: 0.3,
+      name: 'AMP\u2013NMP (semi-aqueous)', short: 'AMP-NMP', capture: 0.90, hiCap: true, duty: 3.0, capex: 1.45, opex: 6, rate: 0.3,
       unlocked: false, research: { cost: 100, months: 18, exp: 0.9, comp: 0.6 }, color: '#0E9F6E', est: ['duty', 'opex', 'capex'], stage: 'Lab scale',
       startup: 0.025, risk: 0.006, solvent: true, scaleUp: true, fail: 'AMP carbamate precipitated and clogged a line', riskText: 'AMP carbamate precipitated',
       pitch: 'Cheapest to run, but it absorbs slowly: the tallest absorber, the priciest to build, and it can clog.',
@@ -187,7 +187,7 @@
         fact: 'NMP \u4e0d\u8ddf CO\u2082 \u53cd\u61c9\uff0c\u537b\u8b93\u7acb\u9ad4\u969c\u7919\u80fa AMP \u6bd4\u5728\u6c34\u4e2d\u5feb 3 \u500d\uff1bAMP \u7684 CO\u2082 \u5bb9\u91cf\u7d04\u662f MEA \u7684\u5169\u500d\uff0c\u6eb6\u5291\u5faa\u74b0\u91cf\u6e1b\u534a\uff1a\u6cf5\u6d66\u66f4\u5c0f\u3001\u88dc\u5145\u66f4\u5c11\uff0c\u904b\u8f49\u6700\u4fbf\u5b9c\u3002\u4ee3\u50f9\uff1a\u9ad8\u8ca0\u8f09\u6642 AMP \u80fa\u7532\u9178\u9e7d\u6703\u6790\u51fa\u5835\u7ba1\uff0c\u5373\u4f7f\u958b\u6a5f\u591a\u5e74\u5f8c\u4e5f\u6703\u767c\u751f\u3002' },
     },
     pe2eg: {
-      name: '2PE\u2013EG (water-lean)', short: '2PE-EG', capture: 0.90, duty: 2.9, capex: 0.80, opex: 9, rate: 4.5,
+      name: '2PE\u2013EG (water-lean)', short: '2PE-EG', capture: 0.90, hiCap: true, duty: 2.9, capex: 0.80, opex: 9, rate: 4.5,
       unlocked: false, research: { cost: 180, months: 24, exp: 0.85, comp: 0.5 }, color: '#E2A93B', est: ['capex'], star: true, stage: 'Lab scale',
       startup: 0.035, solvent: true, scaleUp: true, fail: 'the viscous solvent overloaded the heat exchanger',
       pitch: 'The rarest find and shaky first years, then fast, compact and efficient: the best all-rounder.',
@@ -198,7 +198,7 @@
         fact: '\u4e59\u4e8c\u9187\u6703\u53c3\u8207\u53cd\u61c9\uff1a\u628a\u80fa\u7532\u9178\u9e7d\u8f49\u6210\u70f7\u57fa\u78b3\u9178\u9e7d\u3001\u628a\u80fa\u91cb\u653e\u51fa\u4f86\uff0c\u6240\u4ee5 2-\u54cc\u5576\u4e59\u9187\u6bd4 MEA \u53cd\u61c9\u5feb 4.5 \u500d\u3001\u5faa\u74b0\u5bb9\u91cf 2.8 \u500d\uff1b\u518d\u751f 128 kJ/mol(\u7d04 2.9 GJ/t)\u3002\u4ee3\u50f9\uff1a\u9ecf\u5ea6\u662f MEA \u7684 15 \u500d\u3002' },
     },
     pz: {
-      name: 'Piperazine (PZ) + advanced stripper', short: 'PZ', capture: 0.90, duty: 2.45, capex: 0.90, opex: 11, rate: 9.5,
+      name: 'Piperazine (PZ) + advanced stripper', short: 'PZ', capture: 0.90, hiCap: true, duty: 2.45, capex: 0.90, opex: 11, rate: 9.5,
       unlocked: false, research: { cost: 90, months: 18, exp: 0.95, comp: 0.7 }, color: '#8E7CC3', est: ['capex', 'opex'],
       stage: 'Pilot-tested', startup: 0.015, risk: 0.003, gasOK: true, solvent: true, fail: 'solid piperazine froze out in a cold line', riskText: 'solid piperazine froze out',
       pitch: 'Least steam in pilot plants, even on dilute gas-plant flue gas, and so fast the absorber is short; PZ is costly to buy and can freeze out when cold.',
@@ -228,8 +228,26 @@
     comp: { label: 'Computer screening (QM + MD)', zh: '\u96fb\u8166\u7be9\u9078(QM + MD)', cost: 15, months: 4, odds: 0.4, learn: 0.15 },
   };
   const DROPS = { amp: { weight: 40, stars: 2 }, aas: { weight: 35, stars: 2 }, mdeapz: { weight: 30, stars: 3 }, pz: { weight: 28, stars: 3 }, ampnmp: { weight: 22, stars: 3 }, pe2eg: { weight: 16, stars: 4 } };
-  const PROJECTS = {};
-  const LAB_ORDER = ['screen', 'afs', 'rpb', 'mcfc'];   // one project at a time, more can queue
+  // process upgrades: developed in one lab project, then fitted plant by plant
+  const PROCESS = {
+    ic: { cost: 50, months: 9, fit: 0.08, build: 6, hiCap: 0.9, other: 0.97 },   // absorber intercooling
+    sf: { cost: 70, months: 12, fit: 0.15, build: 9, deep: 0.88 },              // split-flow + multi-pressure stripper (99 % only)
+  };
+  const PROJECTS = {
+    ic: { name: 'Absorber intercooling', short: 'IC', cost: PROCESS.ic.cost, months: PROCESS.ic.months, process: true,
+      desc: 'Pump the half-loaded solvent out of the middle of the absorber, cool it to 40 \u00b0C and send it back: it removes the temperature bulge that chokes high-capacity solvents. Best with AMP, AMP\u2013NMP, MDEA/PZ, PZ and 2PE\u2013EG (about \u221210 % steam); almost nothing for MEA (\u22123 %).',
+      src: 'Chen, Hsu & Lin, Ind. Eng. Chem. Res. 2025 (AMP: solvent rate \u221239 %); Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (MEA: \u22123.8 %)',
+      zh: { name: '\u5438\u6536\u5854\u4e2d\u9593\u51b7\u537b', desc: '\u628a\u5438\u6536\u5854\u4e2d\u6bb5\u7684\u534a\u5bcc\u6db2\u62bd\u51fa\u3001\u51b7\u5230 40 \u00b0C \u518d\u6253\u56de\u53bb\uff0c\u6d88\u9664\u6eab\u5ea6\u9f13\u5305\u5c0d\u9ad8\u5bb9\u91cf\u6eb6\u5291\u7684\u9650\u5236\u3002\u6700\u9069\u5408 AMP\u3001AMP\u2013NMP\u3001MDEA/PZ\u3001PZ\u30012PE\u2013EG(\u84b8\u6c7d\u7d04 \u221210 %)\uff1b\u5c0d MEA \u5e7e\u4e4e\u6c92\u7528(\u22123 %)\u3002' } },
+    sf: { name: 'Split-flow, multi-pressure stripper', short: 'SF', cost: PROCESS.sf.cost, months: PROCESS.sf.months, process: true,
+      desc: 'For 99 % capture: a semi-lean solvent does most of the work at the bottom of the absorber and a deeply stripped lean solvent polishes the top. Cuts the reboiler duty of 99 % capture by about 12 %, but needs more solvent circulation and an extra compressor stage. Only matters on plants upgraded to 99 %.',
+      src: 'Chang, Chou & Lin, Sep. Purif. Technol. 2025 (doi 10.1016/j.seppur.2024.130120): reboiler 3.68 \u2192 3.25 GJ/t',
+      zh: { name: '\u5206\u6d41 + \u591a\u58d3\u6c7d\u63d0', desc: '\u7d66 99 % \u6355\u6349\u7528\uff1a\u5438\u6536\u5854\u4e0b\u6bb5\u7528\u534a\u8ca7\u6db2\u6293\u5927\u90e8\u5206\uff0c\u4e0a\u6bb5\u7528\u6df1\u5ea6\u518d\u751f\u7684\u8ca7\u6db2\u6536\u5c3e\u300299 % \u6355\u6349\u7684\u518d\u6cb8\u5668\u8ca0\u8377\u7d04\u964d 12 %\uff0c\u4f46\u6eb6\u5291\u5faa\u74b0\u91cf\u66f4\u5927\u3001\u9084\u8981\u591a\u4e00\u6bb5\u58d3\u7e2e\u6a5f\u3002\u53ea\u5c0d\u5df2\u5347\u7d1a 99 % \u7684\u96fb\u5ee0\u6709\u7528\u3002' } },
+    flex: { name: 'Flexible operation (control system)', short: 'FLEX', cost: 40, months: 8, process: true,
+      desc: 'A control system that lets capture follow the grid: in the two or three peak months every capture unit eases off during the peak hours (75 % on average), so the plants give the town more power (fewer blackouts, more to sell), but more CO\u2082 escapes in those months. Works with every solvent; it starts OFF, switch it on in the lab.',
+      src: 'Lin, Wong, Jang & Ou, AIChE J. 2012 (doi 10.1002/aic.12789): flexible operation of amine capture',
+      zh: { name: '\u5f48\u6027\u64cd\u4f5c(\u63a7\u5236\u7cfb\u7d71)', desc: '\u8b93\u6355\u6349\u8ddf\u8457\u96fb\u7db2\u8d70\u7684\u63a7\u5236\u7cfb\u7d71\uff1a\u5728\u5169\u4e09\u500b\u5c16\u5cf0\u6708\u4efd\uff0c\u6bcf\u5957\u6355\u6349\u5728\u5c16\u5cf0\u6642\u6bb5\u964d\u8f09(\u6574\u6708\u5e73\u5747 75 %)\uff0c\u96fb\u5ee0\u591a\u51fa\u96fb\u529b(\u5c11\u505c\u96fb\u3001\u591a\u8ce3\u96fb)\uff0c\u4f46\u90a3\u5e7e\u500b\u6708\u6703\u591a\u6392\u4e00\u4e9b CO\u2082\u3002\u9069\u7528\u6240\u6709\u6eb6\u5291\uff1b\u9810\u8a2d\u95dc\u9589\uff0c\u8981\u5230\u7814\u7a76\u6240\u6253\u958b\u3002' } },
+  };
+  const LAB_ORDER = ['screen', 'afs', 'rpb', 'mcfc', 'ic', 'sf', 'flex'];   // one project at a time, more can queue
 
   // ---- names in both languages ----------------------------------------------
   const pName = p => `${PLANT_TYPES[p.type].label} Plant ${p.id}`;
@@ -237,7 +255,7 @@
   const tZh = id => (TECHS[id].zh && TECHS[id].zh.name) || TECHS[id].name;
 
   // ---- technology helpers -----------------------------------------------------
-  function eff(techId, deep, type) {
+  function eff(techId, deep, type, ic, sf) {
     const t = TECHS[techId];
     if (!t) return null;
     const pt = PLANT_TYPES[type || 'coal'];
@@ -245,6 +263,8 @@
     if (deep) { e.capture = DEEP.capture; e.duty *= DEEP.dutyMul; e.opex += DEEP.opexAdd; }
     if (t.gasDuty && pt.gas) e.duty = t.gasDuty * (deep ? DEEP.dutyMul : 1);   // e.g. an amino-acid salt suits dilute gas flue gas
     else if (!t.gasOK) e.duty *= pt.dutyMul;   // PZ + advanced stripper performs the same on dilute gas-plant flue gas
+    if (ic && !t.power) e.duty *= t.hiCap ? PROCESS.ic.hiCap : PROCESS.ic.other;   // intercooling pays off for high-capacity solvents
+    if (sf && deep && !t.power) e.duty *= PROCESS.sf.deep;                       // split flow trims the 99 % duty
     e.opex *= pt.opexMul;
     return e;
   }
@@ -253,7 +273,7 @@
   // share of gross output lost to capture (negative = the unit adds power, like a fuel cell)
   function penalty(plant, techId, deep) {
     if (deep === undefined) deep = !!plant.deep && plant.tech === techId;
-    const e = eff(techId, deep, plant.type);
+    const e = eff(techId, deep, plant.type, plant.ic, plant.sf);
     if (!e) return 0;
     return PLANT_TYPES[plant.type].intensity * e.capture * workPerTonne(e) - e.power;
   }
@@ -313,6 +333,12 @@
     return pt.gas ? gasFuel(state) * (pt.heatRate || 1) : RG(state).coal;
   }
   const isGas = type => !!(PLANT_TYPES[type] && PLANT_TYPES[type].gas);
+  // flexible operation: in the two or three peak months capture eases off during the peak hours (75 % on average
+  // over the month). It has to be switched on after the research, so nobody pays the extra CO2 by accident.
+  const FLEX = 0.75;
+  function isPeak(state) { return seasonOf(state) >= 1.08 || state.demandMult > 1; }
+  function flexNow(state) { return !!(state.unlocked.flex && state.flexOn === true && isPeak(state)); }
+  function setFlex(state, on) { state.flexOn = !!on; }
   function online(p) { return p.down <= 0 && !(p.build && (p.build.kind === 'new' || p.build.kind === 'convert')); }
 
   function maturity(state, techId) {
@@ -502,12 +528,14 @@
   const QUEUE_MAX = 5;
   const qOf = p => p.queue || (p.queue = []);
   function planned(plant) {
-    const v = { type: plant.type, gross: plant.gross, tech: plant.tech, deep: plant.deep };
+    const v = { type: plant.type, gross: plant.gross, tech: plant.tech, deep: plant.deep, ic: !!plant.ic, sf: !!plant.sf };
     const apply = job => {
       if (!job) return;
       if (job.kind === 'tech') { v.tech = job.tech; v.deep = false; }
       else if (job.kind === 'deep') v.deep = true;
       else if (job.kind === 'convert') { v.type = job.toType; v.gross = PLANT_TYPES[job.toType].size; }
+      else if (job.kind === 'ic') v.ic = true;
+      else if (job.kind === 'sf') v.sf = true;
     };
     apply(plant.build);
     qOf(plant).forEach(apply);
@@ -535,15 +563,33 @@
       if (!c) return { ok: false, why: 'No conversion for this plant' };
       if (v.tech && TECHS[v.tech].gasOnly && to !== 'gas') return { ok: false, why: 'Remove the fuel cell first' };
       cost = c.cost; months = c.months;
+    } else if (job.kind === 'ic' || job.kind === 'sf') {
+      const pr = PROCESS[job.kind];
+      if (!state.unlocked[job.kind]) return { ok: false, why: 'Design it in the lab first' };
+      if (!v.tech) return { ok: false, why: 'Add capture first' };
+      if (TECHS[v.tech].power) return { ok: false, why: 'Not for fuel cells' };
+      if (v[job.kind]) return { ok: false, why: plant[job.kind] && !plant.build ? 'Already installed' : 'Already queued' };
+      if (job.kind === 'sf' && !v.deep) return { ok: false, why: 'Needs the 99 % upgrade first' };
+      cost = Math.round(pr.fit * capexFull(v, v.tech) * (state.subsidy > 0 ? 0.7 : 1) * (RG(state).capexMul || 1)); months = pr.build;
     } else return { ok: false, why: 'Unknown job' };
     if (state.funds < cost) return { ok: false, why: 'Not enough funds', cost, months, to };
     return { ok: true, cost, months, to };
   }
   function jobName(job) {
-    return job.kind === 'tech' ? `${TECHS[job.tech].short} capture` : job.kind === 'deep' ? '99 % upgrade' : `conversion to ${PLANT_TYPES[job.toType].label.toLowerCase()}`;
+    return job.kind === 'tech' ? `${TECHS[job.tech].short} capture` : job.kind === 'deep' ? '99 % upgrade' : job.kind === 'ic' ? 'absorber intercooling'
+      : job.kind === 'sf' ? 'split-flow stripper' : `conversion to ${PLANT_TYPES[job.toType].label.toLowerCase()}`;
   }
   function jobZh(job) {
-    return job.kind === 'tech' ? `${TECHS[job.tech].short} \u6355\u6349` : job.kind === 'deep' ? '99 % \u5347\u7d1a' : `\u6539\u5efa\u70ba${PLANT_TYPES[job.toType].zh}`;
+    return job.kind === 'tech' ? `${TECHS[job.tech].short} \u6355\u6349` : job.kind === 'deep' ? '99 % \u5347\u7d1a' : job.kind === 'ic' ? '\u5438\u6536\u5854\u4e2d\u9593\u51b7\u537b'
+      : job.kind === 'sf' ? '\u5206\u6d41\u6c7d\u63d0' : `\u6539\u5efa\u70ba${PLANT_TYPES[job.toType].zh}`;
+  }
+  // fit a process upgrade (the capture unit keeps running while it is built)
+  function addon(state, p, item) {
+    const chk = canQueue(state, Object.assign({}, p, { queue: [] }), { kind: item.kind });
+    if (!chk.ok && chk.why !== 'Not enough funds') return chk;
+    p.build = { kind: item.kind, left: item.months, total: item.months, paid: item.paid };
+    addNews(state, 'build', `${p.name}: ${jobName(item)} started ($${item.paid}M).`, `${pZh(p)}\uff1a\u958b\u59cb\u52a0\u88dd${jobZh(item)}($${item.paid}M)\u3002`);
+    return { ok: true };
   }
   function enqueue(state, plantId, job) {
     const p = findPlant(state, plantId);
@@ -561,7 +607,8 @@
   }
   function startJob(state, p, item) {
     const r = item.kind === 'tech' ? install(state, p.id, item.tech, item.paid)
-      : item.kind === 'deep' ? upgrade(state, p.id, item.paid) : convert(state, p.id, item.toType, item.paid);
+      : item.kind === 'deep' ? upgrade(state, p.id, item.paid)
+      : item.kind === 'ic' || item.kind === 'sf' ? addon(state, p, item) : convert(state, p.id, item.toType, item.paid);
     if (!r.ok) {
       state.funds += item.paid;
       addNews(state, 'build', `${p.name}: ${jobName(item)} skipped (${r.why.toLowerCase()}), $${item.paid}M refunded.`,
@@ -596,7 +643,7 @@
       const n = lq.filter(x => x.id === 'screen').length + (state.research.screen != null ? 1 : 0);
       if (n >= undiscovered(state).length) return { ok: false, why: undiscovered(state).length ? 'Enough screens queued' : 'Every solvent found' };
     } else {
-      if (!TECHS[id] || !TECHS[id].research) return { ok: false, why: 'Nothing to research' };
+      if (!PROJECTS[id] && (!TECHS[id] || !TECHS[id].research)) return { ok: false, why: 'Nothing to research' };
       if (state.unlocked[id] || state.research[id] != null || lq.some(x => x.id === id)) return { ok: false, why: 'Already done or queued' };
     }
     const mt = methodOf(id, method);
@@ -676,7 +723,7 @@
   }
   function canResearch(state, id, method, paid) {
     if (id === 'screen') { if (!undiscovered(state).length) return { ok: false, why: 'Every solvent found' }; }
-    else if (!TECHS[id] || !TECHS[id].research) return { ok: false, why: 'Nothing to research' };
+    else if (!PROJECTS[id] && (!TECHS[id] || !TECHS[id].research)) return { ok: false, why: 'Nothing to research' };
     if (state.unlocked[id] || state.research[id] != null) return { ok: false, why: 'Already done' };
     if (Object.keys(state.research).length) return { ok: false, why: 'Lab busy: one project at a time' };
     const cost = researchCost(state, id, method);
@@ -943,6 +990,9 @@
         p.type = b.toType; p.gross = PLANT_TYPES[b.toType].size;
         p.name = pName(p);
         addNews(state, 'build', `${p.name}: conversion finished (${p.gross} MW).`, `${pZh(p)}\uff1a\u6539\u5efa\u5b8c\u6210(${p.gross} MW)\u3002`);
+      } else if (b.kind === 'ic' || b.kind === 'sf') {
+        p[b.kind] = true;
+        addNews(state, 'build', `${p.name}: ${jobName(b)} is running.`, `${pZh(p)}\uff1a${jobZh(b)}\u555f\u7528\u3002`);
       } else {
         if (p.tech !== b.tech) { p.washed = !!TECHS[b.tech].noEmit; p.stackAge = 0; }
         p.tech = b.tech; p.deep = !!b.deep;
@@ -984,9 +1034,9 @@
     const units = state.plants.filter(online).map(p => {
       const pt = PLANT_TYPES[p.type];
       const on = p.tech && p.outage <= 0 && state.captureOff <= 0;
-      const e = on ? eff(p.tech, p.deep, p.type) : null;
+      const e = on ? eff(p.tech, p.deep, p.type, p.ic, p.sf) : null;
       if (e && state.opexCut > 0) e.opex *= 1.3;   // subsidy cut: suppliers pass on their losses
-      const c = e ? e.capture : 0;
+      const c = e ? e.capture * (flexNow(state) ? FLEX : 1) : 0;
       const pen = e ? pt.intensity * c * workPerTonne(e) - e.power : 0;
       const fuel = fuelOf(state, p.type) * (1 + (e ? e.power : 0));   // a fuel cell burns extra gas for its extra power
       const avail = pt.gas ? (state.gasFreeze > 0 ? 0.3 : state.lngCut > 0 ? 0.5 : 1) : 1;
@@ -1145,6 +1195,7 @@
     QUEUE_MAX, planned, canQueue, enqueue, cancelJob, canQueueResearch, enqueueResearch, cancelResearch,
     convert, canConvert, buildPlant, canBuildPlant, demolish, canDemolish,
     startResearch, canResearch, researchCost, researchMonths, researchOdds, project, maturity,
+    PROCESS, flexNow, isPeak, setFlex,
     setPrice, penalty, eff, workPerTonne, carbonTax, taxFor, limit, limitAt, limitFor, fairPrice, gasFuel, demand, peakDemand, seasonOf, year, monthName, score, stars,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
