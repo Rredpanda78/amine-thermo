@@ -7,8 +7,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&family=Playfair+Display:ital,wght@0,700;0,900;1,400&display=swap">
 <style>
-/* Layout: meters across the top, then two panes — the city (live scene, tap a plant to command it, price)
-   and the research lab (screening, pilot test, news). Phones switch panes with two tabs. */
+/* Layout: meters across the top, then two panes — the city (live scene: tap plants, the lab, the price billboard,
+   the empty lot) and the research lab (screening, pilot tests, news). Phones switch panes with two tabs.
+   English and Traditional Chinese: every string has both; the button in the top bar switches. */
 :root {
   --bg: #0F1A2B;
   --panel: #16243A;
@@ -22,23 +23,24 @@
   --good: #7BD389;
   --gold: #E2A93B;
   --shadow: rgba(3, 8, 18, 0.55);
-  --display: 'Bungee', 'Arial Black', Impact, sans-serif;
-  --body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --display: 'Bungee', 'Arial Black', Impact, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, 'Noto Sans TC', 'Microsoft JhengHei', monospace;
+  --serif: 'Playfair Display', Georgia, 'Noto Serif TC', 'PMingLiU', 'MingLiU', serif;
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--body); }
 * { box-sizing: border-box; }
-button { font: inherit; color: inherit; }
+button, input { font: inherit; color: inherit; }
 .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 28px; display: grid; gap: 12px; }
 
 /* top bar */
 .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .brand { font-family: var(--display); font-size: clamp(20px, 4.4vw, 30px); letter-spacing: 0.5px; line-height: 1; margin: 0; }
 .brand small { font-family: var(--body); font-size: 12px; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; display: block; margin-top: 4px; }
-.clock { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.clock { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .date { font-family: var(--mono); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 88px; text-align: right; }
 .speed { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .speed button { background: var(--panel); border: 0; padding: 8px 11px; min-width: 42px; cursor: pointer; font-family: var(--mono); font-size: 13px; }
@@ -46,21 +48,14 @@ button { font: inherit; color: inherit; }
 .speed button[aria-pressed="true"] { background: var(--amine); color: #062320; font-weight: 600; }
 .snd button { min-width: 0; padding: 8px 9px; font-size: 12px; }
 .snd button[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
-.speed button:focus-visible, .btn:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
+.langbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; cursor: pointer; font-weight: 700; font-size: 13px; }
+.speed button:focus-visible, .btn:focus-visible, input:focus-visible, summary:focus-visible, .langbtn:focus-visible, .meter[role=button]:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
 
 /* meters */
 .meters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 8px; }
 .cprice { margin-top: 6px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .cprice b { color: var(--fg); }
 .cprice.credit b { color: var(--good); }
-.m-tax .bar i { background: linear-gradient(90deg, #D9B44A, #B23B2C); }
-.m-tax.credit .val { color: var(--good); }
-.m-tax.credit .bar i { background: var(--good); }
-.fuelrow { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
-.fuelrow span { color: var(--muted); font-size: 11px; }
-.fuelrow em { font-style: normal; font-size: 11px; margin-left: 4px; }
-.fuelrow em.up { color: var(--anger); } .fuelrow em.down { color: var(--good); }
-.m-fuel .bar i { background: linear-gradient(90deg, #9CC7F2, #EF6351); }
 .limbar s { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed #CFE9D5; transition: left .5s; }
 .regions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
 .rgn { display: grid; gap: 3px; align-content: start; text-align: left; padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; }
@@ -74,10 +69,13 @@ button { font: inherit; color: inherit; }
 .arch a { color: var(--amine); }
 @media (max-width: 640px) { .regions { grid-template-columns: minmax(0, 1fr); } }
 .meter { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.meter[role=button] { cursor: pointer; }
+.meter[role=button]:hover { border-color: var(--anger); }
 .meter .lab { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
 .meter .val { font-family: var(--mono); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; }
 .meter .val small { font-size: 12px; color: var(--muted); font-weight: 500; }
 .meter .sub { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.meter .sub.up { color: var(--anger); } .meter .sub.down { color: var(--good); }
 .bar { height: 7px; border-radius: 4px; background: #0B1422; overflow: hidden; margin-top: 4px; }
 .bar i { display: block; height: 100%; width: 0; border-radius: 4px; transition: width .4s; }
 .m-ang .bar i { background: linear-gradient(90deg, #F29B6B, var(--anger)); }
@@ -109,6 +107,7 @@ button { font: inherit; color: inherit; }
 .tabs button[aria-selected="true"] { background: var(--amine); color: #062320; }
 .tabs .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--co2); margin-left: 6px; vertical-align: 1px; }
 .scene { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #7EC8F0; }
+.scene canvas { display: block; width: 100%; height: auto; touch-action: manipulation; }
 .chips-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .pchip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-size: 12.5px; min-height: 32px; }
@@ -117,7 +116,9 @@ button { font: inherit; color: inherit; }
 .pchip i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .pchip.down { border-color: #6B3E33; color: var(--anger); }
 .pchip.add { border-style: dashed; color: var(--amine); font-weight: 700; }
-.scene canvas { display: block; width: 100%; height: auto; }
+.status { font-size: 12.5px; color: var(--muted); min-height: 18px; }
+.status .hot { color: var(--anger); font-weight: 700; }
+.status .ok { color: var(--good); font-weight: 700; }
 .paused-badge { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(15, 26, 43, .45); border: 0; color: #FFF; font: 700 18px var(--body); letter-spacing: 1px; cursor: pointer; }
 .paused-badge span { background: rgba(15, 26, 43, .9); border: 1px solid var(--line); border-radius: 999px; padding: 10px 18px; }
 .toast { position: absolute; left: 10px; right: 10px; top: 10px; background: rgba(15, 26, 43, .92); border: 1px solid var(--line); border-left: 4px solid var(--co2); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; font-weight: 700; box-shadow: 0 6px 20px var(--shadow); }
@@ -128,7 +129,7 @@ button { font: inherit; color: inherit; }
 .card h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .card h2 b { font-family: var(--mono); color: var(--fg); letter-spacing: 0; text-transform: none; font-size: 14px; }
 
-/* price */
+/* price sheet */
 .price-row { display: flex; align-items: center; gap: 12px; }
 .price-val { font-family: var(--mono); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 92px; }
 .price-val span { font-size: 12px; color: var(--muted); font-weight: 500; }
@@ -136,6 +137,18 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .hint { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .hint .hot { color: var(--anger); font-weight: 700; }
 .hint .ok { color: var(--good); font-weight: 700; }
+
+/* anger sheet: one row per source, red pushes anger up, green brings it down */
+.why { display: grid; grid-template-columns: 8.5em minmax(0, 1fr) 4.4em; gap: 6px 10px; align-items: center; font-size: 13px; margin: 6px 0 10px; }
+.why .k { color: var(--muted); }
+.why .tr { position: relative; height: 10px; background: #0F1B2D; border-radius: 5px; }
+.why .tr i { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
+.why .tr i.up { left: 50%; background: var(--anger); }
+.why .tr i.dn { right: 50%; background: var(--good); }
+.why .tr::after { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; border-left: 1px solid var(--line); }
+.why .v { font-family: var(--mono); text-align: right; }
+.why .v.up { color: var(--anger); } .why .v.dn { color: var(--good); }
+.advice { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
 
 /* plant command card: icon grid (hover / tap for the info box), work queue on top */
 .cmd { width: min(560px, 100%); }
@@ -150,7 +163,7 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .qs.job:hover .x, .qs.job:focus-visible .x { opacity: 1; color: #7A1308; }
 .qs .pg { position: absolute; left: 0; bottom: 0; height: 5px; background: rgba(11, 20, 34, .55); }
 .qs small { font-size: 9.5px; font-weight: 600; opacity: .85; }
-.icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; margin-top: 10px; }
+.icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px; margin-top: 10px; }
 .ic { position: relative; aspect-ratio: 1 / 1; border-radius: 12px; border: 2px solid transparent; display: grid; place-items: center; align-content: center; gap: 1px; cursor: pointer; font-weight: 700; font-size: 14px; color: #0B1422; padding: 4px; line-height: 1.1; text-align: center; }
 .ic small { font-size: 10px; font-weight: 700; opacity: .8; }
 .ic.locked { background: #22324D !important; color: var(--muted); }
@@ -166,14 +179,11 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .cmd-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
 .chip { font-size: 11px; font-family: var(--mono); padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .chip.coal { color: #F0A58A; border-color: #6B3E33; }
-.chip.gas { color: #9CC7F2; border-color: #33506F; }
+.chip.gas, .chip.gasb { color: #9CC7F2; border-color: #33506F; }
 .chip.bad { color: var(--anger); border-color: #6B3E33; }
 .chip.warn { color: var(--co2); border-color: #6B5B2E; }
 .chip.ok { color: var(--good); border-color: #2F5B3A; }
-.tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .kv { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.kv b { color: var(--fg); font-weight: 600; }
-.tech-tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #0B1422; }
 .prog { height: 6px; background: #0B1422; border-radius: 3px; overflow: hidden; }
 .prog i { display: block; height: 100%; background: var(--amine); }
 .btn { background: var(--amine); color: #062320; border: 0; border-radius: 8px; padding: 9px 12px; font-weight: 700; cursor: pointer; min-height: 40px; }
@@ -196,6 +206,9 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .rbtn { display: grid; gap: 1px; text-align: left; flex: 1 1 140px; }
 .rbtn small { font-weight: 500; font-size: 12px; opacity: .85; }
 .proj { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.proj.pilot { grid-template-columns: minmax(0, 1fr) auto; }
+.proj.pilot .rbtn { flex: 0 0 auto; }
+.proj.pilot .d { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .proj.star { border-color: #7A5B1E; background: linear-gradient(180deg, #2A2616, var(--panel-2)); }
 .proj .t { font-weight: 700; }
 .proj .d { font-size: 12px; color: var(--muted); }
@@ -225,8 +238,6 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .sheet .lead { color: var(--muted); margin: 0 0 8px; }
 .opts { display: grid; gap: 8px; }
 .opt { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--panel-2); display: grid; gap: 6px; }
-.opt.star { border-color: #7A5B1E; }
-.opt.up { border-color: var(--good); }
 .opt .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .opt .nm { font-weight: 700; font-size: 16px; }
 .opt .pitch { font-size: 13.5px; }
@@ -247,25 +258,42 @@ details p { margin: 6px 0 0; }
 .src { font-size: 11.5px; color: var(--muted); font-style: italic; }
 .est { color: var(--co2); font-style: normal; }
 .ready { color: var(--good); font-family: var(--mono); font-size: 12px; font-weight: 600; }
-.close-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+.close-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .acts { display: flex; flex-wrap: wrap; gap: 8px; }
 
+/* leaderboard */
+.board { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 6px 0; }
+.board th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 700; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.board td { padding: 5px 6px; border-bottom: 1px solid #22324D; font-variant-numeric: tabular-nums; }
+.board td.n { font-family: var(--mono); text-align: right; }
+.board td.st { color: var(--gold); letter-spacing: 1px; }
+.board tr.me td { background: rgba(46, 196, 182, .14); font-weight: 700; }
+.board .empty td { color: var(--muted); text-align: center; padding: 14px; }
+.rtabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 6px; }
+.rtabs button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; }
+.rtabs button[aria-pressed="true"] { border-color: var(--amine); color: var(--amine); font-weight: 700; }
+.nick { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 4px 0 12px; }
+.nick label { font-weight: 700; }
+.nick input { background: #0F1B2D; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; flex: 1 1 160px; max-width: 260px; }
+.nick input.bad { border-color: var(--anger); box-shadow: 0 0 0 2px rgba(239, 99, 81, .35); }
+.nick .err { color: var(--anger); font-size: 12.5px; }
+
 /* events: a newspaper front page in the middle of the screen */
-.paper { width: min(640px, 100%); max-height: min(92vh, 920px); overflow: auto; background: #F3EEE2; color: #1A1A1A; border-radius: 3px; padding: 16px 20px 18px; box-shadow: 0 24px 70px var(--shadow); font-family: Georgia, 'Times New Roman', serif; animation: drop .5s cubic-bezier(.2, .9, .3, 1.2); }
+.paper { width: min(640px, 100%); max-height: min(92vh, 920px); overflow: auto; background: #F3EEE2; color: #1A1A1A; border-radius: 3px; padding: 16px 20px 18px; box-shadow: 0 24px 70px var(--shadow); font-family: Georgia, 'Times New Roman', 'Noto Serif TC', 'PMingLiU', serif; animation: drop .5s cubic-bezier(.2, .9, .3, 1.2); }
 @keyframes drop { from { transform: rotate(-10deg) scale(.5); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .paper { animation: none; } }
-.paper .mast { text-align: center; font-family: 'Playfair Display', Georgia, serif; font-weight: 900; font-size: clamp(24px, 6vw, 40px); line-height: 1; letter-spacing: .5px; border-bottom: 4px double #1A1A1A; padding-bottom: 6px; }
+.paper .mast { text-align: center; font-family: var(--serif); font-weight: 900; font-size: clamp(24px, 6vw, 40px); line-height: 1; letter-spacing: .5px; border-bottom: 4px double #1A1A1A; padding-bottom: 6px; }
 .paper .dline { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1A1A1A; padding: 4px 0; margin-bottom: 12px; }
 .paper .dline .ex { color: #B3261E; font-weight: 700; }
 .paper .dline .ex.good { color: #2E6B3A; }
-.paper h3 { font-family: 'Playfair Display', Georgia, serif; font-weight: 900; font-size: clamp(24px, 5.6vw, 38px); line-height: 1.05; margin: 0 0 6px; letter-spacing: 0; }
-.paper .deck { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 17px; margin: 0 0 12px; }
+.paper h3 { font-family: var(--serif); font-weight: 900; font-size: clamp(24px, 5.6vw, 38px); line-height: 1.1; margin: 0 0 6px; letter-spacing: 0; }
+.paper .deck { font-family: var(--serif); font-style: italic; font-size: 17px; margin: 0 0 12px; }
 .paper .story { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 14px; align-items: start; }
 .paper figure { margin: 0; }
 .paper figure svg { width: 100%; height: auto; display: block; border: 1px solid #1A1A1A; }
 .paper figcaption { font-size: 11px; font-style: italic; margin-top: 3px; color: #444; }
-.paper .body { font-size: 15px; line-height: 1.5; margin: 0; }
-.paper .body::first-letter { float: left; font-family: 'Playfair Display', Georgia, serif; font-weight: 900; font-size: 44px; line-height: .85; padding: 3px 6px 0 0; }
+.paper .body { font-size: 15px; line-height: 1.6; margin: 0; }
+html:not([lang|="zh"]) .paper .body::first-letter { float: left; font-family: var(--serif); font-weight: 900; font-size: 44px; line-height: .85; padding: 3px 6px 0 0; }
 .paper .opts { margin-top: 14px; }
 .paper .choice { background: #FFFDF6; border: 1.5px solid #1A1A1A; color: #1A1A1A; border-radius: 3px; }
 .paper .choice:hover { border-color: #B3261E; }
@@ -278,24 +306,24 @@ details p { margin: 6px 0 0; }
 .choice .cl { font-weight: 700; font-size: 16px; }
 .choice .ce { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
-/* tips: a small card at the bottom that pauses the game */
+/* tips: a small card that pauses the game */
 .lab-tag { color: var(--gold); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; }
 .tipov { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px; background: rgba(5, 10, 20, .55); }
 .tip { width: min(460px, 100%); background: #FFF8E1; color: #2A1C02; border-radius: 16px; padding: 16px 18px; box-shadow: 0 16px 50px var(--shadow); display: grid; gap: 12px; }
 .tip b { display: block; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #8A5A00; }
 .tip p { margin: 4px 0 0; font-size: 15.5px; line-height: 1.5; }
-.tip .btn { justify-self: end; }
-.tip .btn { background: #2A1C02; color: #FFF8E1; }
+.tip .btn { justify-self: end; background: #2A1C02; color: #FFF8E1; }
 
 .intro ul { padding-left: 18px; margin: 8px 0 14px; display: grid; gap: 6px; }
 .intro .big { font-family: var(--display); font-size: clamp(28px, 7vw, 40px); line-height: 1; margin: 0 0 6px; font-weight: 400; }
-.intro .tag { color: var(--amine); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; }
+.intro .tag { color: var(--amine); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .result-stars { font-size: 34px; letter-spacing: 4px; color: var(--gold); margin: 4px 0 8px; }
 .result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
 .stat { background: #0F1B2D; border-radius: 8px; padding: 6px 8px; min-width: 0; }
 .stat .k { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
 .stat .v { font-family: var(--mono); font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-t, html[lang|="zh"] .stat .k { letter-spacing: .5px; }
 
 @media (max-width: 860px) {
   .main { grid-template-columns: minmax(0, 1fr); }
@@ -311,7 +339,7 @@ details p { margin: 6px 0 0; }
   .qs { width: 40px; height: 40px; }
   .qrow { gap: 6px; }
   .qrow .ql { display: none; }
-  .info { height: 330px; }
+  .info { height: 270px; }
   .news { max-height: 130px; }
   .top { gap: 8px; }
   .meter { padding: 6px 8px; }
@@ -325,7 +353,7 @@ details p { margin: 6px 0 0; }
 
 <div class="wrap" id="app">
   <div class="top">
-    <h1 class="brand">Capture City 2050<small>A CO₂ capture game · Lin Research Group, NTHU</small></h1>
+    <h1 class="brand"><span data-i18n="brand">Capture City 2050</span><small data-i18n="brandSub">A CO₂ capture game · Lin Research Group, NTHU</small></h1>
     <div class="clock">
       <div class="date" id="date">Jan 2026</div>
       <div class="speed" role="group" aria-label="Game speed">
@@ -335,56 +363,48 @@ details p { margin: 6px 0 0; }
         <button id="sp4" aria-pressed="false">4×</button>
       </div>
       <div class="speed snd" role="group" aria-label="Sound">
-        <button id="sfxBtn" aria-pressed="true" title="Sound effects on/off">SFX</button>
-        <button id="musBtn" aria-pressed="false" title="Music on/off">Music</button>
+        <button id="sfxBtn" aria-pressed="true" data-i18n="sfx">SFX</button>
+        <button id="musBtn" aria-pressed="false" data-i18n="music">Music</button>
       </div>
+      <button class="langbtn" id="langBtn" title="English / 繁體中文">中文</button>
     </div>
   </div>
 
   <div class="meters">
     <div class="meter m-gh" id="mGh">
-      <div class="lab"><span>CO₂ vs legal limit</span><span class="lim" id="gLim">limit — Mt/yr</span></div>
+      <div class="lab"><span data-i18n="mCO2">CO₂ vs legal limit</span><span class="lim" id="gLim">limit — Mt/yr</span></div>
       <div class="top-row"><div class="val" id="vGh">—<small> Mt/yr</small></div><div class="sub" id="gNext"></div></div>
-      <div class="limbar" role="img" id="gBar" aria-label="CO2 emissions against the legal limit"><b id="gCap"></b><i id="gFill"></i><em id="gOver"></em><s id="gFut" title="limit in 5 years"></s></div>
-      <div class="breach"><span>Limit breach</span><span class="bar"><i id="bBreach"></i></span><b id="vBreach">0 %</b></div>
+      <div class="limbar" role="img" id="gBar" aria-label="CO2 emissions against the legal limit"><b id="gCap"></b><i id="gFill"></i><em id="gOver"></em><s id="gFut"></s></div>
+      <div class="breach"><span data-i18n="mBreach">Limit breach</span><span class="bar"><i id="bBreach"></i></span><b id="vBreach">0 %</b></div>
       <div class="cprice" id="cPrice"></div>
     </div>
-    <div class="meter m-ang" id="mAng"><div class="lab"><span>Public anger</span></div><div class="val" id="vAng">10%</div><div class="bar"><i id="bAng"></i></div></div>
-    <div class="meter" id="mFund"><div class="lab"><span>Funds</span></div><div class="val" id="vFund">$700M</div><div class="sub" id="sFund">± $0M / month</div></div>
-    <div class="meter" id="mGrid"><div class="lab"><span>Grid</span></div><div class="val" id="vGrid">— MW</div><div class="sub" id="sGrid">demand — MW</div></div>
-
+    <div class="meter m-ang" id="mAng" role="button" tabindex="0"><div class="lab"><span data-i18n="mAnger">Public anger</span><span data-i18n="mWhy">why? ›</span></div><div class="val" id="vAng">10%</div><div class="bar"><i id="bAng"></i></div><div class="sub" id="angWhy"></div></div>
+    <div class="meter" id="mFund"><div class="lab"><span data-i18n="mFunds">Funds</span></div><div class="val" id="vFund">$1,500M</div><div class="sub" id="sFund">± $0M / month</div></div>
+    <div class="meter" id="mGrid"><div class="lab"><span data-i18n="mGrid">Grid</span></div><div class="val" id="vGrid">— MW</div><div class="sub" id="sGrid">demand — MW</div></div>
   </div>
 
   <div class="tabs" id="tabs" role="tablist" aria-label="Panels">
-    <button role="tab" data-tab="city" aria-selected="true">City</button>
-    <button role="tab" data-tab="research" aria-selected="false">Research<span class="dot" id="labDot" hidden></span></button>
+    <button role="tab" data-tab="city" aria-selected="true" data-i18n="tabCity">City</button>
+    <button role="tab" data-tab="research" aria-selected="false"><span data-i18n="tabLab">Research</span><span class="dot" id="labDot" hidden></span></button>
   </div>
 
   <div class="main" id="main" data-tab="city">
     <section class="pane p-city" aria-label="City">
-      <h2 class="pane-t">City · tap a plant to command it <b id="co2rate">CO₂ — Mt/yr</b></h2>
-      <div class="scene"><canvas id="cv" aria-label="The town and its power plants. Tap a plant to command it."></canvas><button class="paused-badge" id="pausedBadge" hidden><span>❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div></div>
+      <h2 class="pane-t"><span data-i18n="cityT">City · tap plants, the lab, the price board or the empty lot</span> <b id="co2rate">CO₂ — Mt/yr</b></h2>
+      <div class="scene"><canvas id="cv" aria-label="The town and its power plants. Tap a plant to command it."></canvas><button class="paused-badge" id="pausedBadge" hidden><span data-i18n="pausedB">❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div></div>
       <div class="chips-row"><div class="chips" id="chips"></div></div>
-      <div class="card o-price">
-        <h2>Electricity price <b id="profit">profit —</b></h2>
-        <div class="price-row">
-          <div class="price-val" id="priceVal">$100<span>/MWh</span></div>
-          <input type="range" id="price" min="40" max="220" step="5" value="100" aria-label="Electricity price in dollars per MWh">
-        </div>
-        <div class="hint" id="priceHint">People accept up to $100/MWh. Higher prices fund capture but make people angry.</div>
-        <div class="hint" id="fuelHint"></div>
+      <div class="status" id="status"></div>
+      <div class="card o-news">
+        <h2 data-i18n="newsT">News</h2>
+        <ul class="news" id="news"></ul>
       </div>
     </section>
     <section class="pane p-research" aria-label="Research">
-      <h2 class="pane-t">Research lab <b id="labHead">one project at a time</b></h2>
+      <h2 class="pane-t"><span data-i18n="labT">Research lab</span> <b id="labHead"></b></h2>
       <div class="card o-lab">
         <div class="lab-note" id="labNote"></div>
         <div class="lab-list" id="lab"></div>
         <div class="qrow" id="labQ"></div>
-      </div>
-      <div class="card o-news">
-        <h2>News</h2>
-        <ul class="news" id="news"></ul>
       </div>
     </section>
   </div>
@@ -392,28 +412,22 @@ details p { margin: 6px 0 0; }
 
 <div class="overlay" id="ovIntro">
   <div class="sheet intro">
-    <div class="tag">GHGT-18 · Perth 2026</div>
-    <h3 class="big">Capture City 2050</h3>
-    <p class="lead">You run the power company of a coal-and-gas town. Keep the lights on until December 2050.</p>
-    <ul>
+    <div class="tag"><span>GHGT-18 · Perth 2026</span><button class="langbtn" id="langBtn2">中文</button></div>
+    <h3 class="big" data-i18n="brand">Capture City 2050</h3>
+    <p class="lead" data-i18n="introLead">You run the power company of a coal-and-gas town. Keep the lights on until December 2050.</p>
+    <ul data-i18n="introList">
       <li><b>CO₂ limit.</b> Keep the orange bar inside the green box. The box <b>shrinks every year</b> toward net zero. Going over fills the <b>limit breach</b> meter; at 100 % you lose your licence.</li>
-      <li><b>Public anger</b> rises with high prices, blackouts and smog. At 100 % you are voted out.</li>
-      <li><b>Funds</b> come from electricity bills. Spare power sells to industry at a lower price, but dirty power stops paying once carbon is priced. Below −$500M you go bankrupt.</li>
-      <li>Tap a <b>plant in the town</b> to command it: add CO₂ capture, upgrade to 99 %, switch coal to gas, or demolish. Jobs <b>queue up</b> like in a strategy game: paid when queued, fully refunded if you cancel.</li>
-      <li>The <b>research lab</b> finds new solvents by slow, reliable <b>experiments</b> or fast, riskier <b>computer screening</b>. New solvents can fail in their first 2 years.</li>
     </ul>
+    <div class="nick"><label for="nick" data-i18n="nickL">Nickname</label><input id="nick" maxlength="16" autocomplete="nickname"><span class="err" id="nickErr" hidden></span></div>
     <div class="regions" id="regions" role="radiogroup" aria-label="Region"></div>
-    <div class="btn-row"><button class="btn" id="startBtn">Start 2026</button></div>
-    <p class="src" id="best" style="margin-top:10px"></p>
-    <p class="credits" style="margin:6px 0 0"><b>Where the numbers come from.</b> Capture technologies use values reported in Lin Research Group papers
-      (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Sep. Purif. Technol. 2025) and pilot-plant literature.
-      Values marked <span class="est">est.</span> are game estimates. Plants, prices, the CO₂ limit, events and regions are simplified for play and are not forecasts.</p>
+    <div class="btn-row"><button class="btn" id="startBtn" data-i18n="start">Start 2026</button><button class="btn ghost" id="boardBtn" data-i18n="boardB">Leaderboard</button></div>
+    <p class="credits" style="margin:12px 0 0" data-i18n="credits">Where the numbers come from.</p>
   </div>
 </div>
 
 <div class="overlay" id="ovPlant" hidden>
   <div class="sheet cmd" role="dialog" aria-modal="true" aria-labelledby="plTitle">
-    <div class="cmd-top"><h3 id="plTitle">Plant</h3><button class="btn ghost" id="plClose">Close</button></div>
+    <div class="cmd-top"><h3 id="plTitle">Plant</h3><button class="btn ghost" id="plClose" data-i18n="close">Close</button></div>
     <p class="lead" id="plLead"></p>
     <div id="plBody"></div>
   </div>
@@ -421,17 +435,50 @@ details p { margin: 6px 0 0; }
 
 <div class="overlay" id="ovBuild" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="bdTitle">
-    <h3 id="bdTitle">Build a new plant</h3>
+    <h3 id="bdTitle" data-i18n="buildT">Build a new plant</h3>
     <p class="lead" id="bdLead"></p>
     <div class="opts" id="bdOpts"></div>
-    <div class="close-row"><button class="btn ghost" id="bdClose">Close</button></div>
+    <div class="close-row"><button class="btn ghost" id="bdClose" data-i18n="close">Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovPrice" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="prTitle">
+    <h3 id="prTitle" data-i18n="priceT">Electricity price</h3>
+    <p class="lead" id="prLead"></p>
+    <div class="price-row">
+      <div class="price-val" id="priceVal">$100<span>/MWh</span></div>
+      <input type="range" id="price" min="40" max="240" step="5" value="100" aria-label="Electricity price in dollars per MWh">
+    </div>
+    <div class="hint" id="priceHint"></div>
+    <div class="close-row"><button class="btn ghost" id="prClose" data-i18n="close">Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovAnger" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="agTitle">
+    <h3 id="agTitle" data-i18n="angerT">Where public anger comes from</h3>
+    <p class="lead" id="agLead"></p>
+    <div class="why" id="agRows"></div>
+    <ul class="advice" id="agAdvice"></ul>
+    <div class="close-row"><button class="btn ghost" id="agClose" data-i18n="close">Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovBoard" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+    <h3 id="lbTitle" data-i18n="boardT">Leaderboard · top 10</h3>
+    <p class="lead" data-i18n="boardLead">Saved on this device only. Finish a game in 2050 to get on the board.</p>
+    <div class="rtabs" id="lbTabs"></div>
+    <div id="lbTable"></div>
+    <div class="close-row"><button class="btn danger" id="lbClear" data-i18n="clearB">Clear board</button><button class="btn ghost" id="lbClose" data-i18n="close">Close</button></div>
   </div>
 </div>
 
 <div class="overlay" id="ovEvent" hidden>
   <article class="paper" role="dialog" aria-modal="true" aria-labelledby="evTitle">
-    <div class="mast">The Capture City Times</div>
-    <div class="dline"><span id="evDate">Jan 2026</span><span class="ex" id="evKind">Extra!</span><span>Game paused</span></div>
+    <div class="mast" data-i18n="mast">The Capture City Times</div>
+    <div class="dline"><span id="evDate">Jan 2026</span><span class="ex" id="evKind">Extra!</span><span data-i18n="gamePaused">Game paused</span></div>
     <h3 id="evTitle"></h3>
     <p class="deck" id="evDeck"></p>
     <div class="story">
@@ -444,13 +491,13 @@ details p { margin: 6px 0 0; }
 
 <div class="overlay" id="ovFind" hidden>
   <div class="sheet find" role="dialog" aria-modal="true" aria-labelledby="findName">
-    <div class="lab-tag" id="findHow">Discovery · game paused</div>
+    <div class="lab-tag" id="findHow">Discovery</div>
     <div class="stars" id="findStars"></div>
     <h3 id="findName"></h3>
     <p class="lead" id="findPitch"></p>
     <p class="fact" id="findFact" style="text-align:left"></p>
     <p class="src" id="findSrc" style="text-align:left"></p>
-    <div class="btn-row" style="justify-content:center"><button class="btn" id="findOk">Install it from any plant</button></div>
+    <div class="btn-row" style="justify-content:center"><button class="btn" id="findOk" data-i18n="findOk">Install it from any plant</button></div>
   </div>
 </div>
 
@@ -462,11 +509,14 @@ details p { margin: 6px 0 0; }
     <p class="lead" id="endLead"></p>
     <div class="result-grid" id="endGrid"></div>
     <p class="fact" id="endLab"></p>
-    <div class="btn-row"><button class="btn" id="againBtn">Play again</button></div>
+    <h4 data-i18n="boardT">Leaderboard · top 10</h4>
+    <p class="lead" id="endRank"></p>
+    <div id="endBoard"></div>
+    <div class="btn-row"><button class="btn" id="againBtn" data-i18n="again">Play again</button></div>
   </div>
 </div>
 
-<div class="tipov" id="tip" hidden><div class="tip" role="dialog" aria-modal="true" aria-label="Tip"><div><b>Tip · game paused</b><p id="tipText"></p></div><button class="btn" id="tipOk">Got it</button></div></div>
+<div class="tipov" id="tip" hidden><div class="tip" role="dialog" aria-modal="true" aria-label="Tip"><div><b data-i18n="tipT">Tip · game paused</b><p id="tipText"></p></div><button class="btn" id="tipOk" data-i18n="gotIt">Got it</button></div></div>
 
 <script src="model.js" charset="utf-8"></script>
 <script>
@@ -476,20 +526,131 @@ details p { margin: 6px 0 0; }
   const $ = id => document.getElementById(id);
   const fmt = (v, d = 0) => v.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
   const money = v => (v < 0 ? '−$' : '$') + fmt(Math.abs(v)) + 'M';
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
+  };
+
+  // ---------- language: every string has an English and a Traditional Chinese version ----------
+  let lang = store.get('cc2050-lang') || (/^zh/i.test(navigator.language || '') ? 'zh' : 'en');
+  const L = (en, zh) => (lang === 'zh' ? zh : en);
+  const zhOf = (en, zh) => (lang === 'zh' && zh ? zh : en);
+  const I18N = {
+    brand: ['Capture City 2050', '捕捉城 2050'],
+    brandSub: ['A CO₂ capture game · Lin Research Group, NTHU', 'CO₂ 捕捉小遊戲 · 清華大學 林育正實驗室'],
+    sfx: ['SFX', '音效'], music: ['Music', '音樂'],
+    mCO2: ['CO₂ vs legal limit', 'CO₂ 排放 vs 法定限額'], mBreach: ['Limit breach', '超標計量'],
+    mAnger: ['Public anger', '民怨'], mWhy: ['why? ›', '原因 ›'], mFunds: ['Funds', '資金'], mGrid: ['Grid', '電網'],
+    tabCity: ['City', '城市'], tabLab: ['Research', '研發'],
+    cityT: ['City · tap plants, the lab, the price board or the empty lot', '城市 · 點電廠、研究所、電價看板或空地'],
+    pausedB: ['❚❚ Paused · tap to play', '❚❚ 暫停中 · 點一下繼續'],
+    labT: ['Research lab', '研究所'], newsT: ['News', '新聞'],
+    introLead: ['You run the power company of a coal-and-gas town. Keep the lights on until December 2050.', '你經營一座燒煤和天然氣城市的電力公司。撐到 2050 年 12 月，不能停電。'],
+    introList: [
+      '<li><b>CO₂ limit.</b> Keep the orange bar inside the green box. The box <b>shrinks every year</b> toward net zero. Going over fills the <b>limit breach</b> meter; at 100 % you lose your licence.</li>' +
+      '<li><b>Public anger</b> rises with high prices, blackouts and smog (tap the meter to see why). At 100 % you are voted out.</li>' +
+      '<li><b>Funds</b> come from electricity bills: tap the <b>price board</b> in the town to change the price. Storing CO₂ costs money for transport and storage. Below −$500M you go bankrupt.</li>' +
+      '<li>Tap a <b>plant</b> to command it: add CO₂ capture, upgrade to 99 %, switch fuel, or demolish. Jobs <b>queue up</b>: paid when queued, fully refunded if you cancel. Tap the <b>empty lot</b> to build a plant.</li>' +
+      '<li>Tap the <b>lab</b>: find new solvents by slow, reliable <b>experiments</b> or fast, riskier <b>computer screening</b>, or pilot-test new processes. New technology can fail in its first 2 years.</li>',
+      '<li><b>CO₂ 限額。</b>讓橘色條留在綠框裡。綠框<b>每年縮小</b>，2050 年趨近淨零。超過就會累積<b>超標計量</b>，到 100 % 就被吊銷執照。</li>' +
+      '<li><b>民怨</b>會因為電價高、停電、空污而上升(點計量看原因)。到 100 % 你就會被趕下台。</li>' +
+      '<li><b>資金</b>來自電費：點城市裡的<b>電價看板</b>調整電價。封存 CO₂ 要付運輸與封存費。資金低於 −5 億美元就破產。</li>' +
+      '<li>點<b>電廠</b>下指令：加裝 CO₂ 捕捉、升級到 99 %、換燃料或拆除。工程可以<b>排隊</b>：排入就付錢，取消全額退費。點<b>空地</b>蓋新電廠。</li>' +
+      '<li>點<b>研究所</b>：用慢但可靠的<b>實驗</b>或快但有風險的<b>電腦篩選</b>找新溶劑，或前導測試新製程。新技術前 2 年可能故障。</li>'],
+    nickL: ['Nickname', '暱稱'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
+    credits: [
+      '<b>Where the numbers come from.</b> Capture technologies use values from Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Sep. Purif. Technol. 2025) and pilot-plant literature; costs, carbon prices and build times were checked against NETL, EIA and IEAGHG. Values marked <span class="est">est.</span> are game estimates. Plants, the CO₂ limit, events and regions are simplified for play and are not forecasts.',
+      '<b>數字從哪來。</b>捕捉技術的數值來自林育正實驗室的論文(Chem. Eng. J. 2025、2026；Ind. Eng. Chem. Res. 2025；Sep. Purif. Technol. 2025)與前導廠文獻；成本、碳價與工期對照過 NETL、EIA、IEAGHG。標 <span class="est">est.</span> 的是遊戲估計值。電廠、CO₂ 限額、事件和地區都為了好玩而簡化，不是預測。'],
+    close: ['Close', '關閉'], buildT: ['Build a new plant', '蓋新電廠'], priceT: ['Electricity price', '電價'],
+    angerT: ['Where public anger comes from', '民怨從哪裡來'],
+    boardT: ['Leaderboard · top 10', '排行榜 · 前 10 名'], boardLead: ['Saved on this device only. Finish a game in 2050 to get on the board.', '只存在這台裝置上。撐到 2050 年才能上榜。'],
+    clearB: ['Clear board', '清除排行榜'], mast: ['The Capture City Times', '捕捉城時報'], gamePaused: ['Game paused', '遊戲暫停'],
+    findOk: ['Install it from any plant', '到任一座電廠安裝'], again: ['Play again', '再玩一次'],
+    tipT: ['Tip · game paused', '提示 · 遊戲暫停'], gotIt: ['Got it', '知道了'],
+  };
+  // reasons from the model, in Chinese
+  const WHY = {
+    'Research it first': '要先研發', 'Construction in progress': '施工中', 'Already installed': '已經裝了', 'Not enough funds': '資金不足',
+    'Add capture first': '要先加裝捕捉', 'Already at 99 %': '已經是 99 %', 'You need at least one plant': '至少要留一座電廠', 'No such plant': '沒有這座電廠',
+    'Unknown technology': '未知技術', 'Find it by solvent screening': '要靠溶劑篩選找到', 'Run the pilot test first': '要先做前導測試', 'Already queued': '已在佇列中',
+    'Unknown job': '未知工程', 'Nothing to cancel': '沒有可取消的工程', 'Every solvent found': '溶劑全部找到了', 'Nothing to research': '沒有可研發的項目',
+    'Already done': '已完成', 'Lab busy: one project at a time': '研究所忙碌中', 'Enough screens queued': '排的篩選已經夠了', 'Already done or queued': '已完成或已排隊',
+    'Gas (combined-cycle) plants only': '只能裝在燃氣(複循環)廠', 'Fuel cells cannot reach 99 %': '燃料電池無法到 99 %', 'No conversion for this plant': '這座廠不能改建',
+    'Remove the fuel cell first': '要先移除燃料電池', 'Cannot build this type': '不能蓋這種廠',
+  };
+  const why = w => {
+    if (lang !== 'zh' || !w) return w;
+    if (WHY[w]) return WHY[w];
+    let m = /^Queue full \((\d+)\)$/.exec(w); if (m) return `佇列已滿(${m[1]})`;
+    m = /^Maximum (\d+) plants$/.exec(w); if (m) return `最多 ${m[1]} 座電廠`;
+    return w;
+  };
+  const tName = t => zhOf(t.name, t.zh && t.zh.name);
+  const tPitch = t => zhOf(t.pitch, t.zh && t.zh.pitch);
+  const tFact = t => zhOf(t.fact, t.zh && t.zh.fact);
+  const tStage = t => zhOf(t.stage, t.zh && t.zh.stage);
+  const typeName = type => L(M.PLANT_TYPES[type].label.toLowerCase(), M.PLANT_TYPES[type].zh);
+  const plantName = p => L(p.name, M.pZh(p));
+  const mo = n => L(`${n} mo`, `${n} 個月`);
+  const dateStr = m => { m = Math.min(m, M.MONTHS - 1); const y = M.START_YEAR + Math.floor(m / 12); return L(`${MONTH[m % 12]} ${y}`, `${y} 年 ${m % 12 + 1} 月`); };
+  function applyI18n() {
+    document.documentElement.lang = L('en', 'zh-Hant-TW');
+    document.title = I18N.brand[lang === 'zh' ? 1 : 0];
+    document.querySelectorAll('[data-i18n]').forEach(el => { const v = I18N[el.dataset.i18n]; if (v) el.innerHTML = v[lang === 'zh' ? 1 : 0]; });
+    ['langBtn', 'langBtn2'].forEach(id => { $(id).textContent = L('中文', 'EN'); });
+    $('nick').placeholder = L('your name for the leaderboard', '上排行榜用的名字');
+  }
+  function setLang(l) {
+    lang = l; store.set('cc2050-lang', l);
+    applyI18n(); renderAll();
+    if (!$('ovIntro').hidden) showIntro();
+    if (!$('ovEvent').hidden) { if (S.pending) openEvent(); else if (S.headline) showPaper(S.headline, null, true); }
+    if (!$('ovPrice').hidden) renderPriceSheet();
+    if (!$('ovAnger').hidden) renderAnger();
+    if (!$('ovBoard').hidden) renderBoard();
+  }
+  $('langBtn').onclick = $('langBtn2').onclick = () => setLang(lang === 'zh' ? 'en' : 'zh');
 
   let S = M.newGame();
   let speed = 1, playing = false, acc = 0, lastT = 0;
   let toastN = 0, toastTimer = null;
-  const MS_PER_MONTH = 1600;   // one game month every 1.6 s at 1× (half the old pace)
-  // any open sheet or tip pauses the clock
-  const paused = () => ['ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'tip'].some(id => !$(id).hidden);
+  const MS_PER_MONTH = 1600;   // one game month every 1.6 s at 1×
+  const paused = () => ['ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard', 'tip'].some(id => !$(id).hidden);
 
-  // ---------- persistence (best score, per viewer) ----------
-  const BEST_KEY = 'cc2050-best-v4';
-  function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY) || '{}') || {}; } catch (e) { return {}; } }
-  function saveBest(b) { try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch (e) { /* storage unavailable */ } }
+  // ---------- best score per region (shown on the region cards) ----------
+  const BEST_KEY = 'cc2050-best-v10';
+  function loadBest() { try { return JSON.parse(store.get(BEST_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function saveBest(b) { store.set(BEST_KEY, JSON.stringify(b)); }
+
+  // ---------- leaderboard (this device; a shared online board would need a server) ----------
+  const BOARD_KEY = 'cc2050-board-v10';
+  function loadBoard() { try { const b = JSON.parse(store.get(BOARD_KEY) || '[]'); return Array.isArray(b) ? b : []; } catch (e) { return []; } }
+  function saveBoard(b) { store.set(BOARD_KEY, JSON.stringify(b.slice(0, 300))); }
+  function addScore(entry) { const b = loadBoard(); b.push(entry); b.sort((x, y) => y.score - x.score); saveBoard(b); return b; }
+  function boardHTML(region, meTs) {
+    const rows = loadBoard().filter(e => e.region === region).slice(0, 10);
+    if (!rows.length) return `<table class="board"><tbody><tr class="empty"><td>${L('No finished games yet. Be the first!', '還沒有人完成，搶第一名！')}</td></tr></tbody></table>`;
+    return `<table class="board"><thead><tr><th>#</th><th>${L('Name', '暱稱')}</th><th>${L('Score', '分數')}</th><th>★</th><th>${L('Date', '日期')}</th></tr></thead><tbody>` +
+      rows.map((e, i) => `<tr class="${e.ts === meTs ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(e.name)}</td><td class="n">${fmt(e.score)}</td><td class="st">${'★'.repeat(e.stars)}</td><td class="n">${esc(e.date)}</td></tr>`).join('') + '</tbody></table>';
+  }
+  let boardRegion = 'taiwan', clearArmed = false;
+  function renderBoard() {
+    $('lbTabs').innerHTML = Object.entries(M.REGIONS).map(([id, r]) => `<button data-br="${id}" aria-pressed="${id === boardRegion}">${zhOf(r.label, r.zh && r.zh.label)}</button>`).join('');
+    $('lbTabs').querySelectorAll('[data-br]').forEach(b => b.onclick = () => { boardRegion = b.dataset.br; renderBoard(); });
+    $('lbTable').innerHTML = boardHTML(boardRegion);
+    $('lbClear').textContent = clearArmed ? L('Tap again to clear', '再按一次清除') : I18N.clearB[lang === 'zh' ? 1 : 0];
+    $('lbClear').classList.toggle('armed', clearArmed);
+  }
+  function openBoard() { boardRegion = region; clearArmed = false; renderBoard(); $('ovBoard').hidden = false; }
+  $('boardBtn').onclick = openBoard;
+  $('lbClose').onclick = () => { $('ovBoard').hidden = true; };
+  $('lbClear').onclick = () => {
+    if (!clearArmed) { clearArmed = true; renderBoard(); return; }
+    saveBoard(loadBoard().filter(e => e.region !== boardRegion)); clearArmed = false; renderBoard();
+  };
 
   // ---------- speed ----------
   function setSpeed(v) {
@@ -505,10 +666,8 @@ details p { margin: 6px 0 0; }
 
   // ---------- sound: synthesized with Web Audio (no audio files); effects on, music off by default ----------
   const SND = (() => {
-    const load = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v === '1'; } catch (e) { return d; } };
-    const save = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch (e) { /* storage unavailable */ } };
     let ac = null, fxBus = null, musBus = null, musTimer = null, step = 0, nextT = 0;
-    let fxOn = load('cc2050-sfx', true), musOn = false;   // music always starts off
+    let fxOn = store.get('cc2050-sfx') !== '0', musOn = false;   // music always starts off
     function ctx() {
       if (!ac) {
         const A = window.AudioContext || window.webkitAudioContext;
@@ -550,6 +709,7 @@ details p { margin: 6px 0 0; }
       fail: t => { tone(fxBus, 330, t, 0.5, 'sawtooth', 0.06, 90); noise(t, 0.3, 0.2, 400); },
       blackout: t => tone(fxBus, 240, t, 0.8, 'sawtooth', 0.07, 45),
       warn: t => { tone(fxBus, 880, t, 0.12, 'square', 0.05); tone(fxBus, 660, t + 0.16, 0.12, 'square', 0.05); tone(fxBus, 880, t + 0.32, 0.12, 'square', 0.05); },
+      coin: t => { tone(fxBus, N(84), t, 0.06, 'square', 0.05); tone(fxBus, N(91), t + 0.05, 0.12, 'square', 0.05); },
       win: t => [60, 64, 67, 72, 67, 72, 76, 79].forEach((n, i) => tone(fxBus, N(n), t + i * 0.12, 0.3, 'square', 0.06)),
       lose: t => [67, 66, 65, 60].forEach((n, i) => tone(fxBus, N(n), t + i * 0.3, i === 3 ? 0.9 : 0.3, 'triangle', 0.13)),
     };
@@ -578,7 +738,7 @@ details p { margin: 6px 0 0; }
       if (on && ctx()) { nextT = ac.currentTime + 0.05; step = 0; musTimer = setInterval(tick, 90); }
       $('musBtn').setAttribute('aria-pressed', String(on));
     }
-    function setFx(on) { fxOn = on; save('cc2050-sfx', on); $('sfxBtn').setAttribute('aria-pressed', String(on)); }
+    function setFx(on) { fxOn = on; store.set('cc2050-sfx', on ? '1' : '0'); $('sfxBtn').setAttribute('aria-pressed', String(on)); }
     setFx(fxOn);
     $('sfxBtn').onclick = () => { setFx(!fxOn); play('click'); };
     $('musBtn').onclick = () => setMusic(!musOn);
@@ -587,10 +747,11 @@ details p { margin: 6px 0 0; }
 
   // ---------- tips (shown once each, pause the game) ----------
   const TIPS = [
-    { id: 'start', when: s => s.m >= 1, text: 'Tap a power plant in the town (or its chip under the town) to add CO₂ capture. Coal Plant A is the biggest emitter.' },
-    { id: 'box', when: s => s.m >= 4, text: 'Keep the orange bar inside the green box: that box is the legal CO₂ limit, and it shrinks every year.' },
-    { id: 'lab', when: s => s.m >= 10 || s.plants.some(p => p.tech || p.build), text: () => 'The research lab finds better solvents. Lab experiments are slow but usually work; computer screening (QM + MD) is fast and cheap but can miss. The lab runs one project at a time, and you can queue up to 5 more.' + (innerWidth <= 860 ? ' Open the Research tab at the top.' : '') },
-    { id: 'deep', when: s => s.m >= 144, text: 'Plan ahead: by the 2040s 90 % capture is not enough. The 99 % upgrade is costly and takes a year to build; switching coal to gas is the other route. The dashed line on the CO₂ bar is the limit 5 years from now.' },
+    { id: 'start', when: s => s.m >= 1, text: () => L('Tap a power plant in the town (or its chip under the town) to add CO₂ capture. Coal Plant A is the biggest emitter.', '點城市裡的電廠(或下方的電廠標籤)加裝 CO₂ 捕捉。燃煤電廠 A 排放最多。') },
+    { id: 'box', when: s => s.m >= 4, text: () => L('Keep the orange bar inside the green box: that box is the legal CO₂ limit, and it shrinks every year. Building capture takes a year, so start early.', '讓橘色條留在綠框裡：綠框就是法定 CO₂ 限額，每年縮小。捕捉設備要蓋一年，早點開始。') },
+    { id: 'lab', when: s => s.m >= 10 || s.plants.some(p => p.tech || p.build), text: () => L('Tap the LAB building to research. Experiments are slow but usually work; computer screening (QM + MD) is fast and cheap but can miss. Pilot tests unlock new processes such as the rotating packed bed and the fuel cell.', '點 LAB 研究所做研發。實驗慢但通常成功；電腦篩選(QM + MD)又快又便宜但可能落空。前導測試可以解鎖旋轉填充床、燃料電池等新製程。') + (innerWidth <= 860 ? L(' It is also in the Research tab.', ' 也可以從上方「研發」分頁進入。') : '') },
+    { id: 'price', when: s => s.m >= 18, text: () => L('The price board in the town sets what everyone pays. Above what people accept, anger rises; tap the Public anger meter to see what is driving it.', '城市裡的電價看板決定大家付多少電費。超過大家能接受的價格，民怨就會上升；點「民怨」計量看是什麼在推高它。') },
+    { id: 'deep', when: s => s.m >= 144, text: () => L('Plan ahead: by the 2040s 90 % capture is not enough. The 99 % upgrade takes a year; a fuel cell stops at 85 %. The dashed line on the CO₂ bar is the limit 5 years from now.', '提早規劃：到 2040 年代 90 % 捕捉就不夠了。升級 99 % 要一年；燃料電池只到 85 %。CO₂ 條上的虛線是 5 年後的限額。') },
   ];
   let tipsShown = {};
   function maybeTip() {
@@ -598,47 +759,95 @@ details p { margin: 6px 0 0; }
     const t = TIPS.find(x => !tipsShown[x.id] && x.when(S));
     if (!t) return false;
     tipsShown[t.id] = true;
-    $('tipText').textContent = typeof t.text === 'function' ? t.text() : t.text;
+    $('tipText').textContent = t.text();
     $('tip').hidden = false;
     return true;
   }
   $('tipOk').onclick = e => { e.stopPropagation(); $('tip').hidden = true; };
   $('tip').addEventListener('click', () => { $('tip').hidden = true; });
 
-  // ---------- price ----------
-  $('price').addEventListener('input', e => { M.setPrice(S, +e.target.value); renderPrice(); });
-  function renderPrice() {
+  // ---------- price: the board in the town, plus a sheet with the slider ----------
+  function setPrice(v) { M.setPrice(S, v); SND.play('coin'); renderPriceSheet(); renderStatus(); renderAnger(); }
+  $('price').addEventListener('input', e => { M.setPrice(S, +e.target.value); renderPriceSheet(); renderStatus(); });
+  function openPrice() { renderPriceSheet(); $('ovPrice').hidden = false; }
+  $('prClose').onclick = () => { $('ovPrice').hidden = true; };
+  $('ovPrice').addEventListener('click', e => { if (e.target === $('ovPrice')) $('ovPrice').hidden = true; });
+  function priceNote() {
+    const fair = M.fairPrice(S), d = S.price - fair;
+    return d > 0 ? L(`<span class="hot">$${d} above what people accept.</span> Anger rises every month at this price.`, `<span class="hot">比大家能接受的高 $${d}。</span>這個價格會讓民怨每月上升。`)
+      : d < 0 ? L(`<span class="ok">$${-d} below the accepted price.</span> People calm down, but income drops.`, `<span class="ok">比可接受價格低 $${-d}。</span>民怨會下降，但收入變少。`)
+      : L(`People accept up to $${fair}/MWh. Higher prices fund capture but make people angry.`, `大家最多接受每 MWh $${fair}。電價越高，捕捉經費越多，但民怨也越高。`);
+  }
+  function renderPriceSheet() {
     $('price').value = S.price;
     $('priceVal').innerHTML = '$' + S.price + '<span>/MWh</span>';
-    const fair = M.fairPrice(S);
-    const d = S.price - fair;
-    $('priceHint').innerHTML = d > 0
-      ? `<span class="hot">+${d} above what people accept.</span> Anger rises every month at this price.`
-      : d < 0 ? `<span class="ok">${-d} below the accepted price.</span> People calm down, but income drops.`
-      : `People accept up to $${fair}/MWh. Higher prices fund capture but make people angry.`;
-    $('fuelHint').innerHTML = (S.gasMult > 1 ? `<span class="hot">Gas price spike: $${fmt(M.gasFuel(S))}/MWh.</span> ` : '') +
-      (S.lngCut > 0 ? '<span class="hot">LNG shortage: gas plants at half power.</span> ' : '') +
-      (S.gasFreeze > 0 ? '<span class="hot">Winter storm: gas plants at 30 %.</span> ' : '') +
-      (S.shipMonths > 0 ? `CO₂ is being shipped to a backup site (${S.shipMonths} mo). ` : '') +
-      (S.opexCut > 0 ? `<span class="hot">Subsidy cut: capture running costs +30 % (${S.opexCut} mo).</span>` : '');
+    const L0 = S.last;
+    $('prLead').textContent = L(`Accepted: up to $${M.fairPrice(S)}/MWh · ${L0 ? (L0.profit >= 0 ? 'profit +$' : 'loss −$') + fmt(Math.abs(L0.profit), 1) + 'M last month' : ''} · game paused`,
+      `可接受：每 MWh $${M.fairPrice(S)} 以內 · ${L0 ? (L0.profit >= 0 ? '上月獲利 +$' : '上月虧損 −$') + fmt(Math.abs(L0.profit), 1) + 'M' : ''} · 遊戲暫停`);
+    $('priceHint').innerHTML = priceNote();
+  }
+  // one line under the plant chips: price + fuel and supply notes
+  function renderStatus() {
+    const n = [];
+    const fair = M.fairPrice(S), d = S.price - fair;
+    n.push(d > 0 ? L(`<span class="hot">Price $${S.price} is $${d} over what people accept.</span>`, `<span class="hot">電價 $${S.price}，比可接受高 $${d}。</span>`)
+      : L(`Price $${S.price}/MWh (accepted ≤ $${fair}).`, `電價每 MWh $${S.price}(可接受 ≤ $${fair})。`));
+    if (S.gasMult > 1) n.push(L(`<span class="hot">Gas price spike: $${fmt(M.gasFuel(S))}/MWh.</span>`, `<span class="hot">氣價飆漲：每 MWh $${fmt(M.gasFuel(S))}。</span>`));
+    if (S.lngCut > 0) n.push(L('<span class="hot">LNG shortage: gas plants at half power.</span>', '<span class="hot">LNG 短缺：燃氣廠半載。</span>'));
+    if (S.gasFreeze > 0) n.push(L('<span class="hot">Winter storm: gas plants at 30 %.</span>', '<span class="hot">暴風雪：燃氣廠只剩 30 %。</span>'));
+    if (S.shipMonths > 0) n.push(L(`CO₂ shipped to a backup site (${S.shipMonths} mo).`, `CO₂ 改船運到備用封存場(${S.shipMonths} 個月)。`));
+    if (S.opexCut > 0) n.push(L(`<span class="hot">Subsidy cut: capture running costs +30 % (${S.opexCut} mo).</span>`, `<span class="hot">補助取消：捕捉運轉費 +30 %(${S.opexCut} 個月)。</span>`));
+    if (S.subsidy > 0) n.push(L(`<span class="ok">Capture subsidy: −30 % (${S.subsidy} mo).</span>`, `<span class="ok">捕捉補助：−30 %(${S.subsidy} 個月)。</span>`));
+    $('status').innerHTML = n.join(' ');
+  }
+
+  // ---------- public anger: what pushes it up or down this month ----------
+  const AP = [
+    ['price', 'Electricity price', '電價'], ['blackout', 'Blackouts', '停電'], ['smog', 'Smog (emissions)', '空污(排放)'],
+    ['breach', 'Over the CO₂ limit', '超過 CO₂ 限額'], ['events', 'News & decisions', '新聞與決定'], ['calm', 'Calming down', '自然平息'],
+  ];
+  function angerParts() { return S.angerParts || { price: 0, blackout: 0, smog: 0, breach: 0, events: 0, calm: -1 }; }
+  function openAnger() { renderAnger(); $('ovAnger').hidden = false; }
+  $('agClose').onclick = () => { $('ovAnger').hidden = true; };
+  $('ovAnger').addEventListener('click', e => { if (e.target === $('ovAnger')) $('ovAnger').hidden = true; });
+  $('mAng').onclick = () => { SND.play('click'); openAnger(); };
+  $('mAng').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAnger(); } };
+  function renderAnger() {
+    const pa = angerParts();
+    const net = pa.price + pa.blackout + pa.smog + pa.breach + pa.calm + pa.events;
+    $('agLead').textContent = L(`Anger ${Math.round(S.anger)} % · last month ${net >= 0 ? '+' : ''}${fmt(net, 1)} · at 100 % you are voted out · game paused`,
+      `民怨 ${Math.round(S.anger)} % · 上個月 ${net >= 0 ? '+' : ''}${fmt(net, 1)} · 到 100 % 就下台 · 遊戲暫停`);
+    const big = Math.max(2, ...AP.map(([k]) => Math.abs(pa[k] || 0)));
+    $('agRows').innerHTML = AP.map(([k, en, zh]) => {
+      const v = pa[k] || 0, w = Math.min(50, Math.abs(v) / big * 50);
+      return `<span class="k">${L(en, zh)}</span><span class="tr"><i class="${v >= 0 ? 'up' : 'dn'}" style="width:${w.toFixed(1)}%"></i></span><span class="v ${v > 0.05 ? 'up' : v < -0.05 ? 'dn' : ''}">${v >= 0 ? '+' : ''}${fmt(v, 1)}</span>`;
+    }).join('');
+    const tips = [];
+    if (pa.price > 0.3) tips.push(L('Lower the price on the price board: every $ above the accepted price adds anger.', '在電價看板降價：超過可接受價格的每一塊錢都會增加民怨。'));
+    if (pa.blackout > 0.1) tips.push(L('Build a spare plant (tap the empty lot): capture eats power, and summer or winter peaks cause blackouts.', '蓋一座備用電廠(點空地)：捕捉會吃掉電力，夏季或冬季尖峰就會停電。'));
+    if (pa.smog > 0.6) tips.push(L('Smog comes from emissions: add capture to the biggest emitters.', '空污來自排放：先替排放最多的電廠加裝捕捉。'));
+    if (pa.breach > 0.2) tips.push(L('Get back under the CO₂ limit: the breach meter itself angers people.', '回到 CO₂ 限額以下：超標本身也會讓民眾不滿。'));
+    if (pa.events > 0) tips.push(L('Recent decisions in the news angered people; it fades over time.', '最近新聞裡的決定惹怒了民眾，會慢慢淡去。'));
+    if (!tips.length) tips.push(L('Things are calm. A price a little below the accepted level calms people faster.', '目前很平靜。電價略低於可接受價格，民怨會降得更快。'));
+    $('agAdvice').innerHTML = tips.map(t => `<li>${t}</li>`).join('');
   }
 
   // ---------- plant chips under the town (same as tapping the plant in the scene) ----------
-  const TYPE_COL = { coal: '#6E3F33', gas: '#5A6E86' };
+  const TYPE_COL = { coal: '#6E3F33', gas: '#5A6E86', gasb: '#6D6A8A' };
   function plantStatus(p) {
-    if (p.build && p.build.kind === 'new') return 'being built';
-    if (p.build && p.build.kind === 'convert') return '→ ' + p.build.toType;
-    if (p.down > 0) return p.downWhy === 'tripped' ? 'tripped' : 'under repair';
+    if (p.build && p.build.kind === 'new') return L('being built', '興建中');
+    if (p.build && p.build.kind === 'convert') return '→ ' + typeName(p.build.toType);
+    if (p.down > 0) return p.downWhy === 'tripped' ? L('tripped', '跳機') : L('under repair', '維修中');
     const t = p.tech ? M.TECHS[p.tech] : null;
-    let s = t ? t.short + (p.deep ? ' 99 %' : '') : 'no capture';
-    if (p.tech && (p.outage > 0 || S.captureOff > 0)) s += ' (off)';
+    let s = t ? t.short + (p.deep ? ' 99 %' : '') : L('no capture', '無捕捉');
+    if (p.tech && (p.outage > 0 || S.captureOff > 0)) s += L(' (off)', '(停)');
     return s;
   }
   function renderChips() {
-    const add = S.plants.length < M.MAX_PLANTS ? '<button class="pchip add" id="addPlant">+ Build plant</button>' : '';
+    const add = S.plants.length < M.MAX_PLANTS ? `<button class="pchip add" id="addPlant">${L('+ Build plant', '+ 蓋電廠')}</button>` : '';
     $('chips').innerHTML = S.plants.map(p => {
       const t = p.tech ? M.TECHS[p.tech] : null, q = (p.queue || []).length;
-      return `<button class="pchip ${p.down > 0 ? 'down' : ''}" data-plant="${p.id}"><i style="background:${t ? t.color : TYPE_COL[p.type]}"></i><b>${p.id}</b>${p.type} · ${plantStatus(p)}${p.build ? ` · ${p.build.left} mo` : ''}${q ? ` · +${q}` : ''}</button>`;
+      return `<button class="pchip ${p.down > 0 ? 'down' : ''}" data-plant="${p.id}"><i style="background:${t ? t.color : TYPE_COL[p.type]}"></i><b>${p.id}</b>${typeName(p.type)} · ${plantStatus(p)}${p.build ? ` · ${mo(p.build.left)}` : ''}${q ? ` · +${q}` : ''}</button>`;
     }).join('') + add;
     $('chips').querySelectorAll('[data-plant]').forEach(b => b.onclick = () => { SND.play('click'); openPlant(b.dataset.plant); });
     if ($('addPlant')) $('addPlant').onclick = () => { SND.play('click'); openBuild(); };
@@ -651,41 +860,50 @@ details p { margin: 6px 0 0; }
   $('plClose').onclick = closePlant;
   $('ovPlant').addEventListener('click', e => { if (e.target === $('ovPlant')) closePlant(); });
   document.addEventListener('pointerdown', e => { lastPtr = e.pointerType || 'mouse'; }, true);
-  // compare bars: every solvent on the same scale for this plant (speed: log 0.1x to 10x)
+  // compare bars: every technology that fits this plant on the same scale (speed: log 0.1x to 10x)
   function bars(p, id) {
     const t = M.TECHS[id], e = M.eff(id, false, p.type);
+    const pool = M.TECH_ORDER.filter(x => !M.TECHS[x].gasOnly || p.type === 'gas');
     const lost = x => M.penalty(p, x, false) * p.gross, cost = x => M.installCost(S, p, x), run = x => M.eff(x, false, p.type).opex;
-    // scaled from the best to the worst solvent so small gaps stay visible (numbers on the right are exact)
-    const rel = (f, x) => { const a = M.TECH_ORDER.map(f), lo = Math.min(...a), hi = Math.max(...a); return 0.12 + 0.88 * (f(x) - lo) / ((hi - lo) || 1); };
+    const rel = (f, x) => { const a = pool.map(f), lo = Math.min(...a), hi = Math.max(...a); return 0.12 + 0.88 * (f(x) - lo) / ((hi - lo) || 1); };
     const w = v => Math.max(4, Math.min(100, v * 100)).toFixed(0);
     const row = (k, v, frac, go) => `<span class="k">${k}</span><span class="tr"><i class="${go ? 'go' : ''}" style="width:${w(frac)}%"></i></span><span class="v">${v}</span>`;
+    const lv = lost(id);
     return '<div class="bars">'
-      + row('Absorbs CO₂', t.rate + '× MEA', (Math.log10(t.rate) + 1) / 2, true)
-      + row('Power lost', '−' + fmt(lost(id)) + ' MW', rel(lost, id), false)
-      + row('Build cost', '$' + fmt(cost(id)) + 'M', rel(cost, id), false)
-      + row('Running cost', '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
-      + '</div><div class="barkey">Bars run from the best to the worst solvent: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.</div>';
+      + (t.rate ? row(L('Absorbs CO₂', '吸收速度'), t.rate + '× MEA', (Math.log10(t.rate) + 1) / 2, true) : row(L('Absorbs CO₂', '吸收速度'), L('fuel cell', '燃料電池'), 0.04, true))
+      + row(lv < 0 ? L('Power gained', '多發電') : L('Power lost', '少發電'), (lv < 0 ? '+' : '−') + fmt(Math.abs(lv)) + ' MW', rel(lost, id), false)
+      + row(L('Build cost', '設備費'), '$' + fmt(cost(id)) + 'M', rel(cost, id), false)
+      + row(L('Running cost', '運轉費'), '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
+      + `</div><div class="barkey">${L('Bars run from the best to the worst option for this plant: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.', '長條從這座廠最好到最差的選項排列：<b style="color:var(--good)">綠色</b>越長越好，<b style="color:#E07A5F">橘色</b>越長越花錢。')}</div>`;
   }
-  const ICON = { mea90: ['MEA', 'solvent'], afs: ['AS', 'MEA + stripper'], pz: ['PZ', '+ stripper'], ampnmp: ['AMP', '– NMP'], pe2eg: ['2PE', '– EG'] };
-  const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' || k === 'convert' ? { kind: k } : null;
+  const ICON = { mea90: ['MEA', 'solvent', '溶劑'], afs: ['AS', 'MEA + stripper', 'MEA + 汽提'], rpb: ['RPB', 'rotating bed', '旋轉床'], pz: ['PZ', '+ stripper', '+ 汽提'], ampnmp: ['AMP', '– NMP', '– NMP'], pe2eg: ['2PE', '– EG', '– EG'], mcfc: ['MCFC', 'fuel cell', '燃料電池'] };
+  const CV = { gasb: ['→ GB', 'gas boiler', '燃氣鍋爐', '#B9B2E8'], gas: ['→ CC', 'combined cycle', '複循環', '#9CC7F2'], coal: ['→ coal', 'back to coal', '改回燃煤', '#F0A58A'] };
+  const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' ? { kind: 'deep' } : k.startsWith('cv_') ? { kind: 'convert', to: k.slice(3) } : null;
   function jobLook(j) {
     if (j.kind === 'tech') return { c: M.TECHS[j.tech].color, l: ICON[j.tech][0] };
     if (j.kind === 'deep') return { c: '#7BD389', l: '99%' };
-    if (j.kind === 'convert') return { c: j.toType === 'gas' ? '#9CC7F2' : '#F0A58A', l: '→' + j.toType };
-    return { c: '#E2A93B', l: 'new' };
+    if (j.kind === 'convert') return { c: CV[j.toType][3], l: CV[j.toType][0] };
+    return { c: '#E2A93B', l: L('new', '新廠') };
+  }
+  function iconKeys(p) {
+    const v = M.planned(p);
+    return [...M.TECH_ORDER, 'deep', ...M.convertOptions(v.type).map(t => 'cv_' + t), 'demolish'];
   }
   function iconHTML(p, k) {
     const v = M.planned(p);
     let bg, label, sub = '', locked = false, done = false, name;
     if (M.TECHS[k]) {
       const t = M.TECHS[k];
-      bg = t.color; [label, sub] = ICON[k]; name = t.name;
+      bg = t.color; label = ICON[k][0]; sub = L(ICON[k][1], ICON[k][2]); name = tName(t);
       locked = !S.unlocked[k]; done = v.tech === k;
-      if (locked) sub = M.DROPS[k] ? '★'.repeat(M.DROPS[k].stars) : 'pilot test';
-    } else if (k === 'deep') { bg = '#7BD389'; label = '99%'; sub = 'upgrade'; done = !!v.deep; locked = !v.tech; name = 'Upgrade to 99 % capture'; }
-    else if (k === 'convert') { const to = v.type === 'coal' ? 'gas' : 'coal'; bg = to === 'gas' ? '#9CC7F2' : '#F0A58A'; label = '→ ' + to; sub = 'convert'; name = 'Convert to ' + to; }
-    else { bg = '#EF6351'; label = '✕'; sub = 'demolish'; name = 'Demolish'; }
-    return `<button class="ic ${locked ? 'locked' : ''} ${done ? 'done' : ''} ${(hoverK || sel) === k ? 'sel' : ''}" data-k="${k}" style="background:${bg}${label.length > 4 ? ';font-size:12px' : ''}" aria-label="${name}${locked ? ' (locked)' : ''}">${label}${sub ? `<small>${sub}</small>` : ''}</button>`;
+      if (locked) sub = M.DROPS[k] ? '★'.repeat(M.DROPS[k].stars) : L('pilot test', '前導測試');
+      else if (t.gasOnly && v.type !== 'gas') { locked = true; sub = L('gas only', '限燃氣'); }
+    } else if (k === 'deep') {
+      bg = '#7BD389'; label = '99%'; sub = L('upgrade', '升級'); done = !!v.deep; locked = !v.tech || !!M.TECHS[v.tech].noDeep; name = L('Upgrade to 99 % capture', '升級到 99 % 捕捉');
+    } else if (k.startsWith('cv_')) {
+      const c = CV[k.slice(3)]; bg = c[3]; label = c[0]; sub = L(c[1], c[2]); name = L('Convert: ', '改建：') + L(c[1], c[2]);
+    } else { bg = '#EF6351'; label = '✕'; sub = L('demolish', '拆除'); name = L('Demolish', '拆除'); }
+    return `<button class="ic ${locked ? 'locked' : ''} ${done ? 'done' : ''} ${(hoverK || sel) === k ? 'sel' : ''}" data-k="${k}" style="background:${bg}${label.length > 4 ? ';font-size:12px' : ''}" aria-label="${esc(name)}${locked ? L(' (locked)', '(未解鎖)') : ''}">${label}${sub ? `<small>${sub}</small>` : ''}</button>`;
   }
   function markSel() {
     document.querySelectorAll('#icons .ic').forEach(x => x.classList.toggle('sel', x.dataset.k === (hoverK || sel)));
@@ -693,27 +911,24 @@ details p { margin: 6px 0 0; }
   function renderPlant() {
     const p = S.plants.find(x => x.id === curPlant);
     if (!p) { closePlant(); return; }
-    const pt = M.PLANT_TYPES[p.type];
     const on = M.online(p), pen = p.tech ? M.penalty(p, p.tech) : 0;
-    $('plTitle').textContent = `${pt.label} Plant ${p.id}`;
-    $('plLead').textContent = `${p.gross} MW ${p.type} · ${plantStatus(p)} · output ${fmt(on ? p.gross * (1 - pen) : 0)} MW · funds ${money(S.funds)} · game paused`;
+    $('plTitle').textContent = plantName(p);
+    $('plLead').textContent = `${p.gross} MW ${typeName(p.type)} · ${plantStatus(p)} · ${L('output', '出力')} ${fmt(on ? p.gross * (1 - pen) : 0)} MW · ${L('funds', '資金')} ${money(S.funds)} · ${L('game paused', '遊戲暫停')}`;
     const jobs = [];
     if (p.build) jobs.push(Object.assign({ run: true }, p.build));
     (p.queue || []).forEach(j => jobs.push(j));
-    let q = '<span class="ql">Queue</span>';
+    let q = `<span class="ql">${L('Queue', '佇列')}</span>`;
     for (let i = 0; i < 1 + M.QUEUE_MAX; i++) {
       const j = jobs[i];
       if (!j) { q += '<span class="qs"></span>'; continue; }
       const lk = jobLook(j), can = j.kind !== 'new';
       const pg = j.run ? `<span class="pg" style="width:${Math.round(100 * (1 - j.left / j.total))}%"></span>` : '';
-      q += `<button class="qs job ${j.run ? 'run' : ''}" style="background:${lk.c}" data-cx="${i}" ${can ? '' : 'disabled'} title="${can ? `Cancel for a full refund ($${j.paid || 0}M)` : 'New plant under construction'}">${can ? '<span class="x">×</span>' : ''}${lk.l}<small>${j.run ? j.left : j.months} mo</small>${pg}</button>`;
+      q += `<button class="qs job ${j.run ? 'run' : ''}" style="background:${lk.c}" data-cx="${i}" ${can ? '' : 'disabled'} title="${can ? L(`Cancel for a full refund ($${j.paid || 0}M)`, `取消並全額退費($${j.paid || 0}M)`) : L('New plant under construction', '新電廠興建中')}">${can ? '<span class="x">×</span>' : ''}${lk.l}<small>${mo(j.run ? j.left : j.months)}</small>${pg}</button>`;
     }
-    const building = p.build && p.build.kind === 'new';
-    const keys = building ? [] : [...M.TECH_ORDER, 'deep', 'convert', 'demolish'];
+    const keys = iconKeys(p);
     $('plBody').innerHTML = `<div class="qrow">${q}</div>`
-      + (building ? '<p class="lead">This plant is still being built. Come back when it is online to add capture.</p>'
-        : `<div class="icons" id="icons">${keys.map(k => iconHTML(p, k)).join('')}</div><div class="info" id="info"></div>`)
-      + `<p class="cmd-hint">${lastPtr === 'mouse' ? 'Hover an icon for details, click it to queue.' : 'Tap an icon for details, tap it again to queue.'} Jobs are paid when queued; tap a job in the queue to cancel it for a full refund.</p>`;
+      + `<div class="icons" id="icons">${keys.map(k => iconHTML(p, k)).join('')}</div><div class="info" id="info"></div>`
+      + `<p class="cmd-hint">${lastPtr === 'mouse' ? L('Hover an icon for details, click it to queue.', '滑鼠移到圖示上看說明，點一下排入佇列。') : L('Tap an icon for details, tap it again to queue.', '點圖示看說明，再點一次排入佇列。')} ${L('Jobs are paid when queued; tap a job in the queue to cancel it for a full refund. Capture can be queued while a plant is still being built.', '排入就付錢；點佇列裡的工程可取消並全額退費。電廠還在興建時也能先排捕捉。')}</p>`;
     $('plBody').querySelectorAll('[data-cx]').forEach(b => b.onclick = () => {
       const r = M.cancelJob(S, p.id, +b.dataset.cx);
       SND.play(r.ok ? 'cancel' : 'nope');
@@ -732,44 +947,54 @@ details p { margin: 6px 0 0; }
     if ($('icons')) $('icons').onmouseleave = () => { hoverK = null; markSel(); renderInfo(p); };
     renderInfo(p);
   }
+  const LIN = { afs: 1, ampnmp: 1, pe2eg: 1, mea90: 1 };
   function renderInfo(p) {
     const box = $('info');
     if (!box) return;
     const v = M.planned(p);
     const vp = Object.assign({}, p, v);   // the plant as it will be when this job starts
-    const k = hoverK || sel || (v.tech ? (v.deep ? 'convert' : 'deep') : 'mea90');
+    const keys = iconKeys(p);
+    let k = hoverK || sel || (v.tech ? (v.deep || M.TECHS[v.tech].noDeep ? keys.find(x => x.startsWith('cv_')) || 'demolish' : 'deep') : 'mea90');
+    if (!keys.includes(k)) k = 'mea90';
     const idle = !p.build && !(p.queue || []).length;
-    const act = chk => `${idle ? 'Start' : 'Queue'} · $${fmt(chk.cost)}M · ${chk.months} mo`;
-    const why = chk => `<span class="src">${chk.why}${chk.cost && chk.why === 'Not enough funds' ? ` (needs $${fmt(chk.cost)}M)` : ''}</span>`;
+    const act = chk => `${idle ? L('Start', '開工') : L('Queue', '排入')} · $${fmt(chk.cost)}M · ${mo(chk.months)}`;
+    const whyHTML = chk => `<span class="src">${why(chk.why)}${chk.cost && chk.why === 'Not enough funds' ? L(` (needs $${fmt(chk.cost)}M)`, `(需要 $${fmt(chk.cost)}M)`) : ''}</span>`;
     let h;
     if (M.TECHS[k]) {
       const t = M.TECHS[k], e = M.eff(k, false, v.type), mt = M.maturity(S, k), chk = M.canQueue(S, p, jobFor(k));
       const est = x => (t.est && t.est.includes(x)) ? ' <span class="est">est.</span>' : '';
-      const stage = !t.startup ? `<span class="chip ok">${t.stage}</span>`
-        : mt.proven ? '<span class="chip ok">proven ✓</span>'
-        : `<span class="chip warn" title="Monthly odds of a start-up failure until 24 months of operation">new · ${fmt(mt.risk * 100, 1)} %/mo risk</span>`;
-      h = `<div class="row"><span class="nm" style="color:${t.color}">${t.name}</span>${stage}</div>
-        <div class="pitch">${t.pitch}</div>${bars(vp, k)}
-        <details><summary>Details</summary><p>Absorbs ${t.rate}× as fast as MEA; a slower solvent needs a taller absorber, so it costs more to build. Regeneration ${fmt(e.duty, 1)} GJ/t${est('duty')}${t.est && t.est.includes('capex') ? ' · build cost is a game estimate' : ''}${v.type === 'gas' && !t.gasOK ? ' (gas flue gas is dilute, so +15 %)' : ''}. ${t.fact}</p><p class="src">${t.src}</p></details>
-        <div class="row">${chk.ok ? `<button class="btn ${t.star ? 'gold' : ''}" data-go="${k}">${act(chk)}</button>` : why(chk)}</div>`;
+      const stage = !t.startup ? `<span class="chip ok">${tStage(t)}</span>`
+        : mt.proven ? `<span class="chip ok">${L('proven ✓', '已成熟 ✓')}</span>`
+        : `<span class="chip warn" title="${L('Monthly odds of a start-up failure until 24 months of operation', '運轉滿 24 個月前每月的開機故障機率')}">${L('new', '新')} · ${fmt(mt.risk * 100, 1)} %/${L('mo', '月')}</span>`;
+      const foak = M.foak(S, k) > 1 ? ` <span class="chip warn">${L(`first-of-a-kind +${Math.round((M.foak(S, k) - 1) * 100)} %`, `首座溢價 +${Math.round((M.foak(S, k) - 1) * 100)} %`)}</span>` : '';
+      const how = t.rate ? L(`Absorbs ${t.rate}× as fast as MEA; a slower solvent needs a taller absorber, so it costs more to build. Regeneration ${fmt(e.duty, 1)} GJ/t`, `吸收速度是 MEA 的 ${t.rate} 倍；溶劑越慢，吸收塔越高、越貴。再生能耗 ${fmt(e.duty, 1)} GJ/t`)
+        : L('A fuel cell needs no regeneration steam: it adds about 15 % power but burns extra gas', '燃料電池不需要再生蒸汽：多發約 15 % 的電，但要多燒天然氣');
+      h = `<div class="row"><span class="nm" style="color:${t.color}">${tName(t)}</span><span>${stage}${foak}</span></div>
+        <div class="pitch">${tPitch(t)}</div>${bars(vp, k)}
+        <details><summary>${L('Details', '詳細')}</summary><p>${how}${t.rate ? est('duty') : ''}${t.est && t.est.includes('capex') ? L(' · build cost is a game estimate', ' · 設備費是遊戲估計') : ''}${v.type !== 'coal' && t.rate && !t.gasOK ? L(' (gas flue gas is dilute, so more per tonne)', '(燃氣煙氣較稀，每噸較貴)') : ''}. ${tFact(t)}</p><p class="src">${t.src}</p></details>
+        <div class="row">${chk.ok ? `<button class="btn ${t.star ? 'gold' : ''}" data-go="${k}">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (k === 'deep') {
       const chk = M.canQueue(S, p, { kind: 'deep' });
       const pen = v.tech ? M.penalty({ type: v.type }, v.tech, true) : 0;
-      h = `<div class="row"><span class="nm" style="color:var(--good)">Upgrade to 99 % capture</span><span class="chip">taller packing</span></div>
-        <div class="pitch">A costly last resort: 99 % instead of 90 %, but the taller columns take a year to build and need more steam.</div>
-        ${v.tech ? `<div class="mini"><span>captures <b>99 %</b></span><span>output <b>−${Math.round(pen * 100)} %</b></span></div>` : ''}
-        <details><summary>Details</summary><p>Pushing amine capture past 99 % needs 20–30 m of packing and about 9 % more regeneration energy <span class="est">est.</span></p><p class="src">Chang, Chou &amp; Lin, Sep. Purif. Technol. 2025</p></details>
-        <div class="row">${chk.ok ? `<button class="btn" data-go="deep">${act(chk)}</button>` : why(chk)}</div>`;
-    } else if (k === 'convert') {
-      const chk = M.canQueue(S, p, { kind: 'convert' }), to = v.type === 'coal' ? 'gas' : 'coal';
-      h = `<div class="row"><span class="nm">Convert to ${to}</span><span class="chip ${to}">${M.PLANT_TYPES[to].size} MW ${to}</span></div>
-        <div class="pitch">${to === 'gas' ? 'Switch to gas: 60 % less CO₂ per MWh, but pricier fuel and LNG shortages.' : 'Switch to coal: cheap, steady fuel, but 2.6× the CO₂ per MWh.'} The plant is offline while it is converted; its capture unit stays.</div>
-        <div class="row">${chk.ok ? `<button class="btn ghost" data-go="convert">${act(chk)} offline</button>` : why(chk)}</div>`;
+      h = `<div class="row"><span class="nm" style="color:var(--good)">${L('Upgrade to 99 % capture', '升級到 99 % 捕捉')}</span><span class="chip">${L('taller packing', '更高填料')}</span></div>
+        <div class="pitch">${L('A costly last resort: 99 % instead of 90 %, but the taller columns take a year to build and need more steam.', '昂貴的最後手段：捕捉率從 90 % 到 99 %，但更高的塔要蓋一年，也更耗蒸汽。')}</div>
+        ${v.tech ? `<div class="mini"><span>${L('captures', '捕捉')} <b>99 %</b></span><span>${L('output', '出力')} <b>−${Math.round(pen * 100)} %</b></span></div>` : ''}
+        <details><summary>${L('Details', '詳細')}</summary><p>${L('Pushing amine capture past 99 % needs 20–30 m of packing and about 9 % more regeneration energy', '要把胺捕捉推到 99 % 以上，需要 20–30 m 填料，再生能耗約多 9 %')} <span class="est">est.</span></p><p class="src">Chang, Chou &amp; Lin, Sep. Purif. Technol. 2025</p></details>
+        <div class="row">${chk.ok ? `<button class="btn" data-go="deep">${act(chk)}</button>` : whyHTML(chk)}</div>`;
+    } else if (k.startsWith('cv_')) {
+      const to = k.slice(3), chk = M.canQueue(S, p, jobFor(k)), pt = M.PLANT_TYPES[to];
+      const text = to === 'gasb'
+        ? L('Burn gas in the existing coal boiler: quick and cheap, but it stays a steam cycle, so CO₂ only drops to 0.55 t/MWh (−42 %) and gas costs more per MWh than in a combined cycle.', '在原本的燃煤鍋爐改燒天然氣：快又便宜，但還是蒸汽循環，CO₂ 只降到 0.55 t/MWh(−42 %)，每 MWh 用的氣也比複循環多。')
+        : to === 'gas' ? L('Repower to a combined-cycle gas plant (gas turbine + steam): a two-year rebuild, 400 MW, 0.37 t CO₂/MWh (−61 % vs coal). Fuel cells fit only here.', '改建成複循環燃氣廠(燃氣渦輪 + 蒸汽)：兩年工程，400 MW，0.37 t CO₂/MWh(比燃煤少 61 %)。燃料電池只能裝在這種廠。')
+        : L('Switch the boiler back to coal: cheap, steady fuel, but 0.95 t CO₂/MWh again.', '鍋爐改回燒煤：燃料便宜穩定，但又回到 0.95 t CO₂/MWh。');
+      h = `<div class="row"><span class="nm">${L('Convert to ', '改建為')}${zhOf(pt.label, pt.zh)}</span><span class="chip ${to}">${pt.size} MW · ${pt.intensity} t/MWh</span></div>
+        <div class="pitch">${text} ${L('The plant is offline while it is converted; its capture unit stays.', '改建期間停機；捕捉設備保留。')}</div>
+        <div class="row">${chk.ok ? `<button class="btn ghost" data-go="${k}">${act(chk)}${L(' offline', ' 停機')}</button>` : whyHTML(chk)}</div>`;
     } else {
       const dm = M.canDemolish(S, p), back = (p.queue || []).reduce((a, x) => a + x.paid, 0);
-      h = `<div class="row"><span class="nm" style="color:var(--anger)">Demolish ${p.name}</span></div>
-        <div class="pitch">Costs $${M.DEMOLISH_COST}M and removes ${p.gross} MW for good.${back ? ` Queued work is refunded ($${back}M).` : ''}</div>
-        <div class="row">${dm.ok ? `<button class="btn danger ${armed ? 'armed' : ''}" data-go="demolish">${armed ? 'Tap again to demolish' : `Demolish · $${M.DEMOLISH_COST}M`}</button>` : `<span class="src">${dm.why}</span>`}</div>`;
+      h = `<div class="row"><span class="nm" style="color:var(--anger)">${L('Demolish ', '拆除')}${plantName(p)}</span></div>
+        <div class="pitch">${L(`Costs $${M.DEMOLISH_COST}M and removes ${p.gross} MW for good.`, `花 $${M.DEMOLISH_COST}M，永久移除 ${p.gross} MW。`)}${back ? L(` Queued work is refunded ($${back}M).`, `排隊工程退費($${back}M)。`) : ''}</div>
+        <div class="row">${dm.ok ? `<button class="btn danger ${armed ? 'armed' : ''}" data-go="demolish">${armed ? L('Tap again to demolish', '再按一次拆除') : L(`Demolish · $${M.DEMOLISH_COST}M`, `拆除 · $${M.DEMOLISH_COST}M`)}</button>` : `<span class="src">${why(dm.why)}</span>`}</div>`;
     }
     box.innerHTML = h;
     box.querySelectorAll('[data-go]').forEach(b => b.onclick = () => doJob(p, b.dataset.go));
@@ -792,17 +1017,18 @@ details p { margin: 6px 0 0; }
   $('bdClose').onclick = closeBuild;
   $('ovBuild').addEventListener('click', e => { if (e.target === $('ovBuild')) closeBuild(); });
   function renderBuild() {
-    $('bdLead').textContent = `${S.plants.length} of ${M.MAX_PLANTS} plants · funds ${money(S.funds)} · game paused. More plants = spare power when others trip, but each costs upkeep.`;
+    $('bdLead').textContent = L(`${S.plants.length} of ${M.MAX_PLANTS} plants · funds ${money(S.funds)} · game paused. More plants = spare power when others trip or lose output to capture, but each costs upkeep.`,
+      `${S.plants.length}/${M.MAX_PLANTS} 座電廠 · 資金 ${money(S.funds)} · 遊戲暫停。電廠多，其他廠跳機或被捕捉吃掉電力時才有備援，但每座都有維護費。`);
     const card = (type, pros, cons) => {
       const pt = M.PLANT_TYPES[type], chk = M.canBuildPlant(S, type);
-      return `<div class="opt"><div class="row"><span class="nm">${pt.label} · ${pt.size} MW</span><span class="chip ${type}">${pt.intensity} t CO₂/MWh</span></div>
+      return `<div class="opt"><div class="row"><span class="nm">${zhOf(pt.label, pt.zh)} · ${pt.size} MW</span><span class="chip ${type}">${pt.intensity} t CO₂/MWh</span></div>
         <div class="pitch">👍 ${pros}</div><div class="pitch">👎 ${cons}</div>
-        <div class="row"><button class="btn" data-build="${type}" ${chk.ok ? '' : 'disabled'}>Build · $${pt.build.cost}M · ${pt.build.months} mo</button>${chk.ok ? '' : `<span class="src">${chk.why}</span>`}</div></div>`;
+        <div class="row"><button class="btn" data-build="${type}" ${chk.ok ? '' : 'disabled'}>${L('Build', '興建')} · $${pt.build.cost}M · ${mo(pt.build.months)}</button>${chk.ok ? '' : `<span class="src">${why(chk.why)}</span>`}</div></div>`;
     };
     $('bdOpts').innerHTML =
-      card('coal', 'Cheap, steady fuel. Capture costs less per tonne (concentrated flue gas).', '2.6× the CO₂ of gas, smog, slow and expensive to build.') +
-      card('gas', 'Much cleaner and quick to build.', 'Fuel is pricier and swings; LNG shortages halve output; capture costs more per tonne.');
-    $('bdOpts').querySelectorAll('[data-build]').forEach(b => b.onclick = () => { M.buildPlant(S, b.dataset.build); closeBuild(); renderAll(); });
+      card('coal', L('Cheap, steady fuel. Capture costs less per tonne (concentrated flue gas).', '燃料便宜穩定。煙氣濃，每噸捕捉比較便宜。'), L('2.6× the CO₂ of gas, smog, and four years to build.', 'CO₂ 是燃氣的 2.6 倍、有空污，而且要蓋四年。')) +
+      card('gas', L('Much cleaner and about two years to build. Fuel cells fit here.', '乾淨得多，約兩年蓋好。可以裝燃料電池。'), L('Fuel is pricier and swings; gas supply scares; capture costs more per tonne.', '燃料較貴、價格波動，可能斷氣；每噸捕捉較貴。'));
+    $('bdOpts').querySelectorAll('[data-build]').forEach(b => b.onclick = () => { const r = M.buildPlant(S, b.dataset.build); SND.play(r.ok ? 'queue' : 'nope'); closeBuild(); renderAll(); });
   }
 
   // ---------- lab: pick a project; while the lab is busy the button queues it (paid now) ----------
@@ -810,32 +1036,34 @@ details p { margin: 6px 0 0; }
     const busy = Object.keys(S.research).length > 0, lq = S.labQueue || [];
     const idle = !busy && !lq.length;
     const notes = [];
-    if (S.resCut > 0) notes.push(`<span class="hot">Funding cut: research costs +50 % for ${S.resCut} more months.</span>`);
+    if (S.resCut > 0) notes.push(L(`<span class="hot">Funding cut: research costs +50 % for ${S.resCut} more months.</span>`, `<span class="hot">經費刪減：研發費 +50 %，還有 ${S.resCut} 個月。</span>`));
     $('labNote').innerHTML = notes.join(' ');
     $('labNote').hidden = !notes.length;
     $('lab').innerHTML = M.LAB_ORDER.map(id => {
       const pr = M.project(id);
       const left = S.research[id];
       const tries = (S.tries && S.tries[id]) || 0;
-      const methods = pr.process ? ['exp'] : ['exp', 'comp'];
+      const pilot = id !== 'screen';
+      const methods = pilot ? ['exp'] : ['exp', 'comp'];
       const allFound = id === 'screen' && M.canResearch(S, 'screen', 'exp').why === 'Every solvent found';
       let status = '', acts;
       if (left != null) {
         const mt = S.resMethod[id] || 'exp', total = Math.max(left, S.resTotal || M.researchMonths(S, id, mt));
-        status = `<div class="d" style="color:var(--amine)">${mt === 'comp' ? 'Computer screen' : pr.process ? 'Pilot test' : 'Lab experiments'} running · ${left} mo left · ${Math.round(M.researchOdds(S, id, mt) * 100)} % success</div><div class="prog"><i style="width:${Math.round(100 * (1 - left / total))}%"></i></div>`;
+        status = `<div class="d" style="color:var(--amine)">${mt === 'comp' ? L('Computer screen', '電腦篩選') : pilot ? L('Pilot test', '前導測試') : L('Lab experiments', '實驗')} ${L('running', '進行中')} · ${L(`${left} mo left`, `剩 ${left} 個月`)}${pilot ? '' : ` · ${Math.round(M.researchOdds(S, id, mt) * 100)} % ${L('success', '成功率')}`}</div><div class="prog"><i style="width:${Math.round(100 * (1 - left / total))}%"></i></div>`;
       }
-      if (S.unlocked[id] || allFound) acts = `<div class="acts"><span class="ready">${allFound ? 'Every solvent found ✓' : 'Ready ✓'}</span></div>`;
-      else if (id !== 'screen' && (left != null || lq.some(x => x.id === id))) acts = '';
+      if (S.unlocked[id] || allFound) acts = `<div class="acts"><span class="ready">${allFound ? L('Every solvent found ✓', '溶劑全部找到 ✓') : L('Ready ✓', '可安裝 ✓')}</span></div>`;
+      else if (pilot && (left != null || lq.some(x => x.id === id))) acts = left != null ? '' : `<div class="acts"><span class="ready" style="color:var(--muted)">${L('queued', '已排隊')}</span></div>`;
       else {
         acts = '<div class="acts">' + methods.map(mt => {
           const chk = idle ? M.canResearch(S, id, mt) : M.canQueueResearch(S, id, mt);
           const cost = M.researchCost(S, id, mt), months = M.researchMonths(S, id, mt), odds = Math.round(M.researchOdds(S, id, mt) * 100);
-          const label = id !== 'screen' ? 'Pilot test' : mt === 'comp' ? 'QM + MD screen' : 'Lab experiments';
-          return `<button class="btn rbtn ${mt === 'comp' ? 'ghost' : pr.star ? 'gold' : ''}" data-res="${id}" data-mt="${mt}" ${chk.ok ? '' : 'disabled'}><b>${idle ? '' : 'Queue · '}${label}</b><small>$${cost}M · ${months} mo · ${odds} % success${chk.ok ? '' : ' · ' + chk.why}</small></button>`;
+          const label = pilot ? L('Pilot test', '前導測試') : mt === 'comp' ? L('QM + MD screen', 'QM + MD 篩選') : L('Lab experiments', '實驗');
+          return `<button class="btn rbtn ${mt === 'comp' ? 'ghost' : pr.star ? 'gold' : ''}" data-res="${id}" data-mt="${mt}" ${chk.ok ? '' : 'disabled'}><b>${idle ? '' : L('Queue · ', '排入 · ')}${label}</b><small>$${cost}M · ${mo(months)}${pilot ? '' : ` · ${odds} % ${L('success', '成功')}`}${chk.ok ? '' : ' · ' + why(chk.why)}</small></button>`;
         }).join('') + '</div>';
       }
-      return `<div class="proj ${pr.star ? 'star' : ''}">
-        <div><div class="t">${pr.name}</div><div class="d">${pr.desc}${tries ? ` · ${tries} empty screen${tries > 1 ? 's' : ''} so far` : ''}</div>${id === 'screen'
+      const name = zhOf(pr.name, pr.zh && pr.zh.name), desc = zhOf(pr.desc, pr.zh && pr.zh.desc);
+      return `<div class="proj ${pilot ? 'pilot' : ''} ${pr.star ? 'star' : ''}">
+        <div><div class="t">${name}</div><div class="d">${desc}${tries ? L(` · ${tries} empty screen${tries > 1 ? 's' : ''} so far`, ` · 已落空 ${tries} 次`) : ''}</div>${id === 'screen'
           ? '<div class="drops">' + Object.keys(M.DROPS).map(k => `<span class="${S.unlocked[k] ? 'got' : ''}">${S.unlocked[k] ? '✓ ' : ''}${M.TECHS[k].short} ${'★'.repeat(M.DROPS[k].stars)}</span>`).join('') + '</div>' : ''}${status}</div>
         ${acts}</div>`;
     }).join('');
@@ -846,8 +1074,8 @@ details p { margin: 6px 0 0; }
     });
     // lab queue: the running project, then what waits (tap to cancel, full refund)
     const runId = Object.keys(S.research)[0];
-    const look = j => j.id === 'screen' ? (j.method === 'comp' ? { c: '#2EC4B6', l: 'QM+MD' } : { c: '#E2A93B', l: 'Exp.' }) : { c: '#2BB3C0', l: 'Pilot' };
-    let q = '<span class="ql">Queue</span>';
+    const look = j => j.id === 'screen' ? (j.method === 'comp' ? { c: '#2EC4B6', l: 'QM+MD' } : { c: '#E2A93B', l: L('Exp.', '實驗') }) : { c: M.TECHS[j.id].color, l: M.TECHS[j.id].short.replace('MEA-', '') };
+    let q = `<span class="ql">${L('Queue', '佇列')}</span>`;
     const slots = (runId ? [{ id: runId, method: S.resMethod[runId], run: true, left: S.research[runId] }] : []).concat(lq);
     for (let i = 0; i < 1 + M.QUEUE_MAX; i++) {
       const j = slots[i];
@@ -855,8 +1083,8 @@ details p { margin: 6px 0 0; }
       const lk = look(j);
       if (j.run) {
         const total = Math.max(j.left, S.resTotal || j.left);
-        q += `<span class="qs job run" style="background:${lk.c}" title="Running">${lk.l}<small>${j.left} mo</small><span class="pg" style="width:${Math.round(100 * (1 - j.left / total))}%"></span></span>`;
-      } else q += `<button class="qs job" style="background:${lk.c}" data-lcx="${i - (runId ? 1 : 0)}" title="Cancel for a full refund ($${j.paid}M)"><span class="x">×</span>${lk.l}<small>${j.months} mo</small></button>`;
+        q += `<span class="qs job run" style="background:${lk.c}" title="${L('Running', '進行中')}">${lk.l}<small>${mo(j.left)}</small><span class="pg" style="width:${Math.round(100 * (1 - j.left / total))}%"></span></span>`;
+      } else q += `<button class="qs job" style="background:${lk.c}" data-lcx="${i - (runId ? 1 : 0)}" title="${L(`Cancel for a full refund ($${j.paid}M)`, `取消並全額退費($${j.paid}M)`)}"><span class="x">×</span>${lk.l}<small>${mo(j.months)}</small></button>`;
     }
     $('labQ').innerHTML = q;
     $('labQ').querySelectorAll('[data-lcx]').forEach(b => b.onclick = () => {
@@ -864,26 +1092,26 @@ details p { margin: 6px 0 0; }
       SND.play(r.ok ? 'cancel' : 'nope');
       renderAll();
     });
-    $('labHead').textContent = idle ? 'lab idle' : `running · ${lq.length}/${M.QUEUE_MAX} queued`;
+    $('labHead').textContent = idle ? L('lab idle', '研究所閒置') : L(`running · ${lq.length}/${M.QUEUE_MAX} queued`, `進行中 · 排隊 ${lq.length}/${M.QUEUE_MAX}`);
     $('labDot').hidden = !(idle && M.canResearch(S, 'screen', 'comp').ok);
   }
 
   // ---------- discovery reveal (screening found a solvent) ----------
   let findN = 0;
-  const RARITY = ['', '', 'common', 'uncommon', 'rare'];
-  function openFind() {
+  function openFind(force) {
     const d = S.discovery;
-    if (!d || d.n === findN) return false;
+    if (!d || (d.n === findN && !force)) return false;
     findN = d.n;
     const t = M.TECHS[d.id], st = M.DROPS[d.id].stars;
-    $('findHow').textContent = (d.method === 'comp' ? 'Computer screening' : 'Lab experiments') + ' found · ' + RARITY[st];
+    const rarity = L(['', '', 'common', 'uncommon', 'rare'][st], ['', '', '普通', '稀有', '史詩'][st]);
+    $('findHow').textContent = (d.method === 'comp' ? L('Computer screening', '電腦篩選') : L('Lab experiments', '實驗')) + L(' found · ', '找到 · ') + rarity;
     $('findStars').textContent = '★'.repeat(st);
-    $('findName').textContent = t.name;
-    $('findPitch').textContent = t.pitch;
-    $('findFact').textContent = t.fact;
+    $('findName').textContent = tName(t);
+    $('findPitch').textContent = tPitch(t);
+    $('findFact').textContent = tFact(t);
     $('findSrc').textContent = t.src;
     $('ovFind').hidden = false;
-    SND.play('find', st);
+    if (!force) SND.play('find', st);
     return true;
   }
   $('findOk').onclick = () => { $('ovFind').hidden = true; };
@@ -896,7 +1124,8 @@ details p { margin: 6px 0 0; }
     cold: svg(`<rect width="220" height="160" fill="#CFDCE6"/><g stroke="#FFF" stroke-width="5" stroke-linecap="round"><path d="M70 22v76M37 41l66 38M37 79l66-38"/><path d="M62 30l8 8 8-8M62 90l8-8 8 8"/></g><path d="${SKY}" fill="#3F4852"/><path d="M0 122h18v4H0zM34 106h16v4H34zM68 94h20v4H68zM132 84h22v4h-22z" fill="#FFF"/><rect x="164" y="24" width="16" height="84" rx="8" fill="#FFF" stroke="#222" stroke-width="2"/><rect x="169" y="92" width="6" height="14" fill="#2F6FB3"/><circle cx="172" cy="112" r="12" fill="#2F6FB3" stroke="#222" stroke-width="2"/>`),
     typhoon: svg(`<rect width="220" height="160" fill="#BFC4C4"/><path d="M110 80c0-14 12-22 24-18 14 5 16 26 2 36-18 13-46 2-50-22-4-26 18-50 48-48" fill="none" stroke="#FFF" stroke-width="9" stroke-linecap="round"/><path d="M110 80c0 14-12 22-24 18-14-5-16-26-2-36 18-13 46-2 50 22 4 26-18 50-48 48" fill="none" stroke="#E8EBEB" stroke-width="7" stroke-linecap="round"/><circle cx="110" cy="80" r="6" fill="#6B7373"/><g stroke="#6B7373" stroke-width="2"><path d="M16 20l-8 20M36 12l-8 20M190 110l-8 20M206 120l-8 20M22 120l-8 20"/></g>`),
     storage: svg(`<rect width="220" height="160" fill="#DCD3BE"/><rect x="150" y="40" width="10" height="90" fill="#6E6A60"/><path d="M138 130h34l-6-14h-22z" fill="#6E6A60"/><path d="M0 132h220v28H0z" fill="#9C9180"/>${[20, 58, 96].map((x, i) => `<g><circle cx="${x + 12}" cy="${104 - (i % 2) * 4}" r="8" fill="#2B2B2B"/><path d="M${x} ${136}v-22q12-8 24 0v22z" fill="#2B2B2B"/><path d="M${x + 22} ${112 - (i % 2) * 4}v-40" stroke="#2B2B2B" stroke-width="3"/><rect x="${x + 4}" y="${50 - (i % 2) * 4}" width="40" height="24" fill="#FFF" stroke="#2B2B2B" stroke-width="2"/><text x="${x + 24}" y="${66 - (i % 2) * 4}" font-family="Georgia,serif" font-size="9" font-weight="700" text-anchor="middle" fill="#B3261E">${['NO WELLS', 'NOT HERE', 'SAFETY?'][i]}</text></g>`).join('')}`),
-    wash: svg(`<rect width="220" height="160" fill="#DAD6C8"/><rect x="30" y="30" width="22" height="100" fill="#7B7B7B"/><rect x="60" y="54" width="14" height="76" fill="#2EC4B6" opacity=".8"/><circle cx="46" cy="22" r="12" fill="#B9B9B0"/><circle cx="62" cy="14" r="9" fill="#C9C9C0"/><path d="M0 130h220v30H0z" fill="#8F8878"/><path d="M130 50h24v26l22 44a8 8 0 0 1-7 12h-54a8 8 0 0 1-7-12l22-44z" fill="#FFF" stroke="#222" stroke-width="3"/><path d="M118 108h60l8 14a4 4 0 0 1-4 6h-68a4 4 0 0 1-4-6z" fill="#8E7CC3"/><circle cx="92" cy="52" r="18" fill="none" stroke="#222" stroke-width="5"/><path d="M104 66l16 18" stroke="#222" stroke-width="7" stroke-linecap="round"/>`),
+    // residents with signs in front of a plant whose plume is brownish (NO2)
+    nox: svg(`<rect width="220" height="160" fill="#DED6C4"/><rect x="128" y="34" width="20" height="96" fill="#7B7B7B"/><rect x="156" y="58" width="44" height="72" fill="#6E3F33"/><circle cx="138" cy="24" r="13" fill="#B98E5A" opacity=".85"/><circle cx="156" cy="14" r="11" fill="#C9A06A" opacity=".75"/><circle cx="174" cy="10" r="9" fill="#D8B27E" opacity=".6"/><path d="M0 130h220v30H0z" fill="#8F8878"/>${[14, 52, 90].map((x, i) => `<g><circle cx="${x + 12}" cy="106" r="8" fill="#2B2B2B"/><path d="M${x} 138v-22q12-8 24 0v22z" fill="#2B2B2B"/><path d="M${x + 22} 112v-38" stroke="#2B2B2B" stroke-width="3"/><rect x="${x + 2}" y="54" width="42" height="24" fill="#FFF" stroke="#2B2B2B" stroke-width="2"/><text x="${x + 23}" y="70" font-family="Georgia,serif" font-size="9" font-weight="700" text-anchor="middle" fill="#B3261E">${['NO NOx', 'CLEAN AIR', 'AMINES?'][i]}</text></g>`).join('')}`),
     gas: svg(`<rect width="220" height="160" fill="#E6DCC6"/><path d="M78 140c-30 0-44-24-34-48 6-14 18-20 16-40 22 14 28 32 26 44 6-6 8-14 6-22 14 12 22 30 16 44-4 12-14 22-30 22z" fill="#3A7BD5"/><path d="M78 140c-14 0-22-12-16-24 4-8 12-10 12-22 12 10 18 22 16 32-2 8-6 14-12 14z" fill="#9CC7F2"/><path d="M150 132V58M150 42l-22 26h44z" stroke="#B3261E" stroke-width="14" fill="#B3261E" stroke-linejoin="round"/><text x="186" y="80" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#2B2B2B">$</text>`),
     lng: svg(`<rect width="220" height="160" fill="#CFD8DC"/><path d="M0 118q14-8 28 0t28 0 28 0 28 0 28 0 28 0 28 0 28 0V160H0z" fill="#5E7C8A"/><path d="M30 96h150l-16 26H46z" fill="#2B2B2B"/><rect x="140" y="74" width="26" height="22" fill="#EEE" stroke="#2B2B2B" stroke-width="2"/>${[62, 92, 122].map(x => `<circle cx="${x}" cy="90" r="12" fill="#F3EEE2" stroke="#2B2B2B" stroke-width="2"/>`).join('')}<circle cx="178" cy="38" r="22" fill="#FFF" stroke="#2B2B2B" stroke-width="3"/><path d="M178 38V24M178 38l10 6" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round"/>`),
     winter: svg(`<rect width="220" height="160" fill="#DCE4EA"/><path d="M0 128h220v32H0z" fill="#FFF"/><rect x="20" y="92" width="180" height="16" fill="#7B8B98"/><rect x="96" y="76" width="18" height="16" fill="#7B8B98"/><circle cx="105" cy="70" r="10" fill="#B3261E"/>${[34, 58, 134, 160, 184].map((x, i) => `<path d="M${x} 108l4 ${10 + (i % 3) * 6} 4-${10 + (i % 3) * 6}z" fill="#BFE3F7"/>`).join('')}${[[30, 30], [80, 18], [150, 26], [190, 50], [120, 44], [50, 60]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#FFF"/>`).join('')}`),
@@ -907,26 +1136,26 @@ details p { margin: 6px 0 0; }
     generic: svg(`<rect width="220" height="160" fill="#DAD3C2"/><path d="${SKY}" fill="#4A4540"/>`),
   };
   const CAP = {
-    heat: 'Air-conditioners strain the grid.', cold: 'Heaters strain the grid.', typhoon: 'The storm on satellite.',
-    storage: 'Residents at the injection wells.', wash: 'Researchers sample the air downwind.', gas: 'Gas prices hit a record.',
-    lng: 'The delayed tanker, days from port.', winter: 'Frozen pipes at a gas field.', subsidy: 'The new clean-air package.',
-    health: 'Smog over the city.', subcut: 'The President signs the order. (Cartoon)',
+    heat: ['Air-conditioners strain the grid.', '冷氣讓電網吃緊。'], cold: ['Heaters strain the grid.', '電暖器讓電網吃緊。'], typhoon: ['The storm on satellite.', '衛星雲圖上的颱風。'],
+    storage: ['Residents at the injection wells.', '注入井旁的居民。'], nox: ['Residents downwind of the plants.', '電廠下風處的居民。'], gas: ['Gas prices hit a record.', '氣價創新高。'],
+    lng: ['The delayed tanker, days from port.', '延誤的 LNG 船，離港還有幾天。'], winter: ['Frozen pipes at a gas field.', '氣田結冰的管線。'], subsidy: ['The new clean-air package.', '新的空污方案。'],
+    health: ['Smog over the city.', '城市上空的霧霾。'], subcut: ['The President signs the order. (Cartoon)', '總統簽下命令。(漫畫)'],
   };
   let headN = 0;
-  function showPaper(h, opts) {
+  function showPaper(h, opts, quiet) {
     const key = h.id === 'heat' && /cold/i.test(h.title) ? 'cold' : h.id;
-    const m = Math.min(S.m, M.MONTHS - 1);
-    $('evDate').textContent = MONTH[m % 12] + ' ' + (M.START_YEAR + Math.floor(m / 12));
-    $('evKind').textContent = opts ? 'Your decision' : h.tone === 'good' ? 'Good news' : 'Extra! Extra!';
+    const z = h.zh || {};
+    $('evDate').textContent = dateStr(S.m);
+    $('evKind').textContent = opts ? L('Your decision', '請你決定') : h.tone === 'good' ? L('Good news', '好消息') : L('Extra! Extra!', '號外！號外！');
     $('evKind').className = 'ex' + (h.tone === 'good' ? ' good' : '');
-    $('evTitle').textContent = h.title.replace(/!$/, '');
-    $('evDeck').textContent = h.deck || '';
-    $('evText').textContent = h.text;
+    $('evTitle').textContent = zhOf(h.title, z.title).replace(/[!！]$/, '');
+    $('evDeck').textContent = zhOf(h.deck || '', z.deck);
+    $('evText').textContent = zhOf(h.text, z.text);
     $('evArt').innerHTML = ART[key] || ART.generic;
-    $('evCap').textContent = CAP[key] || '';
+    $('evCap').textContent = CAP[key] ? L(CAP[key][0], CAP[key][1]) : '';
     if (opts) {
       $('evOpts').innerHTML = opts.map((o, i) =>
-        `<button class="choice" data-ch="${i}"><span class="cl">${o.label}</span><span class="ce">${o.effect}</span></button>`).join('');
+        `<button class="choice" data-ch="${i}"><span class="cl">${zhOf(o.label, o.zh && o.zh.label)}</span><span class="ce">${zhOf(o.effect, o.zh && o.zh.effect)}</span></button>`).join('');
       $('evOpts').querySelectorAll('[data-ch]').forEach(b => b.onclick = () => {
         SND.play('click');
         M.choose(S, +b.dataset.ch);
@@ -934,21 +1163,21 @@ details p { margin: 6px 0 0; }
         renderAll();
       });
     } else {
-      $('evOpts').innerHTML = '<button class="btn" data-ok="1">Back to work</button>';
+      $('evOpts').innerHTML = `<button class="btn" data-ok="1">${L('Back to work', '回去工作')}</button>`;
       $('evOpts').querySelector('[data-ok]').onclick = () => { SND.play('click'); $('ovEvent').hidden = true; };
     }
     $('ovEvent').hidden = false;
-    SND.play('news');
+    if (!quiet) SND.play('news');
     const first = $('evOpts').querySelector('button');
     if (first) first.focus({ preventScroll: true });
   }
-  // a decision (the model waits in S.pending until it is answered)
   function openEvent() {
     const ev = S.pending;
     if (!ev) return;
-    showPaper({ id: ev.id, title: ev.title, deck: 'Your call: the game waits for your decision', text: ev.text, tone: 'bad' }, ev.opts);
+    const z = ev.zh || {};
+    showPaper({ id: ev.id, title: ev.title, deck: 'Your call: the game waits for your decision', text: ev.text, tone: 'bad',
+      zh: { title: z.title, deck: '由你決定：遊戲會等你', text: z.text } }, ev.opts, !$('ovEvent').hidden);
   }
-  // big news that needs no decision
   function openHeadline() {
     const h = S.headline;
     if (!h || h.n === headN) return false;
@@ -962,7 +1191,7 @@ details p { margin: 6px 0 0; }
     toastN = f.n;
     const el = $('toast');
     el.className = 'toast ' + (f.kind || '');
-    el.textContent = f.text;
+    el.textContent = zhOf(f.text, f.zh);
     el.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { el.hidden = true; }, 3800);
@@ -970,30 +1199,28 @@ details p { margin: 6px 0 0; }
 
   // ---------- news + meters ----------
   function renderNews() {
-    $('news').innerHTML = S.news.slice(0, 12).map(n => {
-      const y = M.START_YEAR + Math.floor(n.m / 12), mo = MONTH[n.m % 12];
-      return `<li class="${n.kind}"><time>${mo} ${y}</time>${n.text}</li>`;
-    }).join('');
+    $('news').innerHTML = S.news.slice(0, 12).map(n => `<li class="${n.kind}"><time>${dateStr(n.m)}</time>${zhOf(n.text, n.zh)}</li>`).join('');
   }
   // square-root scale keeps a small late-game limit visible on a phone
   const wOf = v => Math.sqrt(Math.max(0, Math.min(v, M.LIMIT_SCALE)) / M.LIMIT_SCALE) * 100;
   function renderMeters() {
     const m = Math.min(S.m, M.MONTHS - 1);
-    $('date').textContent = MONTH[m % 12] + ' ' + (M.START_YEAR + Math.floor(m / 12));
+    $('date').textContent = dateStr(S.m);
     const lim = M.limit(S);
     const rate = S.last ? S.rate : 0;
     const over = rate > lim;
-    $('gLim').textContent = 'limit ' + fmt(lim, 1) + ' Mt/yr';
-    $('vGh').innerHTML = (S.last ? fmt(rate, 1) : '—') + '<small> Mt/yr</small>';
+    $('gLim').textContent = L('limit ', '限額 ') + fmt(lim, 1) + L(' Mt/yr', ' Mt/年');
+    $('vGh').innerHTML = (S.last ? fmt(rate, 1) : '—') + `<small>${L(' Mt/yr', ' Mt/年')}</small>`;
     const y = M.START_YEAR + Math.floor(m / 12);
     const nextY = y < 2050 ? Math.min(2050, (Math.floor(y / 5) + 1) * 5) : null;
-    $('gNext').textContent = nextY ? `limit ${nextY}: ${fmt(M.limitFor(S, nextY), 1)}` : 'net zero year';
+    $('gNext').textContent = nextY ? L(`limit ${nextY}: ${fmt(M.limitFor(S, nextY), 1)}`, `${nextY} 年限額：${fmt(M.limitFor(S, nextY), 1)}`) : L('net zero year', '淨零年');
     $('gFut').style.left = wOf(M.limitFor(S, Math.min(2050, y + 5))) + '%';
+    $('gFut').title = L('limit in 5 years', '5 年後的限額');
     $('gCap').style.width = wOf(lim) + '%';
     $('gFill').style.width = wOf(Math.min(rate, lim)) + '%';
     $('gOver').style.left = wOf(lim) + '%';
     $('gOver').style.width = (over ? wOf(rate) - wOf(lim) : 0) + '%';
-    $('gBar').setAttribute('aria-label', `Emitting ${fmt(rate, 1)} Mt per year, legal limit ${fmt(lim, 1)} Mt per year`);
+    $('gBar').setAttribute('aria-label', L(`Emitting ${fmt(rate, 1)} Mt per year, legal limit ${fmt(lim, 1)} Mt per year`, `每年排放 ${fmt(rate, 1)} Mt，法定限額每年 ${fmt(lim, 1)} Mt`));
     $('mGh').classList.toggle('over', over);
     $('bBreach').style.width = S.greenhouse + '%';
     $('vBreach').textContent = Math.round(S.greenhouse) + ' %';
@@ -1001,41 +1228,46 @@ details p { margin: 6px 0 0; }
     $('vAng').textContent = Math.round(S.anger) + '%';
     $('bAng').style.width = S.anger + '%';
     $('mAng').classList.toggle('danger', S.anger > 75);
+    // the two biggest drivers of anger this month
+    const pa = angerParts();
+    const net = pa.price + pa.blackout + pa.smog + pa.breach + pa.calm + pa.events;
+    const top = AP.filter(([k]) => k !== 'calm' && (pa[k] || 0) > 0.15).sort((a, b) => pa[b[0]] - pa[a[0]]).slice(0, 2).map(([, en, zh]) => L(en, zh).replace(/ \(.*\)$/, '').replace(/(.*)$/, '$1'));
+    $('angWhy').textContent = S.angerParts ? `${net >= 0.05 ? '▲' : net <= -0.05 ? '▼' : '•'} ${net >= 0 ? '+' : ''}${fmt(net, 1)}${L('/mo', '/月')}${top.length ? ' · ' + top.join(L(', ', '、')) : ''}` : '';
+    $('angWhy').className = 'sub ' + (net >= 0.05 ? 'up' : net <= -0.05 ? 'down' : '');
     $('vFund').textContent = money(S.funds);
     $('mFund').classList.toggle('danger', S.funds < 0);
-    const L = S.last;
-    if (L) {
-      $('sFund').textContent = (L.profit >= 0 ? '+' : '−') + '$' + fmt(Math.abs(L.profit), 1) + 'M / month';
-      $('vGrid').textContent = fmt(L.netCap) + ' MW';
-      const sf = M.SEASON[S.region][(S.m + 11) % 12];   // L is last month's dispatch
-      const tag = sf >= 1.1 ? (S.region === 'norway' ? ' · winter peak' : ' · summer peak') : sf <= 0.9 ? ' · low season' : '';
-      $('sGrid').textContent = 'demand ' + fmt(L.demand) + ' MW' + tag + (L.sold > 1 ? ` · selling ${fmt(L.sold)}` : '') + (L.imported > 1 ? ` · importing ${fmt(L.imported)}` : '');
-      $('mGrid').classList.toggle('danger', L.unservedFrac > 0.01);
-      $('profit').textContent = (L.profit >= 0 ? 'profit +$' : 'loss −$') + fmt(Math.abs(L.profit), 1) + 'M/mo';
-      $('co2rate').textContent = 'CO₂ ' + fmt(L.emitted * 12 / 1e6, 1) + ' Mt/yr';
+    const Ls = S.last;
+    if (Ls) {
+      $('sFund').textContent = (Ls.profit >= 0 ? '+' : '−') + '$' + fmt(Math.abs(Ls.profit), 1) + L('M / month', 'M / 月');
+      $('vGrid').textContent = fmt(Ls.netCap) + ' MW';
+      const sf = M.SEASON[S.region][(S.m + 11) % 12];   // Ls is last month's dispatch
+      const cold = M.REGIONS[S.region].peak === 'cold';
+      const tag = sf >= 1.08 ? (cold ? L(' · winter peak', ' · 冬季尖峰') : L(' · summer peak', ' · 夏季尖峰')) : sf <= 0.9 ? L(' · low season', ' · 淡季') : '';
+      $('sGrid').textContent = L('demand ', '需求 ') + fmt(Ls.demand) + ' MW' + tag + (Ls.sold > 1 ? L(` · selling ${fmt(Ls.sold)}`, ` · 售電 ${fmt(Ls.sold)}`) : '') + (Ls.imported > 1 ? L(` · importing ${fmt(Ls.imported)}`, ` · 進口 ${fmt(Ls.imported)}`) : '');
+      $('mGrid').classList.toggle('danger', Ls.unservedFrac > 0.01);
+      $('co2rate').textContent = 'CO₂ ' + fmt(Ls.emitted * 12 / 1e6, 1) + L(' Mt/yr', ' Mt/年');
     }
-    // carbon price (or the capture credit) — the one price that shapes every decision
+    // carbon price (or the capture credit) and the storage fee — the prices that shape every decision
     const rg = M.REGIONS[S.region] || M.REGIONS.taiwan;
     const cp = $('cPrice');
-    if (rg.credit) { cp.className = 'cprice credit'; cp.innerHTML = `Capture credit <b>+$${rg.credit}/t</b> stored · no carbon tax`; }
+    if (rg.credit) { cp.className = 'cprice credit'; cp.innerHTML = L(`45Q credit <b>+$${rg.credit}/t</b> stored (12 yr per plant) · storage $${rg.ts}/t · no carbon tax`, `45Q 抵減 <b>每噸 +$${rg.credit}</b>(每座廠 12 年)· 封存每噸 $${rg.ts} · 無碳稅`); }
     else {
       const tNow = M.carbonTax(y, S), tNext = M.carbonTax(y + 1, S);
       cp.className = 'cprice';
-      cp.innerHTML = tNow ? `Carbon price <b>$${tNow}/t</b> · next year $${tNext}` : `Carbon price starts ${rg.tax.from}: <b>$${rg.tax.base}/t</b>, +$${rg.tax.step} a year`;
+      cp.innerHTML = L(`Carbon price <b>$${tNow}/t</b> · next year $${tNext} · storage $${rg.ts}/t`, `碳價 <b>每噸 $${tNow}</b> · 明年 $${tNext} · 封存每噸 $${rg.ts}`);
     }
   }
-  let lastGas = null;
   function renderAll() {
-    renderMeters(); renderPrice(); renderChips(); renderLab(); renderNews();
+    renderMeters(); renderStatus(); renderChips(); renderLab(); renderNews();
     if (!$('ovPlant').hidden) renderPlant();
     if (!$('ovBuild').hidden) renderBuild();
     fitNews();
   }
-  // desktop: the news list ends where the city pane ends, so the page does not scroll
+  // desktop: the news list (city pane) ends where the research pane ends, so the page does not scroll
   function fitNews() {
     const n = $('news');
     if (innerWidth <= 860) { n.style.maxHeight = ''; return; }
-    const bottom = document.querySelector('.p-city').getBoundingClientRect().bottom;
+    const bottom = Math.max(document.querySelector('.p-research').getBoundingClientRect().bottom, innerHeight - 40);
     n.style.maxHeight = Math.max(72, Math.round(bottom - n.getBoundingClientRect().top - 13)) + 'px';
   }
 
@@ -1052,7 +1284,7 @@ details p { margin: 6px 0 0; }
     const fresh = [];
     for (const n of S.news) { if (n === top) break; fresh.push(n); }
     const has = re => fresh.some(n => re.test(n.text));
-    if (has(/start-up failure|precipitated/)) SND.play('fail');
+    if (has(/start-up failure|precipitated|froze out|bearing failed/)) SND.play('fail');
     else if (has(/^Blackouts/)) SND.play('blackout');
     else if (has(/came up empty/)) SND.play('empty');
     else if (has(/is online|capture is online|conversion finished|is ready to install/)) SND.play('done');
@@ -1060,50 +1292,62 @@ details p { margin: 6px 0 0; }
   }
 
   // ---------- end ----------
+  let lastEntry = null;
   function showEnd() {
     playing = false;
     $('tip').hidden = true;
     const s = S, win = s.over.win;
-    const why = { greenhouse: 'The limit-breach meter hit 100 %. The government revoked your operating licence.',
-      anger: 'Protesters filled the streets. The city council voted your company out.',
-      bankrupt: 'Your utility ran out of money and was taken over.',
-      survived: 'You kept the lights on and stayed within the CO₂ limit until December 2050.' }[s.over.why];
-    const st = M.stars(s);
-    const sc = M.score(s);
-    const rgName = (M.REGIONS[s.region] || M.REGIONS.taiwan).label;
-    $('endTitle').textContent = (win ? 'You made it to 2050!' : 'Game over · ' + (M.START_YEAR + Math.floor((s.m - 1) / 12))) + ' · ' + rgName;
+    const why = {
+      greenhouse: L('The limit-breach meter hit 100 %. The government revoked your operating licence.', '超標計量到了 100 %，政府吊銷了你的營運執照。'),
+      anger: L('Protesters filled the streets. The city council voted your company out.', '抗議人潮塞滿街頭，市議會把你的公司趕下台。'),
+      bankrupt: L('Your utility ran out of money and was taken over.', '你的電力公司把錢燒光，被接管了。'),
+      survived: L('You kept the lights on and stayed within the CO₂ limit until December 2050.', '你撐到了 2050 年 12 月：沒有斷電，也守住了 CO₂ 限額。'),
+    }[s.over.why];
+    const st = M.stars(s), sc = M.score(s);
+    const rg = M.REGIONS[s.region] || M.REGIONS.taiwan, rgName = zhOf(rg.label, rg.zh && rg.zh.label);
+    $('endTitle').textContent = (win ? L('You made it to 2050!', '你撐到 2050 了！') : L('Game over · ', '遊戲結束 · ') + (M.START_YEAR + Math.floor((s.m - 1) / 12))) + ' · ' + rgName;
     const [aName, aText, aDoi] = approach(s);
-    $('endArch').innerHTML = `Your approach: <b>${aName}</b><br>${aText}` + (aDoi ? ` <a href="https://doi.org/${aDoi}" target="_blank" rel="noopener">Read the paper ↗</a>` : '');
+    $('endArch').innerHTML = `${L('Your approach', '你的路線')}: <b>${aName}</b><br>${aText}` + (aDoi ? ` <a href="https://doi.org/${aDoi}" target="_blank" rel="noopener">${L('Read the paper ↗', '看論文 ↗')}</a>` : '');
     $('endStars').textContent = win ? '★'.repeat(st) + '☆'.repeat(3 - st) : '';
     $('endLead').textContent = why;
     const cells = [
-      ['CO₂ captured', fmt(s.captured, 1) + ' Mt'],
-      ['CO₂ emitted', fmt(s.cumCO2, 1) + ' Mt'],
-      ['Worst breach', Math.round(s.maxDebt) + ' %'],
-      ['Start-up failures', String(s.fails)],
-      ['Public anger', Math.round(s.anger) + ' %'],
-      ['Funds', money(s.funds)],
-      ['Blackout months', String(s.blackouts)],
-      [s.creditPaid > 0 ? 'Capture credit earned' : 'Carbon price paid', money(s.creditPaid > 0 ? s.creditPaid : s.taxPaid)],
-      ['Power sold to industry', fmt(s.soldTotal || 0, 0) + ' GWh'],
-      ['Score', fmt(sc)],
+      [L('CO₂ captured', '捕捉 CO₂'), fmt(s.captured, 1) + ' Mt'],
+      [L('CO₂ emitted', '排放 CO₂'), fmt(s.cumCO2, 1) + ' Mt'],
+      [L('Worst breach', '最高超標'), Math.round(s.maxDebt) + ' %'],
+      [L('Start-up failures', '開機故障'), String(s.fails)],
+      [L('Public anger', '民怨'), Math.round(s.anger) + ' %'],
+      [L('Funds', '資金'), money(s.funds)],
+      [L('Blackout months', '停電月數'), String(s.blackouts)],
+      [s.creditPaid > 0 ? L('45Q credit earned', '45Q 抵減收入') : L('Carbon price paid', '繳的碳費'), money(s.creditPaid > 0 ? s.creditPaid : s.taxPaid)],
+      [L('Transport & storage paid', '運輸與封存費'), money(s.tsPaid || 0)],
+      [L('Score', '分數'), fmt(sc)],
     ];
     $('endGrid').innerHTML = cells.map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
-    const used = Object.keys(s.techUsed).filter(id => M.TECHS[id].research);
+    const used = Object.keys(s.techUsed).filter(id => LIN[id] && id !== 'mea90');
     let tip;
-    if (s.over.why === 'greenhouse' && s.m > 150) tip = 'Tip: the limit keeps shrinking. Upgrade plants to 99 % or switch coal to gas before the 2040s.';
-    else if (s.over.why === 'greenhouse') tip = 'Tip: the limit bites from about 2029. Get capture running on a coal plant early, even plain MEA.';
-    else if (s.over.why === 'anger' && s.blackouts > 3) tip = 'Tip: blackouts make people furious. Build a spare plant so a trip or typhoon does not cut power.';
-    else if (s.fails >= 3) tip = 'Tip: QM + MD screening halves the start-up failures of new solvents.';
-    else tip = 'Tip: 2PE–EG is cheap to build and to run once it is proven.';
+    if (s.over.why === 'greenhouse' && s.m > 150) tip = L('Tip: the limit keeps shrinking. Upgrade plants to 99 % or repower coal to combined-cycle gas before the 2040s.', '提示：限額會一直縮小。2040 年代前要把電廠升級到 99 %，或把燃煤改建成複循環燃氣。');
+    else if (s.over.why === 'greenhouse') tip = L('Tip: the limit bites from about 2029 and capture takes a year to build. Start on a coal plant in the first year, even plain MEA.', '提示：限額大約 2029 年開始卡人，捕捉要蓋一年。第一年就先替一座燃煤廠裝捕捉，用 MEA 也好。');
+    else if (s.over.why === 'anger' && s.blackouts > 3) tip = L('Tip: capture eats power, so blackouts follow. Build a spare plant (the empty lot) before capturing everything.', '提示：捕捉會吃掉電力，接著就停電。全面捕捉之前，先在空地蓋一座備用電廠。');
+    else if (s.over.why === 'anger') tip = L('Tip: tap the anger meter to see what drives it; the price board is the quickest fix.', '提示：點民怨計量看原因；電價看板是最快的解法。');
+    else if (s.over.why === 'bankrupt') tip = L('Tip: storing CO₂ costs money every tonne. Raise the price a little, or queue fewer projects at once.', '提示：每封存一噸 CO₂ 都要付錢。稍微調高電價，或不要同時排太多工程。');
+    else if (s.fails >= 3) tip = L('Tip: new technology fails less once proven; give one plant two years before rolling it out everywhere.', '提示：新技術成熟後就少故障；先在一座廠跑兩年，再全面推廣。');
+    else tip = L('Tip: 2PE–EG is cheap to build and to run once it is proven.', '提示：2PE–EG 成熟後，建造和運轉都便宜。');
     $('endLab').innerHTML = (used.length
-      ? `You deployed lab technology: <b>${used.map(id => M.TECHS[id].name).join(', ')}</b>, from Lin Research Group papers at National Tsing Hua University. `
+      ? L(`You deployed technology from Lin Research Group papers at National Tsing Hua University: <b>${used.map(id => M.TECHS[id].name).join(', ')}</b>. `, `你用了清華大學林育正實驗室論文裡的技術：<b>${used.map(id => tName(M.TECHS[id])).join('、')}</b>。`)
       : '') + tip;
+    // leaderboard: only finished games count
+    lastEntry = null;
     if (win) {
       const best = loadBest();
       const b = best[s.region];
       if (!b || sc > b.score) { best[s.region] = { score: sc, stars: st }; saveBest(best); }
-    }
+      const d = new Date();
+      lastEntry = { name: nick() || 'Player', score: sc, stars: st, region: s.region, ts: Date.now(), date: `${d.getMonth() + 1}/${d.getDate()}` };
+      const board = addScore(lastEntry).filter(e => e.region === s.region);
+      const rank = board.findIndex(e => e.ts === lastEntry.ts) + 1;
+      $('endRank').textContent = L(`${lastEntry.name}: #${rank} of ${board.length} in ${rgName}.`, `${lastEntry.name}：${rgName}第 ${rank} 名(共 ${board.length} 局)。`);
+    } else $('endRank').textContent = L('Only games that reach 2050 enter the board.', '只有撐到 2050 年的遊戲才會上榜。');
+    $('endBoard').innerHTML = boardHTML(s.region, lastEntry && lastEntry.ts);
     $('ovEnd').hidden = false;
     SND.play(win ? 'win' : 'lose');
   }
@@ -1112,36 +1356,48 @@ details p { margin: 6px 0 0; }
   // ending title from the approach the player took (links to the paper behind it)
   function approach(s) {
     const u = s.techUsed, deepN = s.plants.filter(p => p.deep).length, coalN = s.plants.filter(p => p.type === 'coal').length;
-    if (u.pe2eg) return ['Solvent pioneer', 'You ran the city on 2PE–EG, the water-lean solvent that reacts 4.5× faster than MEA and carries 2.8× more CO₂ per cycle, so it needs less steam.', '10.1016/j.cej.2026.174224'];
-    if (u.ampnmp) return ['Kinetics chaser', 'You bet on AMP–NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '10.1016/j.cej.2025.160544'];
-    if (u.afs) return ['Process optimizer', 'You kept MEA but recovered its heat with an advanced stripper, cutting the steam bill from 3.5 to 2.8 GJ per tonne.', '10.1021/acs.iecr.5c03760'];
-    if (u.pz) return ['Piperazine pro', 'You ran the city on piperazine with the advanced stripper: the least steam measured in pilot plants, the same on coal and gas flue gas.', null];
-    if (deepN >= 2) return ['99 % engineer', 'You pushed amine capture to 99 % with taller columns: costly, slow to build, and it works.', '10.1016/j.seppur.2024.130120'];
-    if (coalN === 0) return ['Fuel switcher', 'You left coal for gas: 60 % less CO₂ per MWh, but pricier fuel and supply scares.', null];
-    if (u.mea90) return ['MEA workhorse', 'You relied on the industry-standard solvent. It works, but it eats the most steam, which is what better solvents fix.', '10.1016/j.cej.2026.174224'];
-    return ['Business as usual', 'No capture at all: the carbon price and the shrinking limit caught up with the city.', null];
+    if (u.pe2eg) return [L('Solvent pioneer', '溶劑先鋒'), L('You ran the city on 2PE–EG, the water-lean solvent that reacts 4.5× faster than MEA and carries 2.8× more CO₂ per cycle, so it needs less steam.', '你用 2PE–EG 撐起整座城市：這種低水溶劑反應比 MEA 快 4.5 倍、每次循環多帶 2.8 倍 CO₂，所以更省蒸汽。'), '10.1016/j.cej.2026.174224'];
+    if (u.ampnmp) return [L('Kinetics chaser', '動力學玩家'), L('You bet on AMP–NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '你押寶 AMP–NMP：NMP 讓高容量的 AMP 反應快 3 倍，代價是胺甲酸鹽可能析出。'), '10.1016/j.cej.2025.160544'];
+    if (u.mcfc) return [L('Fuel-cell pioneer', '燃料電池先鋒'), L('You put carbonate fuel cells on your gas plants: capture that makes power instead of eating it, until the stacks wear out.', '你在燃氣廠裝了碳酸鹽燃料電池：捕捉不但不吃電，還能發電，直到電池堆老化。'), '10.1016/j.ijggc.2009.11.007'];
+    if (u.rpb) return [L('Process intensifier', '製程強化派'), L('You shrank the absorber ten-fold with rotating packed beds: cheap, fast to build, as long as the rotors keep spinning.', '你用旋轉填充床把吸收器縮小十倍：便宜、蓋得快，只要轉子別壞。'), '10.1021/acs.iecr.4c01614'];
+    if (u.afs) return [L('Process optimizer', '製程優化派'), L('You kept MEA but recovered its heat with an advanced stripper, cutting the steam bill from 3.5 to 2.8 GJ per tonne.', '你保留 MEA，但用進階汽提回收熱量，把每噸蒸汽從 3.5 降到 2.8 GJ。'), '10.1021/acs.iecr.5c03760'];
+    if (u.pz) return [L('Piperazine pro', '哌嗪高手'), L('You ran the city on piperazine with the advanced stripper: the least steam measured in pilot plants, the same on coal and gas flue gas.', '你用哌嗪搭配進階汽提：前導廠實測最省蒸汽，燃煤燃氣煙氣都一樣好。'), null];
+    if (deepN >= 2) return [L('99 % engineer', '99 % 工程師'), L('You pushed amine capture to 99 % with taller columns: costly, slow to build, and it works.', '你用更高的塔把胺捕捉推到 99 %：貴、蓋得慢，但有效。'), '10.1016/j.seppur.2024.130120'];
+    if (coalN === 0) return [L('Fuel switcher', '燃料轉換派'), L('You left coal for gas: far less CO₂ per MWh, but pricier fuel and supply scares.', '你從燃煤轉向燃氣：每 MWh 的 CO₂ 少很多，但燃料較貴、供應也不穩。'), null];
+    if (u.mea90) return [L('MEA workhorse', 'MEA 老黃牛'), L('You relied on the industry-standard solvent. It works, but it eats the most steam, which is what better solvents fix.', '你靠業界標準溶劑撐過來。它有效，但最耗蒸汽，這正是更好的溶劑要解決的問題。'), '10.1016/j.cej.2026.174224'];
+    return [L('Business as usual', '一切照舊'), L('No capture at all: the carbon price and the shrinking limit caught up with the city.', '完全沒有捕捉：碳價和不斷縮小的限額追上了這座城市。'), null];
   }
 
-  // ---------- intro: pick a region ----------
+  // ---------- intro: nickname and region ----------
   let region = 'taiwan';
+  const nick = () => ($('nick').value || '').trim().slice(0, 16);
+  $('nick').value = store.get('cc2050-nick') || '';
+  $('nick').addEventListener('input', () => { $('nick').classList.remove('bad'); $('nickErr').hidden = true; });
   function showIntro() {
     const best = loadBest();
-    $('regions').innerHTML = Object.entries(M.REGIONS).map(([id, r]) =>
-      `<button class="rgn" role="radio" data-rg="${id}" aria-checked="${id === region}"><b>${r.label}</b><i>${r.hint}${best[id] ? ` · best ${best[id].score} ${'★'.repeat(best[id].stars)}` : ''}</i><span>${r.blurb}</span></button>`).join('');
+    $('regions').innerHTML = Object.entries(M.REGIONS).map(([id, r]) => {
+      const z = r.zh || {};
+      return `<button class="rgn" role="radio" data-rg="${id}" aria-checked="${id === region}"><b>${zhOf(r.label, z.label)}</b><i>${zhOf(r.hint, z.hint)}${best[id] ? ` · ${L('best', '最佳')} ${fmt(best[id].score)} ${'★'.repeat(best[id].stars)}` : ''}</i><span>${zhOf(r.blurb, z.blurb)}</span></button>`;
+    }).join('');
     $('regions').querySelectorAll('[data-rg]').forEach(b => b.onclick = () => {
       region = b.dataset.rg;
       $('regions').querySelectorAll('[data-rg]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
     });
-    $('best').textContent = '';
     $('ovIntro').hidden = false;
     playing = false;
   }
   $('startBtn').onclick = () => {
-    S = M.newGame(undefined, region); particles.length = 0; toastN = 0; lastGas = null; findN = 0; headN = 0;
+    const n = nick();
+    if (!n) {
+      $('nick').classList.add('bad'); $('nickErr').hidden = false;
+      $('nickErr').textContent = L('Enter a nickname for the leaderboard.', '請輸入暱稱，才能上排行榜。');
+      $('nick').focus(); SND.play('nope'); return;
+    }
+    store.set('cc2050-nick', n);
+    S = M.newGame(undefined, region); particles.length = 0; toastN = 0; findN = 0; headN = 0;
     SND.unlock(); SND.play('click');
     $('ovIntro').hidden = true; setTab('city'); renderAll(); setSpeed(1); playing = true;
   };
-  showIntro();
 
   // ---------- scene ----------
   const cv = $('cv'), ctx = cv.getContext('2d');
@@ -1156,8 +1412,9 @@ details p { margin: 6px 0 0; }
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   }
   window.addEventListener('resize', () => { resize(); fitNews(); });
+  const FONT = (w, px) => `${w} ${px}px 'IBM Plex Mono', 'Noto Sans TC', 'Microsoft JhengHei', monospace`;
 
-  // plants in the scene are tap targets (rectangles recorded while drawing)
+  // scene objects are tap targets (rectangles recorded while drawing)
   let hits = [], hoverId = null;
   function scenePos(e) {
     const r = cv.getBoundingClientRect();
@@ -1170,8 +1427,10 @@ details p { margin: 6px 0 0; }
   cv.addEventListener('click', e => {
     const id = hitAt(...scenePos(e));
     if (!id) return;
+    if (id === '__pm') { setPrice(S.price - 5); return; }
+    if (id === '__pp') { setPrice(S.price + 5); return; }
     SND.play('click');
-    if (id === '__lab') openLab(); else if (id === '__add') openBuild(); else openPlant(id);
+    if (id === '__lab') openLab(); else if (id === '__add') openBuild(); else if (id === '__price') openPrice(); else if (id === '__crowd') openAnger(); else openPlant(id);
   });
   // the lab in the town opens the research panel (a tab on phones; a highlight on wide screens)
   function openLab() {
@@ -1212,33 +1471,31 @@ details p { margin: 6px 0 0; }
   // name tag on the ground under a plant: id + capture, and the number of queued jobs
   function drawTag(p, cx, base, k, down) {
     const t = p.tech ? M.TECHS[p.tech] : null;
-    const what = p.build && p.build.kind === 'new' ? 'building' : p.build && p.build.kind === 'convert' ? '→ ' + p.build.toType
-      : t ? ICON[p.tech][0] + (p.deep ? ' 99%' : '') : 'no capture';
+    const what = p.build && p.build.kind === 'new' ? L('building', '興建中') : p.build && p.build.kind === 'convert' ? '→ ' + typeName(p.build.toType)
+      : t ? ICON[p.tech][0] + (p.deep ? ' 99%' : '') : '';
     const fs = Math.max(8, Math.min(11, W * 0.016)) * Math.max(0.85, k);
-    ctx.font = `600 ${fs.toFixed(1)}px 'IBM Plex Mono', monospace`;
-    const txt = what === 'no capture' ? p.id : p.id + ' · ' + what, tw = ctx.measureText(txt).width + 8, th = fs + 5, y = base + 4;
+    ctx.font = FONT(600, fs.toFixed(1));
+    const txt = what ? p.id + ' · ' + what : p.id, tw = ctx.measureText(txt).width + 8, th = fs + 5, y = base + 4;
     ctx.fillStyle = 'rgba(15,26,43,.85)'; ctx.fillRect(cx - tw / 2, y, tw, th);
     ctx.fillStyle = down ? '#EF6351' : t ? t.color : '#E9EFF7';
     ctx.textAlign = 'center'; ctx.fillText(txt, cx, y + th - 4);
     const q = (p.queue || []).length;
     if (q) {
       ctx.fillStyle = '#F4B740'; ctx.beginPath(); ctx.arc(cx + tw / 2, y, 7, 0, 7); ctx.fill();
-      ctx.fillStyle = '#0B1422'; ctx.font = "700 9px 'IBM Plex Mono', monospace"; ctx.fillText('+' + q, cx + tw / 2, y + 3);
+      ctx.fillStyle = '#0B1422'; ctx.font = FONT(700, 9); ctx.fillText('+' + q, cx + tw / 2, y + 3);
     }
     ctx.textAlign = 'left';
   }
 
   // ---- construction site pieces ----
-  // a progress pill: yellow fill = share done, text = what and how far
   function drawProgress(cx, y, w, frac, label) {
     const h = 14, x = cx - w / 2;
     ctx.fillStyle = 'rgba(15,26,43,.9)'; ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
     ctx.fillStyle = '#F4B740'; ctx.fillRect(x, y, w * Math.max(0, Math.min(1, frac)), h);
-    ctx.font = "700 9px 'IBM Plex Mono', monospace"; ctx.textAlign = 'center';
+    ctx.font = FONT(700, 9); ctx.textAlign = 'center';
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(15,26,43,.9)'; ctx.strokeText(label, cx, y + 10);
     ctx.fillStyle = '#FFF'; ctx.fillText(label, cx, y + 10); ctx.textAlign = 'left';
   }
-  // tower crane: lattice mast, a jib whose trolley slides back and forth, and a swinging load
   function drawCrane(x, base, top, reach, k, phase) {
     const now = performance.now() / 1000 + phase;
     ctx.strokeStyle = '#E2A93B'; ctx.lineWidth = 1.5;
@@ -1246,7 +1503,7 @@ details p { margin: 6px 0 0; }
     for (let y = base; y > top; y -= 8 * k) { ctx.moveTo(x - 3 * k, y); ctx.lineTo(x + 3 * k, y - 4 * k); }
     ctx.moveTo(x - reach, top); ctx.lineTo(x + reach * 0.35, top); ctx.moveTo(x, top - 7 * k); ctx.lineTo(x - reach * 0.7, top); ctx.moveTo(x, top - 7 * k); ctx.lineTo(x + reach * 0.35, top);
     ctx.stroke();
-    ctx.fillStyle = '#6B6B6B'; ctx.fillRect(x + reach * 0.22, top - 1, 7 * k, 6 * k);   // counterweight
+    ctx.fillStyle = '#6B6B6B'; ctx.fillRect(x + reach * 0.22, top - 1, 7 * k, 6 * k);
     const tx = x - reach * (0.2 + 0.7 * (0.5 + 0.5 * Math.sin(now * 0.6)));
     const drop = (base - top) * (0.45 + 0.2 * Math.sin(now * 0.9));
     ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
@@ -1260,7 +1517,7 @@ details p { margin: 6px 0 0; }
       const x = x0 + (x1 - x0) * f;
       ctx.fillStyle = '#E07A2F'; ctx.fillRect(x - 1.5 * k, base - 7 * k, 3 * k, 6 * k);
       ctx.fillStyle = '#F2C9A0'; ctx.beginPath(); ctx.arc(x, base - 9 * k, 2 * k, 0, 7); ctx.fill();
-      ctx.fillStyle = '#F4D03F'; ctx.fillRect(x - 2.5 * k, base - 11.5 * k, 5 * k, 2 * k);   // hard hat
+      ctx.fillStyle = '#F4D03F'; ctx.fillRect(x - 2.5 * k, base - 11.5 * k, 5 * k, 2 * k);
     }
   }
   function drawScaffold(x, y, w, h) {
@@ -1269,6 +1526,10 @@ details p { margin: 6px 0 0; }
     for (let i = 0; i <= 4; i++) { ctx.moveTo(x + w * i / 4, y); ctx.lineTo(x + w * i / 4, y + h); }
     for (let yy = y + h; yy >= y; yy -= 9) { ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); }
     ctx.stroke();
+  }
+  function outline(hit) {
+    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+    ctx.strokeRect(hit.x0, hit.y0, hit.x1 - hit.x0, hit.y1 - hit.y0); ctx.setLineDash([]);
   }
 
   // ---- the research lab (tap it to open the research panel) ----
@@ -1280,30 +1541,54 @@ details p { margin: 6px 0 0; }
     ctx.fillStyle = blackout ? '#2B2F38' : '#8CC8EE';
     for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) ctx.fillRect(x + w * (0.1 + c * 0.3), y + h * (0.22 + r * 0.3), w * 0.2, h * 0.16);
     ctx.fillStyle = '#5B6F8A'; ctx.fillRect(x + w * 0.42, y + h * 0.78, w * 0.16, h * 0.22);
-    // dish on the roof + sign
     ctx.strokeStyle = '#6B7C93'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + w * 0.8, y - 4); ctx.lineTo(x + w * 0.8, y - 14); ctx.stroke();
     ctx.fillStyle = '#C9D3DE'; ctx.beginPath(); ctx.arc(x + w * 0.8, y - 16, 6, Math.PI * 0.9, Math.PI * 2.1); ctx.fill();
-    ctx.fillStyle = '#16243A'; ctx.fillRect(x + w * 0.08, y - 16, w * 0.5, 11);
-    ctx.fillStyle = '#E2A93B'; ctx.font = "700 9px 'IBM Plex Mono', monospace"; ctx.textAlign = 'center';
-    ctx.fillText('LAB', x + w * 0.33, y - 7); ctx.textAlign = 'left';
-    const hit = { id: '__lab', x0: x - 4, x1: x + w + 4, y0: y - 44, y1: horizon + 6 };
+    ctx.fillStyle = '#16243A'; ctx.fillRect(x + w * 0.04, y - 16, w * 0.6, 11);
+    ctx.fillStyle = '#E2A93B'; ctx.font = FONT(700, 9); ctx.textAlign = 'center';
+    ctx.fillText(L('LAB', '研究所'), x + w * 0.34, y - 7); ctx.textAlign = 'left';
+    const hit = { id: '__lab', x0: x - 4, x1: x + w + 4, y0: y - 52, y1: horizon + 6 };
     hits.push(hit);
-    if (hoverId === '__lab') { ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.strokeRect(hit.x0, hit.y0, hit.x1 - hit.x0, hit.y1 - hit.y0); ctx.setLineDash([]); }
+    if (hoverId === '__lab') outline(hit);
     const cx = x + w / 2, by = y - 46;
     if (busy) {
-      // bubbling flask + progress of the running project
       const left = S.research[busy], total = Math.max(left, S.resTotal || left);
       const now = performance.now() / 1000;
       for (let i = 0; i < 3; i++) {
         const f = (now * 0.8 + i / 3) % 1;
         ctx.fillStyle = `rgba(46,196,182,${0.8 * (1 - f)})`; ctx.beginPath(); ctx.arc(cx - 8 + i * 8, by + 4 - f * 14, 2 + f * 2, 0, 7); ctx.fill();
       }
-      drawProgress(cx, by + 10, Math.max(56, w * 1.1), 1 - left / total, (S.resMethod[busy] === 'comp' ? 'QM+MD ' : busy === 'screen' ? 'EXP ' : 'PILOT ') + left + ' mo');
+      drawProgress(cx, by + 10, Math.max(56, w * 1.1), 1 - left / total, (S.resMethod[busy] === 'comp' ? 'QM+MD ' : busy === 'screen' ? L('EXP ', '實驗 ') : L('PILOT ', '前導 ')) + mo(left));
     } else if (!(S.labQueue || []).length && M.canResearch(S, 'screen', 'comp').ok) {
       const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 300);
       ctx.fillStyle = `rgba(244,183,64,${pulse})`; ctx.beginPath(); ctx.arc(cx, by + 12, 9, 0, 7); ctx.fill();
-      ctx.fillStyle = '#0B1422'; ctx.font = "700 12px 'IBM Plex Mono', monospace"; ctx.textAlign = 'center'; ctx.fillText('!', cx, by + 16); ctx.textAlign = 'left';
+      ctx.fillStyle = '#0B1422'; ctx.font = FONT(700, 12); ctx.textAlign = 'center'; ctx.fillText('!', cx, by + 16); ctx.textAlign = 'left';
     }
+  }
+  // ---- the price billboard in the sky over the town: − / + change the price, the middle opens the sheet ----
+  function drawBoard(horizon) {
+    const bw = Math.max(118, W * 0.2), bh = Math.max(50, H * 0.17);
+    const x = Math.min(W * 0.27, W * 0.48 - bw), y = Math.max(6, H * 0.05);
+    const fair = M.fairPrice(S), d = S.price - fair;
+    ctx.fillStyle = '#5B4636'; ctx.fillRect(x + bw * 0.2, y + bh, 3, horizon - y - bh); ctx.fillRect(x + bw * 0.8 - 3, y + bh, 3, horizon - y - bh);
+    ctx.fillStyle = '#16243A'; ctx.fillRect(x, y, bw, bh);
+    ctx.strokeStyle = d > 0 ? '#EF6351' : '#7BD389'; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, bw - 2, bh - 2);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#9DB0CB'; ctx.font = FONT(700, 9); ctx.fillText(L('POWER PRICE', '電價'), x + bw / 2, y + 12);
+    ctx.fillStyle = '#E9EFF7'; ctx.font = FONT(700, Math.round(bh * 0.36)); ctx.fillText('$' + S.price, x + bw / 2, y + bh * 0.62);
+    ctx.font = FONT(600, 9); ctx.fillStyle = d > 0 ? '#EF6351' : '#7BD389';
+    ctx.fillText(d > 0 ? L(`+$${d} over OK`, `超出 $${d}`) : L(`OK ≤ $${fair}`, `可接受 ≤ $${fair}`), x + bw / 2, y + bh - 6);
+    // − and + buttons on the sides
+    const r = Math.max(10, bh * 0.22);
+    [['__pm', x + r + 3, '−'], ['__pp', x + bw - r - 3, '+']].forEach(([id, bx, ch]) => {
+      const cy = y + bh * 0.5;
+      ctx.fillStyle = hoverId === id ? '#2EC4B6' : '#2B4163'; ctx.beginPath(); ctx.arc(bx, cy, r, 0, 7); ctx.fill();
+      ctx.fillStyle = '#FFF'; ctx.font = FONT(700, Math.round(r * 1.4)); ctx.fillText(ch, bx, cy + r * 0.48);
+      hits.push({ id, x0: bx - r - 3, x1: bx + r + 3, y0: cy - r - 3, y1: cy + r + 3 });
+    });
+    ctx.textAlign = 'left';
+    const hit = { id: '__price', x0: x + 2 * r + 6, x1: x + bw - 2 * r - 6, y0: y, y1: y + bh };
+    hits.unshift(hit);   // the side buttons win where they overlap
+    if (hoverId === '__price') outline({ x0: x - 2, x1: x + bw + 2, y0: y - 2, y1: y + bh + 2 });
   }
   // ---- the empty lot: tap to build a plant ----
   function drawPlot(horizon) {
@@ -1316,15 +1601,15 @@ details p { margin: 6px 0 0; }
     ctx.fillStyle = '#6B4A2E'; ctx.fillRect(x - 1.5, horizon - 40 * k, 3, 38 * k);
     ctx.fillStyle = hoverId === '__add' ? '#2EC4B6' : '#F3EEE2'; ctx.fillRect(x - 20 * k, horizon - 44 * k, 40 * k, 20 * k);
     ctx.strokeStyle = '#1A1A1A'; ctx.lineWidth = 1; ctx.strokeRect(x - 20 * k, horizon - 44 * k, 40 * k, 20 * k);
-    ctx.fillStyle = '#1A1A1A'; ctx.font = `700 ${Math.round(9 * k)}px 'IBM Plex Mono', monospace`; ctx.textAlign = 'center';
-    ctx.fillText('+ BUILD', x, horizon - 31 * k); ctx.textAlign = 'left';
+    ctx.fillStyle = '#1A1A1A'; ctx.font = FONT(700, Math.round(9 * k)); ctx.textAlign = 'center';
+    ctx.fillText(L('+ BUILD', '+ 蓋廠'), x, horizon - 31 * k); ctx.textAlign = 'left';
   }
   // ---- weather for what is happening this month ----
   function drawWeather(horizon) {
-    const mo = (S.m + 11) % 12, winter = mo >= 10 || mo <= 2;
+    const m = (S.m + 11) % 12, winter = m >= 10 || m <= 2;
     const now = performance.now() / 1000;
     const storm = S.gasFreeze > 0, typhoon = S.plants.some(p => p.down > 0 && p.downWhy === 'typhoon repair');
-    const snowy = storm || (S.demandMult > 1 && winter) || (S.region === 'norway' && (mo === 11 || mo <= 1));
+    const snowy = storm || (S.demandMult > 1 && winter) || (S.region === 'germany' && (m === 11 || m <= 1));
     if (typhoon) {
       ctx.fillStyle = 'rgba(60,70,80,.35)'; ctx.fillRect(0, 0, W, H);
       ctx.strokeStyle = 'rgba(200,215,230,.55)'; ctx.lineWidth = 1; ctx.beginPath();
@@ -1332,14 +1617,13 @@ details p { margin: 6px 0 0; }
       ctx.stroke();
     }
     if (snowy) {
-      if (S.region === 'norway' || storm) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(0, horizon, W, H - horizon); }
+      ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(0, horizon, W, H - horizon);
       ctx.fillStyle = 'rgba(255,255,255,.85)';
       for (let i = 0; i < (storm ? 90 : 45); i++) {
         const x = (i * 71 + Math.sin(now + i) * 12 + now * 14) % W, y = (i * 43 + now * (28 + (i % 5) * 6)) % H;
         ctx.beginPath(); ctx.arc(x, y, 1.2 + (i % 3) * 0.6, 0, 7); ctx.fill();
       }
     } else if (S.demandMult > 1) {
-      // heat wave: shimmering air over the ground
       ctx.strokeStyle = 'rgba(255,170,80,.22)'; ctx.lineWidth = 2;
       for (let j = 0; j < 3; j++) {
         ctx.beginPath();
@@ -1352,23 +1636,19 @@ details p { margin: 6px 0 0; }
   function drawScene(dt) {
     if (W < 10) return;   // the city pane is hidden (phone on the Research tab)
     hits = [];
-    // sky dirt follows today's emissions (10.5 Mt/yr ≈ fully hazy)
-    const g = S.last ? Math.max(0, Math.min(1, (S.rate - 0.5) / 10)) : 0.85;
-    const L = S.last;
+    const g = S.last ? Math.max(0, Math.min(1, (S.rate - 0.5) / 10)) : 0.85;   // sky dirt follows today's emissions
+    const Ls = S.last;
     const horizon = H * 0.74;
-    // sky
     const sky = ctx.createLinearGradient(0, 0, 0, horizon);
     sky.addColorStop(0, mix('#6FB6EA', '#7C7466', g));
     sky.addColorStop(1, mix('#D6EEFB', '#C7AE86', g));
     ctx.fillStyle = sky; ctx.fillRect(0, 0, W, horizon);
-    // sun (bigger and redder in a heat wave)
-    const hot = S.demandMult > 1 && !((S.m + 11) % 12 >= 10 || (S.m + 11) % 12 <= 2);
-    const sx = W * 0.2, sy = H * 0.2, sr = Math.max(14, W * 0.035) * (hot ? 1.35 : 1);
+    const mm = (S.m + 11) % 12, hot = S.demandMult > 1 && !(mm >= 10 || mm <= 2);
+    const sx = W * (W < 520 ? 0.08 : 0.17), sy = H * 0.2, sr = Math.max(14, W * 0.035) * (hot ? 1.35 : 1);
     const glow = ctx.createRadialGradient(sx, sy, sr * 0.3, sx, sy, sr * 3);
     glow.addColorStop(0, mix('#FFF4C2', '#FFB36B', hot ? 1 : g)); glow.addColorStop(1, 'rgba(255,220,150,0)');
     ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(sx, sy, sr * 3, 0, 7); ctx.fill();
     ctx.fillStyle = mix('#FFE680', '#FF9A4D', hot ? 1 : g); ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 7); ctx.fill();
-    // hills + ground
     ctx.fillStyle = mix('#8FC99A', '#8E8A64', g);
     ctx.beginPath(); ctx.moveTo(0, horizon);
     for (let x = 0; x <= W; x += 20) ctx.lineTo(x, horizon - 18 - 10 * Math.sin(x / W * 5.5));
@@ -1376,8 +1656,9 @@ details p { margin: 6px 0 0; }
     ctx.fillStyle = mix('#6DB36F', '#8C7B4F', g); ctx.fillRect(0, horizon, W, H - horizon);
     ctx.fillStyle = mix('#5E6B73', '#4A4A46', g); ctx.fillRect(0, horizon + (H - horizon) * 0.42, W * 0.5, (H - horizon) * 0.18); // street
 
+    drawBoard(horizon);
     // town (left half): the research lab, then houses
-    const blackout = L && L.unservedFrac > 0.01;
+    const blackout = Ls && Ls.unservedFrac > 0.01;
     drawLab(horizon, blackout);
     let hx = W * 0.13;
     houses.forEach(h => {
@@ -1389,13 +1670,12 @@ details p { margin: 6px 0 0; }
       for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) ctx.fillRect(hx + hw * (0.18 + c * 0.42), y + hh * (0.22 + r * 0.36), hw * 0.22, hh * 0.18);
       hx += hw + W * 0.01;
     });
-    // power line
     ctx.strokeStyle = 'rgba(40,40,40,.55)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(W * 0.46, horizon - H * 0.2);
     ctx.quadraticCurveTo(W * 0.49, horizon - H * 0.14, W * 0.52, horizon - H * 0.2); ctx.stroke();
     ctx.fillStyle = '#444'; ctx.fillRect(W * 0.46 - 1, horizon - H * 0.2, 2, H * 0.2);
 
-    // people
+    // people on the street (tap them to see why they are angry)
     const ang = S.anger / 100;
     const streetY = horizon + (H - horizon) * 0.5;
     people.forEach((p, i) => {
@@ -1413,6 +1693,7 @@ details p { margin: 6px 0 0; }
         ctx.strokeStyle = '#555'; ctx.beginPath(); ctx.moveTo(x + 3, streetY - 17 + bob); ctx.lineTo(x + 3, streetY - 6 + bob); ctx.stroke();
       }
     });
+    hits.push({ id: '__crowd', x0: W * 0.005, x1: W * 0.485, y0: streetY - 28, y1: streetY + 4 });
 
     drawPlot(horizon);
 
@@ -1423,34 +1704,31 @@ details p { margin: 6px 0 0; }
       const k = s.scale;
       const base = horizon - (s.back ? H * 0.07 : 0);
       const cx = s.x * W;
-      const bw = W * 0.085 * k, bh = H * (p.type === 'coal' ? 0.2 : 0.15) * k;
+      const big = p.type !== 'gas';   // coal and gas-boiler plants keep the big steam-plant building
+      const bw = W * 0.085 * k, bh = H * (big ? 0.2 : 0.15) * k;
       const by = base - bh + 6 * k;
       const hit = { id: p.id, x0: cx - bw * 0.7, x1: cx + bw / 2 + Math.max(5, W * 0.014) * k * 2 + 12 * k, y0: base - H * 0.34 * k, y1: base + 22 };
       hits.push(hit);
-      if (hoverId === p.id) {
-        ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
-        ctx.strokeRect(hit.x0, hit.y0, hit.x1 - hit.x0, hit.y1 - hit.y0); ctx.setLineDash([]);
-      }
+      if (hoverId === p.id) outline(hit);
       const frac = p.build ? 1 - p.build.left / p.build.total : 0;
+      const bodyCol = { coal: '#6E3F33', gas: '#5A6E86', gasb: '#6D6A8A' }[p.type];
       if (p.build && p.build.kind === 'new') {
-        // construction site: footprint, the building rising inside scaffolding, a tower crane and workers
         ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeRect(cx - bw / 2, by, bw, bh); ctx.setLineDash([]);
         const rise = Math.max(3, bh * frac);
-        ctx.fillStyle = p.type === 'coal' ? 'rgba(110,63,51,.9)' : 'rgba(90,110,134,.9)'; ctx.fillRect(cx - bw / 2, base - rise + 6 * k, bw, rise - 6 * k);
+        ctx.fillStyle = bodyCol; ctx.globalAlpha = 0.9; ctx.fillRect(cx - bw / 2, base - rise + 6 * k, bw, rise - 6 * k); ctx.globalAlpha = 1;
         drawScaffold(cx - bw / 2 - 2, by - 4, bw + 4, bh + 4 - 6 * k);
         drawCrane(cx + bw * 0.62, base, by - bh * 0.55, bw * 1.1, k, i);
         drawWorkers(cx - bw / 2, cx + bw / 2, base + 2, k, 2);
-        drawProgress(cx, by - bh * 0.55 - 22 - (i % 2) * 16, Math.max(50, bw * 1.25), frac, `BUILD ${Math.round(frac * 100)}%`);
+        drawProgress(cx, by - bh * 0.55 - 22 - (i % 2) * 16, Math.max(50, bw * 1.25), frac, `${L('BUILD', '施工')} ${Math.round(frac * 100)}%`);
         drawTag(p, cx, base, k, false);
         return;
       }
       const down = !M.online(p);
-      ctx.fillStyle = down ? '#4A4A4A' : (p.type === 'coal' ? '#6E3F33' : '#5A6E86');
+      ctx.fillStyle = down ? '#4A4A4A' : bodyCol;
       ctx.fillRect(cx - bw / 2, by, bw, bh);
       ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(cx - bw / 2, by, bw, 3);
-      // chimney(s)
-      const chimneys = p.type === 'coal' ? [cx - bw * 0.22, cx + bw * 0.15] : [cx + bw * 0.1];
-      const chH = (p.type === 'coal' ? H * 0.28 : H * 0.18) * k;
+      const chimneys = big ? [cx - bw * 0.22, cx + bw * 0.15] : [cx + bw * 0.1];
+      const chH = (big ? H * 0.28 : H * 0.18) * k;
       chimneys.forEach(chx => {
         ctx.fillStyle = p.type === 'coal' ? '#8C8C8C' : '#9EAAB8';
         ctx.fillRect(chx - 4 * k, base - chH, 8 * k, chH);
@@ -1463,14 +1741,21 @@ details p { margin: 6px 0 0; }
       if (t || job) {
         const nt = job && job.kind === 'tech' ? M.TECHS[job.tech] : t;
         const h90 = H * 0.26 * k, h99 = H * 0.32 * k;
+        const shown = t || nt;
         let ah = p.deep ? h99 : h90;
         if (job && job.kind === 'deep') ah = h90 + (h99 - h90) * frac;
         else if (job && !t) ah = Math.max(4, h90 * frac);
-        const col = job && job.kind === 'tech' && t ? t.color : nt.color;
         if (job) { ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.strokeRect(ax, base - (job.kind === 'deep' ? h99 : h90), aw * 2 + 2 * k, (job.kind === 'deep' ? h99 : h90)); ctx.setLineDash([]); }
-        ctx.fillStyle = col; ctx.fillRect(ax, base - ah, aw, ah);
-        ctx.fillRect(ax + aw + 2 * k, base - ah * 0.7, aw * 0.8, ah * 0.7);
-        ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(ax + 1, base - ah, 2, ah);
+        ctx.fillStyle = shown.color;
+        if (shown.power) {   // a fuel cell: low stacked boxes instead of a column
+          for (let j = 0; j < 3; j++) ctx.fillRect(ax, base - (j + 1) * ah * 0.22, aw * 2.2, ah * 0.18);
+        } else if (shown.fast) {   // a rotating packed bed: a short drum
+          ctx.beginPath(); ctx.arc(ax + aw, base - ah * 0.35, aw * 1.1, 0, 7); ctx.fill(); ctx.fillRect(ax, base - ah * 0.35, aw * 2, ah * 0.35);
+        } else {
+          ctx.fillRect(ax, base - ah, aw, ah);
+          ctx.fillRect(ax + aw + 2 * k, base - ah * 0.7, aw * 0.8, ah * 0.7);
+          ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(ax + 1, base - ah, 2, ah);
+        }
         if (t && !job && p.outage <= 0 && !down && S.captureOff <= 0 && !s.back) {
           ctx.strokeStyle = 'rgba(46,196,182,.7)'; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(ax + aw / 2, base); ctx.lineTo(ax + aw / 2, H - 8); ctx.stroke();
@@ -1488,17 +1773,16 @@ details p { margin: 6px 0 0; }
       } else if (p.build && p.build.kind === 'convert') {
         drawScaffold(cx - bw / 2 - 2, by - 4, bw + 4, bh);
         drawCrane(cx - bw * 0.62, base, by - bh * 0.6, bw * 0.9, k, i);
-        drawProgress(cx, by - bh * 0.6 - 22 - (i % 2) * 16, Math.max(56, bw * 1.25), frac, `→${p.build.toType.toUpperCase()} ${Math.round(frac * 100)}%`);
+        drawProgress(cx, by - bh * 0.6 - 22 - (i % 2) * 16, Math.max(56, bw * 1.25), frac, `→${CV[p.build.toType][0].replace('→ ', '')} ${Math.round(frac * 100)}%`);
       }
       drawTag(p, cx, base, k, down);
       if (down) return;
 
-      // smoke emission rate for this plant
-      const u = L && L.units.find(x => x.id === p.id);
+      // smoke: no capture -> dark (coal) or grey (gas); capture running -> only a white steam plume
+      const u = Ls && Ls.units.find(x => x.id === p.id);
       const load = u ? u.run / Math.max(1, u.netCap) : 1;
       const cap = u ? u.c : 0;
-      const intensity = p.type === 'coal' ? 1 : 0.45;
-      // no capture: dark smoke; capture running: only a white steam plume
+      const intensity = p.type === 'coal' ? 1 : p.type === 'gasb' ? 0.6 : 0.45;
       const puff = (playing && speed > 0 && !paused() ? 1 : 0.35) * load * (REDUCED ? 0.3 : 1) * k;
       chimneys.forEach(chx => {
         if (cap > 0) {
@@ -1509,7 +1793,6 @@ details p { margin: 6px 0 0; }
       });
     });
 
-    // particles
     for (let i = particles.length - 1; i >= 0; i--) {
       const q = particles[i];
       q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000; q.r += dt / 1000 * (q.steam ? 4 : 5); q.life -= dt / 1000 * (q.steam ? 0.4 : 0.22);
@@ -1520,12 +1803,10 @@ details p { margin: 6px 0 0; }
     if (particles.length > 400) particles.splice(0, particles.length - 400);
 
     if (!REDUCED) drawWeather(horizon);
-    // haze overlay
     if (g > 0.05) { ctx.fillStyle = `rgba(150,120,80,${0.28 * g})`; ctx.fillRect(0, 0, W, H); }
-    // storage label
     ctx.fillStyle = 'rgba(15,26,43,.75)'; ctx.fillRect(W - 128, H - 22, 122, 16);
-    ctx.fillStyle = S.captureOff > 0 ? '#EF6351' : '#8FE6DC'; ctx.font = "600 10px 'IBM Plex Mono', monospace";
-    ctx.fillText(S.captureOff > 0 ? 'Capture paused' : 'CO₂ stored ' + fmt(S.captured, 1) + ' Mt', W - 122, H - 10);
+    ctx.fillStyle = S.captureOff > 0 ? '#EF6351' : '#8FE6DC'; ctx.font = FONT(600, 10);
+    ctx.fillText(S.captureOff > 0 ? L('Capture paused', '捕捉暫停') : L('CO₂ stored ', 'CO₂ 已封存 ') + fmt(S.captured, 1) + ' Mt', W - 122, H - 10);
   }
 
   // ---------- main loop ----------
@@ -1533,13 +1814,11 @@ details p { margin: 6px 0 0; }
   function frame(t) {
     try {
       const dt = Math.max(0, Math.min(100, t - (lastT || t))); lastT = t;   // a backwards jump must not stall the clock
-      // a decision that lost its card (e.g. after an error) gets its card back instead of freezing the clock
       if (playing && S.pending && $('ovEvent').hidden) openEvent();
       if (playing && speed > 0 && !S.over && !S.pending && !paused()) {
         acc = Math.max(0, acc) + dt * speed;
         let ticked = false;
         const top = S.news[0], breach0 = S.greenhouse, hl0 = S.headlineN;
-        // one month at a time, so a front-page story stops the clock the month it happens
         while (acc >= MS_PER_MONTH && !S.over && !S.pending && S.headlineN === hl0) { acc -= MS_PER_MONTH; M.step(S); ticked = true; }
         if (ticked) { renderAll(); showToast(); soundsSince(top, breach0); }
         if (S.over) showEnd();
@@ -1548,7 +1827,6 @@ details p { margin: 6px 0 0; }
       }
       drawScene(dt);
     } catch (e) {
-      // never let one bad frame stop the clock; keep a note for debugging
       loopErrors += 1;
       if (loopErrors < 5 && window.console) console.error('Capture City frame error', e);
     }
@@ -1559,8 +1837,7 @@ details p { margin: 6px 0 0; }
   if (/[?&]debug(&|=|$)/.test(location.search)) {
     window.__cc = {
       get state() { return S; },
-      // drive the real loop with synthetic 100 ms frames, auto-answering cards and tips (tests only)
-      run(frames, pick) {
+      run(frames) {
         for (let i = 0; i < frames && !S.over; i++) {
           frame((lastT || performance.now()) + 100);
           if (!$('ovEvent').hidden) { const b = $('evOpts').querySelector('button'); if (b) b.click(); }
@@ -1576,10 +1853,13 @@ details p { margin: 6px 0 0; }
         return S.m;
       },
       tip() { return maybeTip(); },
+      setLang,
     };
   }
 
-  // ---------- boot (keeps the game running across republishes) ----------
+  // ---------- boot ----------
+  applyI18n();
+  showIntro();
   function start(data) {
     if (data && data.state && data.state.nextId) { S = data.state; headN = S.headlineN || 0; $('ovIntro').hidden = true; playing = true; tipsShown = { start: true, box: true, lab: true }; if (S.pending) openEvent(); }
     resize(); renderAll(); requestAnimationFrame(frame);

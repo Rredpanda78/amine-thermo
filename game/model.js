@@ -1,25 +1,27 @@
-/* Capture City 2050 \u2014 game model v6 (pure logic, no DOM).
- * Used by index.html in the browser and by sim_test.js under node for balancing.
+/* Capture City 2050 \u2014 game model v10 (pure logic, no DOM). Every player-facing string has an English text and a
+ * Traditional Chinese `zh` twin; the page picks one.
+ * Used by index.html in the browser and by sim_public.js / fuzz_public.js under node for balancing.
  *
  * Technology numbers come from Lin Research Group papers where the paper reports them;
  * everything marked `est` is a game estimate (the paper does not give that number).
  *   MEA regeneration 3.5 GJ/t ......... Chen, Wu & Lin, Chem. Eng. J. 2026 (155 kJ/mol CO2)
  *   Advanced MEA stripper 2.8 GJ/t .... Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (122 kJ/mol)
- *   AMP\u2013NMP 3\u00d7 faster, ~2\u00d7 capacity ... Cheng, Chen & Lin, Chem. Eng. J. 2025 (duty not reported -> est. 3.0,
- *                                       kept above the measured 2PE\u2013EG value; high capacity -> low running cost, est.)
- *                                       AMP carbamate precipitates at high loading (same paper; Chen, Wu & Lin 2026)
- *   2PE\u2013EG 2.9 GJ/t (128 kJ/mol) ...... Chen, Wu & Lin, Chem. Eng. J. 2026 (70 EG/30 H2O; 4.5\u00d7 rate, 2.8\u00d7 capacity;
- *                                       25.8 cP vs 1.7 cP for MEA -> start-up trouble in the heat exchanger)
+ *   AMP\u2013NMP 3\u00d7 faster, ~2\u00d7 capacity ... Cheng, Chen & Lin, Chem. Eng. J. 2025 (duty not reported -> est. 3.0)
+ *   2PE\u2013EG 2.9 GJ/t (128 kJ/mol) ...... Chen, Wu & Lin, Chem. Eng. J. 2026 (4.5\u00d7 rate, 2.8\u00d7 capacity, 25.8 cP)
  *   99 % capture needs 20\u201330 m packing  Chang, Chou & Lin, Sep. Purif. Technol. 2025 (+9 % duty is est.)
  *   QM + MD screening, 28 amines ...... Chien, Wu & Lin, GHGT-18 (2026): reaction \u0394G MAE 3.6 kJ/mol
- *   PZ + advanced stripper 2.45 GJ/t .. Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021 (net, 90 % capture,
- *                                       same at 4 % and 12 % CO2); stripper pilot: Lin, Chen & Rochelle, Faraday Discuss. 2016
+ *   PZ + advanced stripper 2.45 GJ/t .. Suresh Babu & Rochelle, IJGGC 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016
+ *   Rotating packed bed ............... Ind. Eng. Chem. Res. 2025 (10.1021/acs.iecr.4c01614): 10\u201320\u00d7 smaller absorber,
+ *                                       70 wt% MEA; Carbon Clean CycloneCC 10 t/d pilot (Ruwais 2024). Cost cut is est.
+ *   Carbonate fuel cell (MCFC) ........ Campanari et al., IJGGC 2010 (~80 % CO2 cut on a gas plant, efficiency about
+ *                                       unchanged, MCFC \u2248 17 % of output); ExxonMobil/FuelCell Energy Rotterdam demo 2026
+ * Economics checked against NETL / EIA / IEAGHG (Oct 2026 audit): capture capex \u2248 $1,500/kW (NETL nth-of-a-kind
+ * ~$1,700/kW, first units more), CO2 transport + storage per tonne, US 45Q $85/t for 12 years, EU ETS \u2248 $85/t,
+ * Taiwan carbon fee NT$300/t (\u2248 $10) from 2026, build times (capture 18 months, coal 4 years, gas ~2 years),
+ * coal-to-gas: boiler fuel switch (0.55 t/MWh) vs repowering to combined cycle (0.37 t/MWh).
  *
- * Game rules that are NOT from papers: plant sizes and prices, fuel prices, the CO2 limit path,
- * event odds, start-up failure odds, research costs and times, the gas-capture penalty,
- * and the three regions (simplified settings inspired by Taiwan, Norway and Texas, not forecasts).
- * Monthly demand shapes follow the usual seasonal pattern of each grid (Taiwan: summer air-conditioning peak;
- * Norway: winter electric-heating peak; Texas/ERCOT: strong summer peak, smaller winter peak), rounded.
+ * Game rules that are NOT from papers: plant sizes, the CO2 limit path, event odds, start-up failure odds,
+ * research costs and times, and the three regions (simplified settings inspired by Taiwan, Germany and Texas).
  */
 (function (root) {
   'use strict';
@@ -29,32 +31,43 @@
   const COMPRESS = 0.10;              // MWh_e per t CO2 for compression + pumps
   const START_YEAR = 2026, END_YEAR = 2050;
   const MONTHS = (END_YEAR - START_YEAR + 1) * 12;   // Jan 2026 .. Dec 2050
-  const FAIR_PRICE = 100;             // $/MWh the public accepts (Taiwan; each region sets its own)
-  // Regions: what people accept to pay, demand growth, fuel, carbon price or credit, the limit, grid links, hazards
+  const FAIR_PRICE = 135;             // $/MWh the public accepts (Taiwan; each region sets its own)
+  const START_FUNDS = 1500;           // $M capital budget at the start
+  const CAPEX_SCALE = 1.3;            // capture unit \u2248 $1,300 per kW (MEA, coal) before the first-of-a-kind premium
+  const FOAK = [1.2, 1.1, 1.0];      // cost of the 1st, 2nd and later unit of the same technology (learning by doing)
+
+  // Regions: accepted price, demand, fuel ($/MWh of output), carbon price path [year, $/t], capture credit,
+  // transport + storage ($/t), the limit, grid links, hazards
   const REGIONS = {
     taiwan: {
-      label: 'Taiwan', hint: 'standard', stars: [2500, 3000], base: 1150, peak: 'heat', fair: 100, growth: 0.02, gas: 50, gasSwing: 0.16, tax: { from: 2030, base: 30, step: 4 },
-      credit: 0, limitMul: 1.0, imports: 0, wholesale: 70, typhoon: true, lng: true, winter: false, heat: 1,
-      blurb: 'Island grid, no imports. Gas arrives as LNG by ship and storage is only days deep. Typhoons. A carbon fee starts in 2030.',
+      label: 'Taiwan', hint: 'standard', stars: [2700, 3200], base: 1150, peak: 'heat', fair: 135, growth: 0.02, gas: 72, coal: 42,
+      tax: [[2026, 10], [2029, 10], [2030, 40], [2050, 120]], credit: 0, creditMonths: 0, ts: 15,
+      limitMul: 1.0, imports: 0, wholesale: 95, typhoon: true, lng: true, winter: false, heat: 1,
+      blurb: 'Island grid, no imports. Gas arrives as LNG by ship and storage is only days deep. Typhoons. Carbon fee $10/t from 2026, jumping to $40 in 2030. CO\u2082 storage offshore still has to be built.',
+      zh: { label: '\u53f0\u7063', hint: '\u6a19\u6e96', blurb: '\u5b64\u5cf6\u96fb\u7db2\uff0c\u7121\u6cd5\u9032\u53e3\u96fb\u529b\u3002\u5929\u7136\u6c23\u9760 LNG \u8239\u904b\uff0c\u5b58\u91cf\u53ea\u6709\u5e7e\u5929\u3002\u6709\u98b1\u98a8\u3002\u78b3\u8cbb 2026 \u5e74\u8d77\u6bcf\u5678 10 \u7f8e\u5143\u30012030 \u5e74\u8df3\u5230 40 \u7f8e\u5143\u3002CO\u2082 \u96e2\u5cb8\u5c01\u5b58\u9084\u5728\u8d77\u6b65\u3002' },
     },
-    norway: {
-      label: 'Norway', hint: 'easier', stars: [2900, 3150], base: 1250, fair: 120, growth: 0.01, gas: 45, gasSwing: 0.24, tax: { from: 2027, base: 60, step: 4 },
-      credit: 0, capexMul: 0.75, limitMul: 0.85, imports: 300, wholesale: 75, typhoon: false, lng: false, winter: false, heat: 1, peak: 'cold',
-      blurb: 'Home of offshore CO\u2082 storage and a high CO\u2082 tax. The state pays a quarter of every capture unit (like Longship). Electric heating makes winter the peak; Nordic neighbours lend up to 300 MW.',
+    germany: {
+      label: 'Germany', hint: 'standard', stars: [2550, 3150], base: 1250, peak: 'cold', fair: 140, growth: 0.012, gas: 70, coal: 25,
+      tax: [[2026, 85], [2050, 205]], credit: 0, creditMonths: 0, ts: 35,
+      limitMul: 0.9, imports: 300, wholesale: 90, typhoon: false, lng: false, winter: false, heat: 1,
+      blurb: 'Lignite and gas heartland under the EU carbon price ($85/t from day one, +$5 a year). Captured CO\u2082 is shipped to North Sea storage. Winter is the peak; European neighbours lend up to 300 MW.',
+      zh: { label: '\u5fb7\u570b', hint: '\u6a19\u6e96', blurb: '\u8910\u7164\u8207\u5929\u7136\u6c23\u91cd\u93ae\uff0c\u7b2c\u4e00\u5929\u5c31\u9069\u7528\u6b50\u76df\u78b3\u50f9(\u6bcf\u5678 85 \u7f8e\u5143\uff0c\u6bcf\u5e74 +5)\u3002\u6355\u6349\u7684 CO\u2082 \u7528\u8239\u904b\u5230\u5317\u6d77\u5c01\u5b58\u3002\u51ac\u5b63\u662f\u7528\u96fb\u5c16\u5cf0\uff0c\u6b50\u6d32\u9130\u570b\u6700\u591a\u652f\u63f4 300 MW\u3002' },
     },
     texas: {
-      label: 'Texas', hint: 'harder', stars: [3150, 3450], base: 1300, peak: 'heat', fair: 75, growth: 0.022, gas: 28, gasSwing: 0.2, tax: null,
-      credit: 15, limitMul: 1.15, imports: 0, wholesale: 55, typhoon: false, lng: false, winter: true, heat: 2,
-      blurb: 'No carbon tax: a federal credit pays $15 for every tonne you store (like the US 45Q credit). Cheap shale gas, low prices, fast demand growth, heat waves and winter storms. Its grid is an island too.',
+      label: 'Texas', hint: 'fast growth', stars: [3300, 3560], base: 1300, peak: 'heat', fair: 75, growth: 0.025, gas: 26, coal: 23,
+      tax: null, credit: 85, creditMonths: 144, ts: 12,
+      limitMul: 1.15, imports: 0, wholesale: 55, typhoon: false, lng: false, winter: true, heat: 2,
+      blurb: 'No carbon tax: the US 45Q credit pays $85 for every tonne stored, for 12 years per plant. Cheap shale gas and onshore storage, low prices, fast demand growth, heat waves and winter storms. Its grid is an island too.',
+      zh: { label: '\u5fb7\u5dde', hint: '\u6210\u9577\u5feb', blurb: '\u6c92\u6709\u78b3\u7a05\uff1a\u7f8e\u570b 45Q \u62b5\u6e1b\u6bcf\u5c01\u5b58\u4e00\u5678\u4ed8 85 \u7f8e\u5143\uff0c\u6bcf\u5ea7\u5ee0\u7d66 12 \u5e74\u3002\u9801\u5ca9\u6c23\u4fbf\u5b9c\u3001\u9678\u4e0a\u5c01\u5b58\u4fbf\u5b9c\u3001\u96fb\u50f9\u4f4e\u3001\u7528\u96fb\u6210\u9577\u5feb\uff0c\u6709\u71b1\u6d6a\u8207\u51ac\u5b63\u66b4\u98a8\u96ea\u3002\u96fb\u7db2\u4e5f\u662f\u5b64\u5cf6\u3002' },
     },
   };
   const RG = state => REGIONS[state.region] || REGIONS.taiwan;
   // monthly demand shape (Jan..Dec, mean 1): the usual seasonal swing of each grid, rounded
   const SEASON = (() => {
     const raw = {
-      taiwan: [0.90, 0.86, 0.93, 0.95, 1.02, 1.08, 1.15, 1.15, 1.08, 1.00, 0.95, 0.93],
-      norway: [1.30, 1.25, 1.15, 1.00, 0.88, 0.80, 0.78, 0.80, 0.88, 1.00, 1.12, 1.24],
-      texas:  [0.97, 0.90, 0.88, 0.88, 0.98, 1.10, 1.20, 1.22, 1.08, 0.95, 0.90, 0.95],
+      taiwan:  [0.90, 0.86, 0.93, 0.95, 1.02, 1.08, 1.15, 1.15, 1.08, 1.00, 0.95, 0.93],
+      germany: [1.12, 1.08, 1.04, 0.96, 0.92, 0.89, 0.91, 0.91, 0.93, 0.99, 1.06, 1.11],
+      texas:   [0.97, 0.90, 0.88, 0.88, 0.98, 1.10, 1.20, 1.22, 1.08, 0.95, 0.90, 0.95],
     };
     const out = {};
     for (const [k, v] of Object.entries(raw)) { const m = v.reduce((a, b) => a + b, 0) / 12; out[k] = v.map(x => x / m); }
@@ -70,26 +83,32 @@
   // Legal CO2 limit (Mt per year). It tightens every year toward net zero in 2050.
   const LIMIT_POINTS = [[2026, 10.5], [2028, 9.8], [2030, 8.5], [2035, 5.5], [2040, 2.5], [2045, 1.1], [2050, 0.6]];
   const LIMIT_SCALE = 12;             // meter full scale (Mt/yr)
-  // breach meter (0-100 %): rises with how far over the limit you are, falls slowly while you stay under it
   const BREACH = { up: 10, down: 5, maxStep: 8 };    // % per month per 100 % over / under the limit (max +8 %/month)
-  const PROVEN_MONTHS = 24;           // months of operation before a new solvent stops failing
-  const SCREEN_TIME = 0.7, SCREEN_RISK = 0.5;   // QM+MD screening: research time and start-up risk factors
+  const PROVEN_MONTHS = 24;           // months of operation before a new technology stops failing
   const DEEP = { capture: 0.99, dutyMul: 1.09, opexAdd: 1, costFrac: 0.7, months: 12 };   // a costly, slow last resort
 
-  // capexFactor: capture-unit cost per MW relative to coal; dutyMul/opexMul: dilute flue gas costs more per tonne
+  // capexFactor: capture-unit cost per MW relative to coal; dutyMul/opexMul: dilute flue gas costs more per tonne.
+  // heatRate: fuel per MWh relative to a combined-cycle plant burning the same gas (a converted boiler is less efficient)
   const PLANT_TYPES = {
-    coal: { label: 'Coal', intensity: 0.95, fuel: 30, fixed: 0.0030, capexFactor: 1.0, dutyMul: 1.0, opexMul: 1.0,
-      size: 600, build: { cost: 900, months: 24 } },
-    gas:  { label: 'Gas',  intensity: 0.37, fuel: 50, fixed: 0.0020, capexFactor: 0.75, dutyMul: 1.15, opexMul: 1.2,
-      size: 400, build: { cost: 420, months: 12 } },
+    coal: { label: 'Coal', zh: '\u71c3\u7164', intensity: 0.95, fixed: 0.0030, capexFactor: 1.0, dutyMul: 1.0, opexMul: 1.0,
+      size: 600, build: { cost: 900, months: 48 } },
+    gas:  { label: 'Gas', zh: '\u71c3\u6c23', intensity: 0.37, fixed: 0.0020, capexFactor: 0.75, dutyMul: 1.15, opexMul: 1.2, gas: true,
+      size: 400, build: { cost: 420, months: 27 } },
+    gasb: { label: 'Gas-boiler', zh: '\u71c3\u6c23\u934b\u7210', intensity: 0.55, fixed: 0.0030, capexFactor: 0.9, dutyMul: 1.08, opexMul: 1.1, gas: true, heatRate: 1.45,
+      size: 570, build: null },
   };
-  const CONVERT = { gas: { cost: 200, months: 4 }, coal: { cost: 450, months: 18 } };   // keyed by the new fuel
+  // conversions, keyed by from -> to. A boiler fuel switch is quick and cheap but stays a steam cycle (0.55 t/MWh);
+  // repowering to a combined cycle (0.37 t/MWh) is a two-year rebuild.
+  const CONVERT = {
+    coal: { gasb: { cost: 60, months: 6 }, gas: { cost: 450, months: 24 } },
+    gasb: { gas: { cost: 400, months: 24 }, coal: { cost: 40, months: 6 } },
+    gas: {},
+  };
 
-  // capture: fraction captured; duty: regeneration GJ/t; capex: $M per MW gross (coal basis); opex: $/t captured
+  // capture: fraction captured; duty: regeneration GJ/t; capex: \u00d7 CAPEX_SCALE $M per MW gross (coal basis); opex: $/t
   // rate: CO2 absorption speed relative to MEA. Build cost = half absorber + half the rest; packed height goes
-  // roughly as 1/sqrt(rate) (fast pseudo-first-order regime), floored at 0.5 because the tower still needs gas contact
-  // and a water wash. The rest: advanced stripper 1.3, viscous 2PE-EG 1.1 (bigger pumps and exchangers), else 1.0.
-  // stage: how far the technology has been scaled up; startup: monthly failure odds until proven; risk: forever
+  // roughly as 1/sqrt(rate), floored at 0.5. The rest: advanced stripper 1.3, viscous 2PE-EG 1.1, else 1.0.
+  // stage: how far it has been scaled up; startup: monthly failure odds until proven; risk: forever (riskText says why)
   const TECHS = {
     mea90: {
       name: 'MEA', short: 'MEA', capture: 0.90, duty: 3.5, capex: 1.00, opex: 10, rate: 1,
@@ -97,6 +116,7 @@
       pitch: 'Proven and available now, but uses the most steam.',
       fact: '30 wt% MEA, the industry benchmark. Regeneration \u2248 3.5 GJ per tonne CO\u2082.',
       src: 'Chen, Wu & Lin, Chem. Eng. J. 2026',
+      zh: { name: 'MEA', stage: '\u5546\u8f49', pitch: '\u6210\u719f\u3001\u73fe\u5728\u5c31\u80fd\u7528\uff0c\u4f46\u6700\u8017\u84b8\u6c7d\u3002', fact: '30 wt% MEA \u662f\u696d\u754c\u57fa\u6e96\u3002\u518d\u751f\u80fd\u8017\u7d04\u6bcf\u5678 CO\u2082 3.5 GJ\u3002' },
     },
     afs: {
       name: 'MEA + advanced stripper', short: 'MEA-AS', capture: 0.90, duty: 2.8, capex: 1.15, opex: 10, rate: 1,
@@ -105,14 +125,29 @@
       pitch: 'Same MEA, smarter heat recovery: less steam, safe bet, pricier to build.',
       fact: 'A heat-integrated stripper cuts MEA regeneration to \u2248 2.8 GJ/t.',
       src: 'Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025',
+      zh: { name: 'MEA + \u9032\u968e\u6c7d\u63d0', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u65b0\u6c7d\u63d0\u5854\u4e00\u76f4\u7a69\u4e0d\u4e0b\u4f86', pitch: '\u540c\u6a23\u662f MEA\uff0c\u71b1\u56de\u6536\u66f4\u8070\u660e\uff1a\u7701\u84b8\u6c7d\u3001\u7a69\u5065\uff0c\u4f46\u6bd4\u8f03\u8cb4\u3002', fact: '\u71b1\u6574\u5408\u6c7d\u63d0\u5854\u628a MEA \u518d\u751f\u80fd\u8017\u964d\u5230\u7d04 2.8 GJ/t\u3002' },
+    },
+    rpb: {
+      name: 'Rotating packed bed (70 wt% MEA)', short: 'RPB', capture: 0.90, duty: 3.0, capex: 0.65, opex: 12, rate: 10, work: 0.02, fast: true,
+      unlocked: false, research: { cost: 90, months: 12, process: true }, color: '#F28482', est: ['capex', 'duty'], stage: 'Pilot (TRL 7)',
+      startup: 0.02, risk: 0.004, fail: 'the rotor vibrated out of balance', riskText: 'a rotor bearing failed',
+      pitch: 'A spinning absorber the size of a shipping container: cheap and twice as fast to build, but the rotors need care.',
+      fact: 'The solvent is flung outward through a ring of packing spinning at about 50\u00d7 gravity. Thin, constantly renewed films absorb CO\u2082 so fast that the absorber is 10\u201320\u00d7 smaller, and it can run concentrated 70 wt% MEA. Catch: rotating machinery breaks down, each unit tops out near 0.1 Mt CO\u2082 a year so big plants need many, and the rotors use power.',
+      src: 'Ind. Eng. Chem. Res. 2025 (doi 10.1021/acs.iecr.4c01614); Carbon Clean CycloneCC pilot, Ruwais 2024',
+      zh: { name: '\u65cb\u8f49\u586b\u5145\u5e8a(70 wt% MEA)', stage: '\u524d\u5c0e(TRL 7)', fail: '\u8f49\u5b50\u5931\u8861\u5287\u70c8\u632f\u52d5', riskText: '\u8f49\u5b50\u8ef8\u627f\u6545\u969c',
+        pitch: '\u8ca8\u6ac3\u5927\u5c0f\u7684\u65cb\u8f49\u5438\u6536\u5668\uff1a\u4fbf\u5b9c\u3001\u5de5\u671f\u5feb\u4e00\u500d\uff0c\u4f46\u8f49\u5b50\u8981\u5e38\u4fdd\u990a\u3002',
+        fact: '\u6eb6\u5291\u88ab\u7529\u904e\u4ee5\u7d04 50 \u500d\u91cd\u529b\u9ad8\u901f\u65cb\u8f49\u7684\u586b\u6599\u74b0\uff0c\u6db2\u819c\u53c8\u8584\u53c8\u4e0d\u65b7\u66f4\u65b0\uff0c\u5438\u6536\u5feb\u5230\u5438\u6536\u5668\u53ea\u8981\u50b3\u7d71\u5854\u7684 1/10\u20131/20\uff0c\u9084\u80fd\u7528 70 wt% \u7684\u6fc3 MEA\u3002\u4ee3\u50f9\uff1a\u65cb\u8f49\u6a5f\u68b0\u6703\u6545\u969c\uff1b\u6bcf\u53f0\u4e0a\u9650\u7d04\u6bcf\u5e74 0.1 Mt CO\u2082\uff0c\u5927\u96fb\u5ee0\u8981\u5f88\u591a\u53f0\uff1b\u8f49\u5b50\u4e5f\u8981\u8017\u96fb\u3002' },
     },
     ampnmp: {
       name: 'AMP\u2013NMP (semi-aqueous)', short: 'AMP-NMP', capture: 0.90, duty: 3.0, capex: 1.45, opex: 6, rate: 0.3,
       unlocked: false, research: { cost: 100, months: 18, exp: 0.9, comp: 0.6 }, color: '#0E9F6E', est: ['duty', 'opex', 'capex'], stage: 'Lab scale',
-      startup: 0.025, risk: 0.006, solvent: true, fail: 'AMP carbamate precipitated and clogged a line',
+      startup: 0.025, risk: 0.006, solvent: true, fail: 'AMP carbamate precipitated and clogged a line', riskText: 'AMP carbamate precipitated',
       pitch: 'Cheapest to run, but it absorbs slowly: the tallest absorber, the priciest to build, and it can clog.',
       fact: 'NMP does not react with CO\u2082; it makes the hindered amine AMP 3\u00d7 faster than in water, and AMP holds about twice the CO\u2082 of MEA, so only half the solvent has to circulate: smaller pumps and less make-up, the cheapest to run. Catch: AMP carbamate can precipitate at high loading and clog lines, even years after start-up.',
       src: 'Cheng, Chen & Lin, Chem. Eng. J. 2025',
+      zh: { name: 'AMP\u2013NMP(\u534a\u6c34\u6eb6\u6db2)', stage: '\u5be6\u9a57\u5ba4\u898f\u6a21', fail: 'AMP \u80fa\u7532\u9178\u9e7d\u6790\u51fa\u585e\u4f4f\u7ba1\u7dda', riskText: 'AMP \u80fa\u7532\u9178\u9e7d\u6790\u51fa',
+        pitch: '\u904b\u8f49\u6700\u4fbf\u5b9c\uff0c\u4f46\u5438\u6536\u6162\uff1a\u5438\u6536\u5854\u6700\u9ad8\u3001\u6700\u8cb4\uff0c\u800c\u4e14\u6703\u5835\u585e\u3002',
+        fact: 'NMP \u4e0d\u8ddf CO\u2082 \u53cd\u61c9\uff0c\u537b\u8b93\u7acb\u9ad4\u969c\u7919\u80fa AMP \u6bd4\u5728\u6c34\u4e2d\u5feb 3 \u500d\uff1bAMP \u7684 CO\u2082 \u5bb9\u91cf\u7d04\u662f MEA \u7684\u5169\u500d\uff0c\u6eb6\u5291\u5faa\u74b0\u91cf\u6e1b\u534a\uff1a\u6cf5\u6d66\u66f4\u5c0f\u3001\u88dc\u5145\u66f4\u5c11\uff0c\u904b\u8f49\u6700\u4fbf\u5b9c\u3002\u4ee3\u50f9\uff1a\u9ad8\u8ca0\u8f09\u6642 AMP \u80fa\u7532\u9178\u9e7d\u6703\u6790\u51fa\u5835\u7ba1\uff0c\u5373\u4f7f\u958b\u6a5f\u591a\u5e74\u5f8c\u4e5f\u6703\u767c\u751f\u3002' },
     },
     pe2eg: {
       name: '2PE\u2013EG (water-lean)', short: '2PE-EG', capture: 0.90, duty: 2.9, capex: 0.80, opex: 9, rate: 4.5,
@@ -121,70 +156,99 @@
       pitch: 'The rarest find and shaky first years, then fast, compact and efficient: the best all-rounder.',
       fact: 'Ethylene glycol reacts: it turns the carbamate into alkyl carbonate and frees the amine again, so 2-piperidineethanol gets both 4.5\u00d7 faster reaction and 2.8\u00d7 cyclic capacity vs MEA; regeneration 128 kJ/mol (\u2248 2.9 GJ/t). Catch: 15\u00d7 more viscous than MEA.',
       src: 'Chen, Wu & Lin, Chem. Eng. J. 2026',
+      zh: { name: '2PE\u2013EG(\u4f4e\u6c34\u6eb6\u5291)', stage: '\u5be6\u9a57\u5ba4\u898f\u6a21', fail: '\u9ecf\u7a20\u6eb6\u5291\u8b93\u71b1\u4ea4\u63db\u5668\u8d85\u8f09',
+        pitch: '\u6700\u7a00\u6709\uff0c\u524d\u5e7e\u5e74\u4e0d\u7a69\uff0c\u4e4b\u5f8c\u53c8\u5feb\u3001\u53c8\u5c0f\u3001\u53c8\u7701\uff1a\u6700\u5168\u80fd\u3002',
+        fact: '\u4e59\u4e8c\u9187\u6703\u53c3\u8207\u53cd\u61c9\uff1a\u628a\u80fa\u7532\u9178\u9e7d\u8f49\u6210\u70f7\u57fa\u78b3\u9178\u9e7d\u3001\u628a\u80fa\u91cb\u653e\u51fa\u4f86\uff0c\u6240\u4ee5 2-\u54cc\u5576\u4e59\u9187\u6bd4 MEA \u53cd\u61c9\u5feb 4.5 \u500d\u3001\u5faa\u74b0\u5bb9\u91cf 2.8 \u500d\uff1b\u518d\u751f 128 kJ/mol(\u7d04 2.9 GJ/t)\u3002\u4ee3\u50f9\uff1a\u9ecf\u5ea6\u662f MEA \u7684 15 \u500d\u3002' },
+    },
+    pz: {
+      name: 'Piperazine (PZ) + advanced stripper', short: 'PZ', capture: 0.90, duty: 2.45, capex: 0.90, opex: 11, rate: 9.5,
+      unlocked: false, research: { cost: 90, months: 18, exp: 0.95, comp: 0.7 }, color: '#8E7CC3', est: ['capex', 'opex'],
+      stage: 'Pilot-tested', startup: 0.015, risk: 0.003, gasOK: true, solvent: true, fail: 'solid piperazine froze out in a cold line', riskText: 'solid piperazine froze out',
+      pitch: 'Least steam in pilot plants, even on dilute gas-plant flue gas, and so fast the absorber is short; PZ is costly to buy and can freeze out when cold.',
+      fact: 'Piperazine is the second-generation benchmark: fast, thermally stable, high capacity. With the advanced stripper, pilot plants measured a net 2.45 GJ per tonne CO\u2082 at 90 % capture, the same at 4 % (gas) and 12 % (coal) CO\u2082. Prof. Yu-Jeng Lin pilot-tested this stripper during his PhD. Catch: solid PZ can precipitate if the solvent gets too cold.',
+      src: 'Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016',
+      zh: { name: '\u54cc\u55ea(PZ)+ \u9032\u968e\u6c7d\u63d0', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u56fa\u614b\u54cc\u55ea\u5728\u51b7\u7ba1\u7dda\u6790\u51fa', riskText: '\u56fa\u614b\u54cc\u55ea\u6790\u51fa',
+        pitch: '\u524d\u5c0e\u5ee0\u5be6\u6e2c\u6700\u7701\u84b8\u6c7d\uff0c\u71c3\u6c23\u5ee0\u7a00\u8584\u7159\u6c23\u4e5f\u4e00\u6a23\u597d\uff0c\u53cd\u61c9\u5feb\u5230\u5438\u6536\u5854\u5f88\u77ee\uff1b\u4f46 PZ \u5f88\u8cb4\uff0c\u51b7\u4e86\u6703\u6790\u51fa\u3002',
+        fact: '\u54cc\u55ea\u662f\u7b2c\u4e8c\u4ee3\u57fa\u6e96\u6eb6\u5291\uff1a\u5feb\u3001\u71b1\u7a69\u5b9a\u3001\u5bb9\u91cf\u9ad8\u3002\u642d\u914d\u9032\u968e\u6c7d\u63d0\uff0c\u524d\u5c0e\u5ee0\u5728 90 % \u6355\u6349\u7387\u4e0b\u5be6\u6e2c\u6de8\u80fd\u8017\u6bcf\u5678 CO\u2082 2.45 GJ\uff0c\u7159\u6c23 CO\u2082 4 %(\u71c3\u6c23)\u548c 12 %(\u71c3\u7164)\u90fd\u4e00\u6a23\u3002\u6797\u80b2\u6b63\u6559\u6388\u535a\u58eb\u73ed\u6642\u5c31\u5728\u524d\u5c0e\u5ee0\u6e2c\u8a66\u904e\u9019\u500b\u6c7d\u63d0\u5854\u3002\u4ee3\u50f9\uff1a\u6eb6\u5291\u592a\u51b7\u6642\u56fa\u614b PZ \u6703\u6790\u51fa\u3002' },
+    },
+    mcfc: {
+      name: 'Carbonate fuel cell (MCFC)', short: 'MCFC', capture: 0.85, duty: 0, capex: 1.6, opex: 14, rate: null, power: 0.15,
+      gasOnly: true, noDeep: true, stack: 84,
+      unlocked: false, research: { cost: 120, months: 18, process: true }, color: '#E76F51', est: ['capex', 'opex'], stage: 'Demo (2026)',
+      startup: 0.03, fail: 'a fuel-cell stack overheated',
+      pitch: 'Captures CO\u2082 while making MORE power, but burns extra gas, stops at 85 %, fits gas plants only and its stacks wear out every 7 years.',
+      fact: 'A molten-carbonate fuel cell sits in the flue gas and burns a little extra natural gas to make electricity. To run, it must pull CO\u2082 out of the flue gas and carry it across as carbonate ions, so the CO\u2082 comes out concentrated on the other side. On a gas plant it cuts CO\u2082 about 80 % while overall efficiency stays about the same. Catch: 650 \u00b0C stacks wear out, capture tops out near 85\u201390 %, and coal flue gas would poison it.',
+      src: 'Campanari et al., Int. J. Greenh. Gas Control 2010; ExxonMobil & FuelCell Energy Rotterdam demonstration 2026',
+      zh: { name: '\u78b3\u9178\u9e7d\u71c3\u6599\u96fb\u6c60(MCFC)', stage: '\u793a\u7bc4(2026)', fail: '\u71c3\u6599\u96fb\u6c60\u5806\u904e\u71b1',
+        pitch: '\u6355\u6349 CO\u2082 \u7684\u540c\u6642\u9084\u300c\u591a\u767c\u96fb\u300d\uff0c\u4f46\u8981\u591a\u71d2\u5929\u7136\u6c23\u3001\u6355\u6349\u7387\u53ea\u5230 85 %\u3001\u53ea\u80fd\u88dd\u5728\u71c3\u6c23\u5ee0\uff0c\u96fb\u6c60\u5806\u6bcf 7 \u5e74\u8981\u63db\u3002',
+        fact: '\u7194\u878d\u78b3\u9178\u9e7d\u71c3\u6599\u96fb\u6c60\u88dd\u5728\u7159\u9053\u4e0a\uff0c\u591a\u71d2\u4e00\u9ede\u5929\u7136\u6c23\u4f86\u767c\u96fb\uff1b\u5b83\u904b\u4f5c\u6642\u5fc5\u9808\u628a\u7159\u6c23\u88e1\u7684 CO\u2082 \u4ee5\u78b3\u9178\u6839\u96e2\u5b50\u7684\u5f62\u5f0f\u642c\u5230\u53e6\u4e00\u5074\uff0c\u6240\u4ee5 CO\u2082 \u5728\u53e6\u4e00\u5074\u8b8a\u5f97\u5f88\u6fc3\uff0c\u5bb9\u6613\u6536\u96c6\u3002\u88dd\u5728\u71c3\u6c23\u5ee0\u4e0a\u53ef\u6e1b\u5c11\u7d04 80 % CO\u2082\uff0c\u6574\u9ad4\u6548\u7387\u5e7e\u4e4e\u4e0d\u8b8a\u3002\u4ee3\u50f9\uff1a650 \u00b0C \u7684\u96fb\u6c60\u5806\u6703\u8001\u5316\uff0c\u6355\u6349\u7387\u4e0a\u9650\u7d04 85\u201390 %\uff0c\u71c3\u7164\u7159\u6c23\u6703\u6bd2\u5316\u5b83\u3002' },
     },
   };
-  TECHS.pz = {
-    name: 'Piperazine (PZ) + advanced stripper', short: 'PZ', capture: 0.90, duty: 2.45, capex: 0.90, opex: 11, rate: 9.5,
-    unlocked: false, research: { cost: 90, months: 18, exp: 0.95, comp: 0.7 }, color: '#8E7CC3', est: ['capex', 'opex'],
-    stage: 'Pilot-tested', startup: 0.015, risk: 0.003, gasOK: true, solvent: true, fail: 'solid piperazine froze out in a cold line',
-    pitch: 'Least steam in pilot plants, even on dilute gas-plant flue gas, and so fast the absorber is short; PZ is costly to buy and can freeze out when cold.',
-    fact: 'Piperazine is the second-generation benchmark: fast, thermally stable, high capacity. With the advanced stripper, pilot plants measured a net 2.45 GJ per tonne CO\u2082 at 90 % capture, the same at 4 % (gas) and 12 % (coal) CO\u2082. Prof. Yu-Jeng Lin pilot-tested this stripper during his PhD. Catch: solid PZ can precipitate if the solvent gets too cold.',
-    src: 'Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016',
-  };
-  const TECH_ORDER = ['mea90', 'afs', 'pz', 'ampnmp', 'pe2eg'];
-  // how a new solvent is found: lab experiments (slow, likely to work) or computer screening (fast, riskier)
+  const TECH_ORDER = ['mea90', 'afs', 'rpb', 'pz', 'ampnmp', 'pe2eg', 'mcfc'];
   // Solvent screening: each campaign discovers ONE random solvent you do not have yet (rarer = better/newer).
-  // Lab experiments are slow but usually find something; computer screening (QM + MD) is fast and cheap but can come
-  // up empty, and every empty screen teaches the next one.
   const METHODS = {
-    exp: { label: 'Lab experiments', cost: 120, months: 18, odds: 0.9 },
-    comp: { label: 'Computer screening (QM + MD)', cost: 50, months: 6, odds: 0.5, learn: 0.15 },
+    exp: { label: 'Lab experiments', zh: '\u5be6\u9a57', cost: 120, months: 18, odds: 0.9 },
+    comp: { label: 'Computer screening (QM + MD)', zh: '\u96fb\u8166\u7be9\u9078(QM + MD)', cost: 50, months: 6, odds: 0.5, learn: 0.15 },
   };
   const DROPS = { pz: { weight: 40, stars: 3 }, ampnmp: { weight: 35, stars: 3 }, pe2eg: { weight: 25, stars: 4 } };
-
-  // research projects that are not a capture technology
   const PROJECTS = {};
-  const LAB_ORDER = ['screen', 'afs'];   // one screening campaign or the advanced-stripper pilot, one at a time
+  const LAB_ORDER = ['screen', 'afs', 'rpb', 'mcfc'];   // one project at a time, more can queue
+
+  // ---- names in both languages ----------------------------------------------
+  const pName = p => `${PLANT_TYPES[p.type].label} Plant ${p.id}`;
+  const pZh = p => `${PLANT_TYPES[p.type].zh}\u96fb\u5ee0 ${p.id}`;
+  const tZh = id => (TECHS[id].zh && TECHS[id].zh.name) || TECHS[id].name;
 
   // ---- technology helpers -----------------------------------------------------
   function eff(techId, deep, type) {
     const t = TECHS[techId];
     if (!t) return null;
     const pt = PLANT_TYPES[type || 'coal'];
-    const e = { capture: t.capture, duty: t.duty, opex: t.opex };
+    const e = { capture: t.capture, duty: t.duty, opex: t.opex, work: t.work || 0, power: t.power || 0 };
     if (deep) { e.capture = DEEP.capture; e.duty *= DEEP.dutyMul; e.opex += DEEP.opexAdd; }
     if (!t.gasOK) e.duty *= pt.dutyMul;   // PZ + advanced stripper performs the same on dilute gas-plant flue gas
     e.opex *= pt.opexMul;
     return e;
   }
   // energy (MWh_e) lost per tonne CO2 captured
-  function workPerTonne(e) { return e.duty * GJ_TO_MWH_E + COMPRESS; }
+  function workPerTonne(e) { return e.duty * GJ_TO_MWH_E + COMPRESS + (e.work || 0); }
+  // share of gross output lost to capture (negative = the unit adds power, like a fuel cell)
   function penalty(plant, techId, deep) {
     if (deep === undefined) deep = !!plant.deep && plant.tech === techId;
     const e = eff(techId, deep, plant.type);
     if (!e) return 0;
-    return PLANT_TYPES[plant.type].intensity * e.capture * workPerTonne(e);
+    return PLANT_TYPES[plant.type].intensity * e.capture * workPerTonne(e) - e.power;
   }
   function capexFull(plant, techId) {
-    return TECHS[techId].capex * plant.gross * PLANT_TYPES[plant.type].capexFactor;
+    return TECHS[techId].capex * CAPEX_SCALE * plant.gross * PLANT_TYPES[plant.type].capexFactor;
   }
+  // first-of-a-kind premium: the first unit of a technology costs more, the third and later the base price
+  function foak(state, techId) { return FOAK[Math.min(FOAK.length - 1, (state.built && state.built[techId]) || 0)]; }
   function installCost(state, plant, techId) {
-    const full = capexFull(plant, techId);
+    const full = capexFull(plant, techId) * foak(state, techId);
     let c = plant.tech ? 0.35 * full : full;   // an existing capture unit is retrofitted with a new solvent
     if (state.subsidy > 0) c *= 0.7;
     c *= RG(state).capexMul || 1;
     return Math.round(c);
   }
-  function installMonths(plant) { return plant.tech ? 3 : 9; }
+  function installMonths(plant, techId) {
+    const fast = techId && TECHS[techId] && TECHS[techId].fast;
+    return plant.tech ? (fast ? 2 : 4) : (fast ? 6 : 12);
+  }
   function upgradeCost(state, plant) {
-    let c = (TECHS[plant.tech].deepEasy ? 0.45 : DEEP.costFrac) * capexFull(plant, plant.tech);
+    let c = DEEP.costFrac * capexFull(plant, plant.tech);
     if (state.subsidy > 0) c *= 0.7;
     c *= RG(state).capexMul || 1;
     return Math.round(c);
   }
+  // carbon price path: linear between the listed years, nothing before the first one
   function taxFor(region, year) {
     const t = (REGIONS[region] || REGIONS.taiwan).tax;
-    return !t || year < t.from ? 0 : t.base + t.step * (year - t.from);
+    if (!t || year < t[0][0]) return 0;
+    for (let i = 1; i < t.length; i++) {
+      if (year <= t[i][0]) { const [x0, y0] = t[i - 1], [x1, y1] = t[i]; return Math.round(y0 + (y1 - y0) * (year - x0) / (x1 - x0)); }
+    }
+    return t[t.length - 1][1];
   }
   function carbonTax(year, state) { return taxFor(state ? state.region : 'taiwan', year); }
   function limitAt(t) {
@@ -201,15 +265,18 @@
   function limitFor(state, t) { return limitAt(t) * RG(state).limitMul; }
   function limit(state) { return limitFor(state, START_YEAR + Math.min(state.m, MONTHS - 1) / 12); }
   function fairPrice(state) { return RG(state).fair; }
-  // monthly change of the breach meter for emissions at `ratio` \u00d7 the allowed rate
   function breachStep(ratio) {
     return ratio > 1 ? Math.min(BREACH.maxStep, BREACH.up * (ratio - 1)) : -BREACH.down * (1 - ratio);
   }
   function gasFuel(state) { return RG(state).gas * state.gasIndex * state.gasMult; }
-  // a plant produces power unless it is being built, converted or repaired
+  // fuel cost per MWh of output for a plant type in this region
+  function fuelOf(state, type) {
+    const pt = PLANT_TYPES[type];
+    return pt.gas ? gasFuel(state) * (pt.heatRate || 1) : RG(state).coal;
+  }
+  const isGas = type => !!(PLANT_TYPES[type] && PLANT_TYPES[type].gas);
   function online(p) { return p.down <= 0 && !(p.build && (p.build.kind === 'new' || p.build.kind === 'convert')); }
 
-  // stage / maturity of a technology in this game
   function maturity(state, techId) {
     const t = TECHS[techId];
     const exp = state.exp[techId] || 0;
@@ -218,14 +285,14 @@
     return { stage: t.stage, exp, proven, risk, needs: PROVEN_MONTHS };
   }
 
-  // research projects: capture technologies (TECHS[id].research) and PROJECTS
   function project(id) {
     if (id === 'screen') return { id, name: 'Solvent screening', short: 'screening', cost: METHODS.exp.cost, months: METHODS.exp.months,
-      desc: 'Finds one new solvent you do not have yet (rarer = better). Experiments are slow but reliable; QM + MD computer screening, like our GHGT-18 poster, is fast and cheap but can miss, and every miss improves the next.' };
+      desc: 'Finds one new solvent you do not have yet (rarer = better). Experiments are slow but reliable; QM + MD computer screening, like our GHGT-18 poster, is fast and cheap but can miss, and every miss improves the next.',
+      zh: { name: '\u6eb6\u5291\u7be9\u9078', desc: '\u6bcf\u6b21\u627e\u5230\u4e00\u7a2e\u4f60\u9084\u6c92\u6709\u7684\u65b0\u6eb6\u5291(\u8d8a\u7a00\u6709\u8d8a\u597d)\u3002\u5be6\u9a57\u6162\u4f46\u53ef\u9760\uff1bQM + MD \u96fb\u8166\u7be9\u9078(\u5c31\u662f\u6211\u5011 GHGT-18 \u6d77\u5831\u7684\u65b9\u6cd5)\u53c8\u5feb\u53c8\u4fbf\u5b9c\u4f46\u53ef\u80fd\u843d\u7a7a\uff0c\u6bcf\u6b21\u843d\u7a7a\u90fd\u8b93\u4e0b\u4e00\u6b21\u66f4\u6e96\u3002' } };
     if (PROJECTS[id]) return Object.assign({ id }, PROJECTS[id]);
     const t = TECHS[id];
     return { id, name: t.name, short: t.short, cost: t.research.cost, months: t.research.months, star: t.star,
-      desc: t.pitch, solvent: t.solvent, process: !!t.research.process };
+      desc: t.pitch, solvent: t.solvent, process: !!t.research.process, zh: { name: tZh(id), desc: t.zh ? t.zh.pitch : t.pitch } };
   }
   const methodOf = (id, method) => id !== 'screen' ? 'exp' : (METHODS[method] ? method : 'exp');
   const undiscovered = state => Object.keys(DROPS).filter(k => !state.unlocked[k]);
@@ -234,14 +301,12 @@
     return Math.round(base * (state.resCut > 0 ? 1.5 : 1));
   }
   function researchMonths(state, id, method) { return id === 'screen' ? METHODS[methodOf(id, method)].months : project(id).months; }
-  // chance that the project finds a working solvent (every failed computer screen teaches the next one)
   function researchOdds(state, id, method) {
     if (id !== 'screen') return 1;
     const mt = methodOf(id, method);
     const learned = mt === 'comp' ? METHODS.comp.learn * ((state.tries && state.tries.screen) || 0) : 0;
     return Math.min(0.95, METHODS[mt].odds + learned);
   }
-  // draw one solvent from what is still undiscovered, weighted by rarity
   function drawSolvent(state, R) {
     const pool = undiscovered(state);
     const total = pool.reduce((a, k) => a + DROPS[k].weight, 0);
@@ -250,7 +315,6 @@
     return pool[pool.length - 1];
   }
 
-  // small deterministic RNG so a seed replays the same events
   function rng(seed) {
     let s = seed >>> 0;
     return function () {
@@ -263,27 +327,30 @@
   }
 
   function makePlant(id, type) {
-    return { id, name: `${PLANT_TYPES[type].label} Plant ${id}`, type, gross: PLANT_TYPES[type].size,
-      tech: null, deep: false, build: null, queue: [], outage: 0, down: 0, downWhy: '', washed: false };
+    const p = { id, type, gross: PLANT_TYPES[type].size,
+      tech: null, deep: false, build: null, queue: [], outage: 0, down: 0, downWhy: '', washed: false, capMonths: 0, stackAge: 0 };
+    p.name = pName(p);
+    return p;
   }
   function newGame(seed, region) {
     region = REGIONS[region] ? region : 'taiwan';
     const unlocked = {};
     TECH_ORDER.forEach(id => { unlocked[id] = !!TECHS[id].unlocked; });
-    Object.keys(PROJECTS).forEach(id => { unlocked[id] = false; });
+    const four = region !== 'taiwan';
     return {
       seed: seed || Math.floor(Math.random() * 1e9),
-      region, m: 0, funds: 700, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
+      region, m: 0, funds: START_FUNDS, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
       greenhouse: 0, maxDebt: 0, rate: 0, recent: [], overMonths: 0, wasOver: false,
       over: null, subsidy: 0, resCut: 0, opexCut: 0, usCut: false, headline: null, headlineN: 0, labQueue: [], captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
-      warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0,
-      plants: REGIONS[region].peak === 'cold' || region === 'texas'
+      warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0, tsPaid: 0, built: {},
+      angerParts: null, angerEvt: 0,
+      plants: four
         ? [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas'), makePlant('D', 'gas')]
         : [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas')],
-      nextId: REGIONS[region].peak === 'cold' || region === 'texas' ? 4 : 3, unlocked, research: {}, resMethod: {}, tries: {}, exp: {},  // research[id] = months left; exp[tech] = months in operation
+      nextId: four ? 4 : 3, unlocked, research: {}, resMethod: {}, tries: {}, exp: {},
       demandMult: 1, demandMonths: 0, gasMult: 1, gasMonths: 0, gasIndex: 1,
       pending: null, flash: null, flashN: 0, seen: {}, fails: 0, blackouts: 0, discovery: null,
-      news: [{ m: 0, kind: 'info', text: 'You run the power utility of Capture City. Keep the lights on until 2050 and stay under the CO\u2082 limit.' }],
+      news: [{ m: 0, kind: 'info', text: 'You run the power utility of Capture City. Keep the lights on until 2050 and stay under the CO\u2082 limit.', zh: '\u4f60\u7d93\u71df\u6355\u6349\u57ce\u7684\u96fb\u529b\u516c\u53f8\u3002\u6490\u5230 2050 \u5e74\u4e0d\u505c\u96fb\uff0c\u800c\u4e14\u6392\u653e\u4e0d\u8d85\u904e CO\u2082 \u9650\u984d\u3002' }],
       last: null, techUsed: {},
     };
   }
@@ -295,26 +362,35 @@
   function trendDemand(state) { return RG(state).base * Math.pow(1 + RG(state).growth, state.m / 12); }
   function demand(state) { return trendDemand(state) * seasonOf(state) * state.demandMult; }
   function peakDemand(state) { return trendDemand(state) * peakSeason(state); }
-  function addNews(state, kind, text) {
-    state.news.unshift({ m: state.m, kind, text });
+  function addNews(state, kind, text, zh) {
+    state.news.unshift({ m: state.m, kind, text, zh });
     if (state.news.length > 30) state.news.pop();
   }
-  function flash(state, kind, text) {
+  function flash(state, kind, text, zh) {
     state.flashN += 1;
-    state.flash = { n: state.flashN, kind, text };
+    state.flash = { n: state.flashN, kind, text, zh };
   }
+  function angry(state, n) { state.anger = Math.min(100, state.anger + n); state.angerEvt = (state.angerEvt || 0) + n; }
   const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
   const findPlant = (state, id) => state.plants.find(x => x.id === id);
 
   // ---- player actions -------------------------------------------------------
   // `paid` = the job was already paid for when it was queued, so skip the funds check and the charge
+  function techFits(plant, techId, deep) {
+    const t = TECHS[techId];
+    if (t.gasOnly && plant.type !== 'gas') return 'Gas (combined-cycle) plants only';
+    return null;
+  }
   function canInstall(state, plant, techId, paid) {
+    if (!TECHS[techId]) return { ok: false, why: 'Unknown technology' };
     if (!state.unlocked[techId]) return { ok: false, why: 'Research it first' };
     if (plant.build) return { ok: false, why: 'Construction in progress' };
     if (plant.tech === techId) return { ok: false, why: 'Already installed' };
+    const fit = techFits(plant, techId);
+    if (fit) return { ok: false, why: fit };
     const cost = installCost(state, plant, techId);
     if (!paid && state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
-    return { ok: true, cost, months: installMonths(plant) };
+    return { ok: true, cost, months: installMonths(plant, techId) };
   }
   function install(state, plantId, techId, paid) {
     const p = findPlant(state, plantId);
@@ -323,12 +399,15 @@
     if (!chk.ok) return chk;
     const cost = paid != null ? paid : chk.cost;
     if (paid == null) state.funds -= cost;
+    state.built[techId] = (state.built[techId] || 0) + 1;
     p.build = { kind: 'tech', tech: techId, deep: false, left: chk.months, total: chk.months, paid: cost };
-    addNews(state, 'build', `${p.name}: ${TECHS[techId].short} capture construction started ($${cost}M).`);
+    addNews(state, 'build', `${p.name}: ${TECHS[techId].short} capture construction started ($${cost}M, ${chk.months} months).`,
+      `${pZh(p)}\uff1a\u958b\u59cb\u8208\u5efa ${TECHS[techId].short} \u6355\u6349\u8a2d\u5099($${cost}M\uff0c${chk.months} \u500b\u6708)\u3002`);
     return chk;
   }
   function canUpgrade(state, plant, paid) {
     if (!plant.tech) return { ok: false, why: 'Add capture first' };
+    if (TECHS[plant.tech].noDeep) return { ok: false, why: 'Fuel cells cannot reach 99 %' };
     if (plant.deep) return { ok: false, why: 'Already at 99 %' };
     if (plant.build) return { ok: false, why: 'Construction in progress' };
     const cost = upgradeCost(state, plant);
@@ -343,32 +422,36 @@
     const cost = paid != null ? paid : chk.cost;
     if (paid == null) state.funds -= cost;
     p.build = { kind: 'deep', tech: p.tech, deep: true, left: DEEP.months, total: DEEP.months, paid: cost };
-    addNews(state, 'build', `${p.name}: 99 % capture upgrade started ($${cost}M).`);
+    addNews(state, 'build', `${p.name}: 99 % capture upgrade started ($${cost}M).`, `${pZh(p)}\uff1a\u958b\u59cb\u5347\u7d1a\u5230 99 % \u6355\u6349($${cost}M)\u3002`);
     return chk;
   }
-  function canConvert(state, plant, paid) {
-    const to = plant.type === 'coal' ? 'gas' : 'coal';
-    const c = CONVERT[to];
+  const convertOptions = type => Object.keys(CONVERT[type] || {});
+  function canConvert(state, plant, to, paid) {
+    to = to || convertOptions(plant.type)[0];
+    const c = to && CONVERT[plant.type] && CONVERT[plant.type][to];
+    if (!c) return { ok: false, why: 'No conversion for this plant', to };
     if (plant.build) return { ok: false, why: 'Construction in progress', to };
+    if (plant.tech && TECHS[plant.tech].gasOnly && to !== 'gas') return { ok: false, why: 'Remove the fuel cell first', to };
     if (!paid && state.funds < c.cost) return { ok: false, why: 'Not enough funds', to, cost: c.cost };
     return { ok: true, to, cost: c.cost, months: c.months };
   }
-  function convert(state, plantId, paid) {
+  function convert(state, plantId, to, paid) {
     const p = findPlant(state, plantId);
     if (!p) return { ok: false, why: 'No such plant' };
-    const chk = canConvert(state, p, paid != null);
+    if (typeof to === 'number') { paid = to; to = undefined; }   // old call shape convert(state, id, paid)
+    const chk = canConvert(state, p, to, paid != null);
     if (!chk.ok) return chk;
     const cost = paid != null ? paid : chk.cost;
     if (paid == null) state.funds -= cost;
     p.build = { kind: 'convert', toType: chk.to, left: chk.months, total: chk.months, paid: cost };
-    addNews(state, 'build', `${p.name}: conversion to ${chk.to} started ($${cost}M, offline ${chk.months} months).`);
+    addNews(state, 'build', `${p.name}: conversion to ${PLANT_TYPES[chk.to].label.toLowerCase()} started ($${cost}M, offline ${chk.months} months).`,
+      `${pZh(p)}\uff1a\u958b\u59cb\u6539\u5efa\u70ba${PLANT_TYPES[chk.to].zh}($${cost}M\uff0c\u505c\u6a5f ${chk.months} \u500b\u6708)\u3002`);
     return chk;
   }
 
   // ---- work queues (like training units in a strategy game): paid when queued, refunded when cancelled ----
   const QUEUE_MAX = 5;
   const qOf = p => p.queue || (p.queue = []);
-  // the plant as it will be once its current job and everything queued behind it are finished
   function planned(plant) {
     const v = { type: plant.type, gross: plant.gross, tech: plant.tech, deep: plant.deep };
     const apply = job => {
@@ -381,9 +464,7 @@
     qOf(plant).forEach(apply);
     return v;
   }
-  // what a job would cost if queued now (checked against the planned plant, not today's)
   function canQueue(state, plant, job) {
-    if (plant.build && plant.build.kind === 'new') return { ok: false, why: 'Plant still being built' };
     if (qOf(plant).length >= QUEUE_MAX) return { ok: false, why: `Queue full (${QUEUE_MAX})` };
     const v = planned(plant);
     let cost, months, to;
@@ -391,17 +472,29 @@
       if (!TECHS[job.tech]) return { ok: false, why: 'Unknown technology' };
       if (!state.unlocked[job.tech]) return { ok: false, why: TECHS[job.tech].solvent ? 'Find it by solvent screening' : 'Run the pilot test first' };
       if (v.tech === job.tech) return { ok: false, why: plant.tech === job.tech && !plant.build && !qOf(plant).length ? 'Already installed' : 'Already queued' };
-      cost = installCost(state, v, job.tech); months = installMonths(v);
+      const fit = techFits(v, job.tech);
+      if (fit) return { ok: false, why: fit };
+      cost = installCost(state, v, job.tech); months = installMonths(v, job.tech);
     } else if (job.kind === 'deep') {
       if (!v.tech) return { ok: false, why: 'Add capture first' };
+      if (TECHS[v.tech].noDeep) return { ok: false, why: 'Fuel cells cannot reach 99 %' };
       if (v.deep) return { ok: false, why: plant.deep && !plant.build ? 'Already at 99 %' : 'Already queued' };
       cost = upgradeCost(state, v); months = DEEP.months;
     } else if (job.kind === 'convert') {
-      to = v.type === 'coal' ? 'gas' : 'coal';
-      cost = CONVERT[to].cost; months = CONVERT[to].months;
+      to = job.to || convertOptions(v.type)[0];
+      const c = to && CONVERT[v.type] && CONVERT[v.type][to];
+      if (!c) return { ok: false, why: 'No conversion for this plant' };
+      if (v.tech && TECHS[v.tech].gasOnly && to !== 'gas') return { ok: false, why: 'Remove the fuel cell first' };
+      cost = c.cost; months = c.months;
     } else return { ok: false, why: 'Unknown job' };
     if (state.funds < cost) return { ok: false, why: 'Not enough funds', cost, months, to };
     return { ok: true, cost, months, to };
+  }
+  function jobName(job) {
+    return job.kind === 'tech' ? `${TECHS[job.tech].short} capture` : job.kind === 'deep' ? '99 % upgrade' : `conversion to ${PLANT_TYPES[job.toType].label.toLowerCase()}`;
+  }
+  function jobZh(job) {
+    return job.kind === 'tech' ? `${TECHS[job.tech].short} \u6355\u6349` : job.kind === 'deep' ? '99 % \u5347\u7d1a' : `\u6539\u5efa\u70ba${PLANT_TYPES[job.toType].zh}`;
   }
   function enqueue(state, plantId, job) {
     const p = findPlant(state, plantId);
@@ -411,20 +504,22 @@
     state.funds -= chk.cost;
     const item = { kind: job.kind, tech: job.tech, toType: chk.to, paid: chk.cost, months: chk.months };
     if (!p.build && !qOf(p).length) startJob(state, p, item);
-    else { qOf(p).push(item); addNews(state, 'build', `${p.name}: ${jobName(item)} queued ($${chk.cost}M paid).`); }
+    else {
+      qOf(p).push(item);
+      addNews(state, 'build', `${p.name}: ${jobName(item)} queued ($${chk.cost}M paid).`, `${pZh(p)}\uff1a${jobZh(item)}\u5df2\u6392\u5165\u4f47\u5217(\u5df2\u4ed8 $${chk.cost}M)\u3002`);
+    }
     return chk;
   }
-  function jobName(job) {
-    return job.kind === 'tech' ? `${TECHS[job.tech].short} capture` : job.kind === 'deep' ? '99 % upgrade' : `conversion to ${job.toType}`;
-  }
-  // start a paid job; if it no longer makes sense (e.g. a solvent swap already done) the money comes back
   function startJob(state, p, item) {
     const r = item.kind === 'tech' ? install(state, p.id, item.tech, item.paid)
-      : item.kind === 'deep' ? upgrade(state, p.id, item.paid) : convert(state, p.id, item.paid);
-    if (!r.ok) { state.funds += item.paid; addNews(state, 'build', `${p.name}: ${jobName(item)} skipped (${r.why.toLowerCase()}), $${item.paid}M refunded.`); }
+      : item.kind === 'deep' ? upgrade(state, p.id, item.paid) : convert(state, p.id, item.toType, item.paid);
+    if (!r.ok) {
+      state.funds += item.paid;
+      addNews(state, 'build', `${p.name}: ${jobName(item)} skipped (${r.why.toLowerCase()}), $${item.paid}M refunded.`,
+        `${pZh(p)}\uff1a${jobZh(item)}\u7121\u6cd5\u958b\u5de5\uff0c\u9000\u9084 $${item.paid}M\u3002`);
+    }
     return r;
   }
-  // index 0 = the job under way (full refund, the plant goes back to how it was); 1.. = queued jobs
   function cancelJob(state, plantId, index) {
     const p = findPlant(state, plantId);
     if (!p) return { ok: false, why: 'No such plant' };
@@ -432,7 +527,8 @@
       if (!p.build || p.build.kind === 'new') return { ok: false, why: 'Nothing to cancel' };
       const back = p.build.paid || 0;
       state.funds += back;
-      addNews(state, 'build', `${p.name}: ${jobName(p.build)} cancelled, $${back}M refunded.`);
+      if (p.build.kind === 'tech' && state.built[p.build.tech]) state.built[p.build.tech] -= 1;
+      addNews(state, 'build', `${p.name}: ${jobName(p.build)} cancelled, $${back}M refunded.`, `${pZh(p)}\uff1a\u53d6\u6d88${jobZh(p.build)}\uff0c\u9000\u9084 $${back}M\u3002`);
       p.build = null;
       return { ok: true, refund: back };
     }
@@ -444,13 +540,12 @@
     return { ok: true, refund: item.paid };
   }
 
-  // lab queue: the lab runs one project at a time, the rest wait (already paid)
   function canQueueResearch(state, id, method) {
     const lq = state.labQueue || (state.labQueue = []);
     if (lq.length >= QUEUE_MAX) return { ok: false, why: `Queue full (${QUEUE_MAX})` };
     if (id === 'screen') {
-      const planned = lq.filter(x => x.id === 'screen').length + (state.research.screen != null ? 1 : 0);
-      if (planned >= undiscovered(state).length) return { ok: false, why: undiscovered(state).length ? 'Enough screens queued' : 'Every solvent found' };
+      const n = lq.filter(x => x.id === 'screen').length + (state.research.screen != null ? 1 : 0);
+      if (n >= undiscovered(state).length) return { ok: false, why: undiscovered(state).length ? 'Enough screens queued' : 'Every solvent found' };
     } else {
       if (!TECHS[id] || !TECHS[id].research) return { ok: false, why: 'Nothing to research' };
       if (state.unlocked[id] || state.research[id] != null || lq.some(x => x.id === id)) return { ok: false, why: 'Already done or queued' };
@@ -466,7 +561,9 @@
     if (!chk.ok) return chk;
     state.funds -= chk.cost;
     state.labQueue.push({ id, method: chk.method, paid: chk.cost, months: chk.months });
-    addNews(state, 'lab', `${id === 'screen' ? METHODS[chk.method].label : project(id).name} queued ($${chk.cost}M paid).`);
+    const pr = project(id);
+    addNews(state, 'lab', `${id === 'screen' ? METHODS[chk.method].label : pr.name} queued ($${chk.cost}M paid).`,
+      `${id === 'screen' ? METHODS[chk.method].zh : pr.zh.name}\u5df2\u6392\u5165\u4f47\u5217(\u5df2\u4ed8 $${chk.cost}M)\u3002`);
     return chk;
   }
   function cancelResearch(state, index) {
@@ -485,11 +582,15 @@
     while (!Object.keys(state.research).length && lq.length) {
       const item = lq.shift();
       const r = startResearch(state, item.id, item.method, item.paid);
-      if (!r.ok) { state.funds += item.paid; addNews(state, 'lab', `Queued lab project skipped (${r.why.toLowerCase()}), $${item.paid}M refunded.`); }
+      if (!r.ok) {
+        state.funds += item.paid;
+        addNews(state, 'lab', `Queued lab project skipped (${r.why.toLowerCase()}), $${item.paid}M refunded.`, `\u6392\u968a\u4e2d\u7684\u7814\u767c\u5c08\u6848\u7121\u6cd5\u958b\u59cb\uff0c\u9000\u9084 $${item.paid}M\u3002`);
+      }
     }
   }
   function canBuildPlant(state, type) {
-    const b = PLANT_TYPES[type].build;
+    const b = PLANT_TYPES[type] && PLANT_TYPES[type].build;
+    if (!b) return { ok: false, why: 'Cannot build this type' };
     if (state.plants.length >= MAX_PLANTS) return { ok: false, why: `Maximum ${MAX_PLANTS} plants` };
     if (state.funds < b.cost) return { ok: false, why: 'Not enough funds', cost: b.cost };
     return { ok: true, cost: b.cost, months: b.months };
@@ -503,7 +604,7 @@
     p.build = { kind: 'new', left: chk.months, total: chk.months };
     state.plants.push(p);
     state.funds -= chk.cost;
-    addNews(state, 'build', `${p.name} under construction ($${chk.cost}M, ${chk.months} months).`);
+    addNews(state, 'build', `${p.name} under construction ($${chk.cost}M, ${chk.months} months).`, `${pZh(p)}\u958b\u59cb\u8208\u5efa($${chk.cost}M\uff0c${chk.months} \u500b\u6708)\u3002`);
     return Object.assign({ id }, chk);
   }
   function canDemolish(state, plant) {
@@ -520,7 +621,8 @@
     const back = qOf(p).reduce((a, x) => a + x.paid, 0);   // queued jobs never started: money back
     state.funds += back;
     state.plants = state.plants.filter(x => x !== p);
-    addNews(state, 'build', `${p.name} demolished ($${DEMOLISH_COST}M)${back ? `, $${back}M of queued work refunded` : ''}.`);
+    addNews(state, 'build', `${p.name} demolished ($${DEMOLISH_COST}M)${back ? `, $${back}M of queued work refunded` : ''}.`,
+      `${pZh(p)}\u5df2\u62c6\u9664($${DEMOLISH_COST}M)${back ? `\uff0c\u9000\u9084\u6392\u968a\u5de5\u7a0b $${back}M` : ''}\u3002`);
     return chk;
   }
   function canResearch(state, id, method, paid) {
@@ -541,34 +643,37 @@
     state.research[id] = researchMonths(state, id, mt);
     state.resMethod[id] = mt;
     state.resTotal = state.research[id];
-    addNews(state, 'lab', id === 'screen'
-      ? `${METHODS[mt].label} started ($${cost}M, ${state.research[id]} months, ${Math.round(researchOdds(state, id, mt) * 100)} % chance to find a solvent).`
-      : `Pilot test of the ${pr.short} funded ($${cost}M, ${state.research[id]} months).`);
+    const odds = Math.round(researchOdds(state, id, mt) * 100);
+    if (id === 'screen') addNews(state, 'lab', `${METHODS[mt].label} started ($${cost}M, ${state.research[id]} months, ${odds} % chance to find a solvent).`,
+      `${METHODS[mt].zh}\u958b\u59cb($${cost}M\uff0c${state.research[id]} \u500b\u6708\uff0c\u627e\u5230\u6eb6\u5291\u6a5f\u7387 ${odds} %)\u3002`);
+    else addNews(state, 'lab', `Pilot test of the ${pr.short} funded ($${cost}M, ${state.research[id]} months).`,
+      `${pr.zh.name}\u524d\u5c0e\u6e2c\u8a66\u958b\u59cb($${cost}M\uff0c${state.research[id]} \u500b\u6708)\u3002`);
     return chk;
   }
-  function setPrice(state, price) { state.price = Math.max(40, Math.min(220, Math.round(price))); }
+  function setPrice(state, price) { state.price = Math.max(40, Math.min(240, Math.round(price))); }
 
   // ---- events -----------------------------------------------------------------
-  const CFG = { P_CHOICE: 0.010, P_FORCED: 0.014, GAP: 12 };   // \u2248 5\u20136 events a game, never two within a year
-  const SHIP = { months: 4, perTonne: 12 };   // backup CO2 shipping while the storage site is reviewed
+  const CFG = { P_CHOICE: 0.010, P_FORCED: 0.014, GAP: 12 };   // \u2248 4\u20135 events a game, never two within a year
+  const SHIP = { months: 4, perTonne: 40 };   // backup CO2 shipping while the storage site is reviewed ($/t extra)
   function capturing(state) {
     return state.plants.filter(p => p.tech && online(p) && p.outage <= 0);
   }
   function offCost(state, months) {
     const L = state.last;
     if (!L) return { extra: 0, rise: 0 };
-    const extra = L.captured / 1e6 * months;                          // Mt no longer captured
-    const monthly = (L.emitted + L.captured) / 1e6;                   // Mt/month with capture off
+    const extra = L.captured / 1e6 * months;
+    const monthly = (L.emitted + L.captured) / 1e6;
     const rise = Math.min(100, breachStep(monthly / (limit(state) / 12)) * months);
     return { extra, rise: Math.max(0, rise) };
   }
-  function offText(state, months) {
+  function offText(state, months, zh) {
     const o = offCost(state, months);
+    if (zh) return `\u7d04 +${f1(o.extra)} Mt CO\u2082\uff0c` + (o.rise > 0.5 ? `\u8d85\u6a19\u8a08\u91cf +${Math.round(o.rise)} %` : '\u4ecd\u5728\u9650\u984d\u5167');
     return `\u2248 +${f1(o.extra)} Mt CO\u2082, ` + (o.rise > 0.5 ? `breach meter +${Math.round(o.rise)} %` : 'still under the limit');
   }
   function offerChoice(state, R) {
     const cap = capturing(state);
-    const amine = cap.filter(p => !p.washed);
+    const untreated = cap.filter(p => !p.washed);
     const up = state.plants.filter(online);
     const pool = [];
     const rg = RG(state);
@@ -579,7 +684,7 @@
       if (rg.typhoon && mo >= 6 && mo <= 9) pool.push('typhoon');
     }
     if (cap.length && state.captureOff <= 0 && (state.seen.storage || 0) < 2) pool.push('storage');
-    if (amine.length && !state.seen.wash) pool.push('wash');
+    if (untreated.length && !state.seen.nox) pool.push('nox');
     if (!pool.length) return;
     const id = pool[Math.floor(R() * pool.length)];
     state.seen[id] = (state.seen[id] || 0) + 1;
@@ -587,42 +692,52 @@
       state.demandMult = 1.12; state.demandMonths = 3;
       const cold = rg.peak === 'cold';
       if (!cap.length || state.captureOff > 0) {
-        headline(state, cold ? 'cold' : 'heat', 'bad', cold ? 'Cold snap grips the city' : 'Heat wave grips the city', 'Power demand +12 % for three months',
-          cold ? 'Electric heaters run day and night. Keep enough plants online or the lights go out.' : 'Air-conditioners run day and night. Keep enough plants online or the lights go out.');
+        headline(state, cold ? 'cold' : 'heat', 'bad',
+          { title: cold ? 'Cold snap grips the city' : 'Heat wave grips the city', deck: 'Power demand +12 % for three months',
+            text: cold ? 'Electric heaters run day and night. Keep enough plants online or the lights go out.' : 'Air-conditioners run day and night. Keep enough plants online or the lights go out.' },
+          { title: cold ? '\u5bd2\u6d41\u7c60\u7f69\u5168\u5e02' : '\u71b1\u6d6a\u7c60\u7f69\u5168\u5e02', deck: '\u7528\u96fb\u9700\u6c42\u4e09\u500b\u6708 +12 %',
+            text: cold ? '\u96fb\u6696\u5668\u65e5\u591c\u904b\u8f49\u3002\u8981\u8b93\u8db3\u5920\u7684\u96fb\u5ee0\u5728\u7dda\uff0c\u4e0d\u7136\u5c31\u6703\u505c\u96fb\u3002' : '\u51b7\u6c23\u65e5\u591c\u904b\u8f49\u3002\u8981\u8b93\u8db3\u5920\u7684\u96fb\u5ee0\u5728\u7dda\uff0c\u4e0d\u7136\u5c31\u6703\u505c\u96fb\u3002' });
         return;
       }
-      const mw = cap.reduce((a, p) => a + p.gross * penalty(p, p.tech), 0);
+      const mw = cap.reduce((a, p) => a + p.gross * Math.max(0, penalty(p, p.tech)), 0);
       state.pending = {
         id, title: cold ? 'Cold snap!' : 'Heat wave!', text: `${cold ? 'Electric heaters' : 'Air-conditioners'} push demand up 12 % for 3 months. Capture eats steam that could make power.`,
         opts: [
-          { label: 'Pause capture for 2 months', effect: `+${Math.round(mw)} MW \u00b7 ${offText(state, 2)}` },
-          { label: 'Keep capturing', effect: 'Risk blackouts' },
+          { label: 'Pause capture for 2 months', effect: `+${Math.round(mw)} MW \u00b7 ${offText(state, 2)}`, zh: { label: '\u66ab\u505c\u6355\u6349 2 \u500b\u6708', effect: `+${Math.round(mw)} MW \u00b7 ${offText(state, 2, true)}` } },
+          { label: 'Keep capturing', effect: 'Risk blackouts', zh: { label: '\u7e7c\u7e8c\u6355\u6349', effect: '\u53ef\u80fd\u505c\u96fb' } },
         ],
+        zh: { title: cold ? '\u5bd2\u6d41\u4f86\u8972\uff01' : '\u71b1\u6d6a\u4f86\u8972\uff01', text: `${cold ? '\u96fb\u6696\u5668' : '\u51b7\u6c23'}\u8b93\u7528\u96fb\u9700\u6c42\u4e09\u500b\u6708 +12 %\u3002\u6355\u6349\u8a2d\u5099\u6703\u5403\u6389\u672c\u4f86\u53ef\u4ee5\u767c\u96fb\u7684\u84b8\u6c7d\u3002` },
       };
     } else if (id === 'storage') {
+      const cost = Math.round((state.last ? state.last.captured : 0) * SHIP.perTonne * SHIP.months / 1e6);
       state.pending = {
         id, title: 'Protest at the CO\u2082 storage site', text: 'Residents near the injection wells demand that the storage site close for a safety review.',
         opts: [
-          { label: 'Ignore them', effect: 'Public anger +12' },
-          { label: 'Accept the review', effect: `Ship CO\u2082 to a backup site for ${SHIP.months} months, \u2248 $${Math.round((state.last ? state.last.captured : 0) * SHIP.perTonne * SHIP.months / 1e6)}M \u00b7 no extra emissions` },
+          { label: 'Ignore them', effect: 'Public anger +12', zh: { label: '\u4e0d\u7406\u6703', effect: '\u6c11\u6028 +12' } },
+          { label: 'Accept the review', effect: `Ship CO\u2082 to a backup site for ${SHIP.months} months, \u2248 $${cost}M \u00b7 no extra emissions`,
+            zh: { label: '\u63a5\u53d7\u5be9\u67e5', effect: `${SHIP.months} \u500b\u6708\u6539\u7528\u8239\u904b\u5230\u5099\u7528\u5c01\u5b58\u5834\uff0c\u7d04 $${cost}M \u00b7 \u4e0d\u589e\u52a0\u6392\u653e` } },
         ],
+        zh: { title: 'CO\u2082 \u5c01\u5b58\u5834\u5916\u7684\u6297\u8b70', text: '\u6ce8\u5165\u4e95\u9644\u8fd1\u7684\u5c45\u6c11\u8981\u6c42\u5c01\u5b58\u5834\u505c\u5de5\u63a5\u53d7\u5b89\u5168\u5be9\u67e5\u3002' },
       };
-    } else if (id === 'wash') {
+    } else if (id === 'nox') {
+      const n = untreated.length;
       state.pending = {
-        id, title: 'Amine emissions study', text: 'A university study finds traces of amine degradation products downwind of the capture plants.',
+        id, title: 'Protest over NOx and amine emissions', text: 'Residents downwind blame the plants for NOx and for traces of amines and nitrosamines from the capture units. NOx in the flue gas also helps turn amines into nitrosamines.',
         opts: [
-          { label: 'Install water-wash sections', effect: `$${20 * amine.length}M for ${amine.length} plant${amine.length > 1 ? 's' : ''}` },
-          { label: 'Dismiss the study', effect: 'Public anger +8' },
+          { label: 'Add SCR + acid wash', effect: `$${25 * n}M for ${n} plant${n > 1 ? 's' : ''}`, zh: { label: '\u52a0\u88dd SCR \u812b\u785d + \u9178\u6d17\u6bb5', effect: `${n} \u5ea7\u5ee0\u5171 $${25 * n}M` } },
+          { label: 'Dismiss the protest', effect: 'Public anger +8', zh: { label: '\u4e0d\u4e88\u7406\u6703', effect: '\u6c11\u6028 +8' } },
         ],
+        zh: { title: '\u5c45\u6c11\u6297\u8b70 NOx \u8207\u80fa\u6392\u653e', text: '\u4e0b\u98a8\u8655\u5c45\u6c11\u6307\u63a7\u96fb\u5ee0\u6392\u653e NOx\uff0c\u6355\u6349\u8a2d\u5099\u9084\u5e36\u51fa\u5fae\u91cf\u7684\u80fa\u8207\u4e9e\u785d\u80fa\u3002\u7159\u6c23\u4e2d\u7684 NOx \u4e5f\u6703\u8b93\u80fa\u66f4\u5bb9\u6613\u8b8a\u6210\u4e9e\u785d\u80fa\u3002' },
       };
     } else {
       const p = up[Math.floor(R() * up.length)];
       state.pending = {
         id, plant: p.id, title: `Typhoon hits ${p.name}`, text: `High winds damaged ${p.name}. It produces nothing until it is repaired (\u2212${p.gross} MW).`,
         opts: [
-          { label: 'Emergency repair', effect: '$60M \u00b7 back in 1 month' },
-          { label: 'Standard repair', effect: 'Free \u00b7 offline 4 months' },
+          { label: 'Emergency repair', effect: '$60M \u00b7 back in 1 month', zh: { label: '\u7dca\u6025\u6436\u4fee', effect: '$60M \u00b7 1 \u500b\u6708\u6062\u5fa9' } },
+          { label: 'Standard repair', effect: 'Free \u00b7 offline 4 months', zh: { label: '\u4e00\u822c\u7dad\u4fee', effect: '\u514d\u8cbb \u00b7 \u505c\u6a5f 4 \u500b\u6708' } },
         ],
+        zh: { title: `\u98b1\u98a8\u91cd\u5275${pZh(p)}`, text: `\u5f37\u98a8\u640d\u58de\u4e86${pZh(p)}\uff0c\u4fee\u597d\u4e4b\u524d\u5b8c\u5168\u4e0d\u80fd\u767c\u96fb(\u2212${p.gross} MW)\u3002` },
       };
     }
   }
@@ -631,26 +746,30 @@
     if (!ev) return;
     state.pending = null;
     if (ev.id === 'heat') {
-      if (i === 0) { state.captureOff = 2; state.captureOffWhy = 'heat-wave pause'; addNews(state, 'event', 'Heat wave: capture paused for 2 months to keep the lights on.'); }
-      else addNews(state, 'event', 'Heat wave: capture stays on. Hope the grid holds.');
+      if (i === 0) { state.captureOff = 2; state.captureOffWhy = 'heat-wave pause'; addNews(state, 'event', 'Capture paused for 2 months to keep the lights on.', '\u70ba\u4e86\u4e0d\u505c\u96fb\uff0c\u6355\u6349\u66ab\u505c 2 \u500b\u6708\u3002'); }
+      else addNews(state, 'event', 'Capture stays on. Hope the grid holds.', '\u6355\u6349\u7e7c\u7e8c\u904b\u8f49\uff0c\u5e0c\u671b\u96fb\u7db2\u6490\u5f97\u4f4f\u3002');
     } else if (ev.id === 'storage') {
-      if (i === 0) { state.anger = Math.min(100, state.anger + 12); addNews(state, 'event', 'You ignored the storage-site protest. Public anger +12.'); }
-      else { state.shipMonths = SHIP.months; addNews(state, 'event', `Storage site under review: captured CO\u2082 is shipped to a backup site for ${SHIP.months} months ($${SHIP.perTonne}/t).`); }
-    } else if (ev.id === 'wash') {
+      if (i === 0) { angry(state, 12); addNews(state, 'event', 'You ignored the storage-site protest. Public anger +12.', '\u4f60\u4e0d\u7406\u6703\u5c01\u5b58\u5834\u6297\u8b70\uff0c\u6c11\u6028 +12\u3002'); }
+      else {
+        state.shipMonths = SHIP.months;
+        addNews(state, 'event', `Storage site under review: captured CO\u2082 is shipped to a backup site for ${SHIP.months} months (+$${SHIP.perTonne}/t).`,
+          `\u5c01\u5b58\u5834\u5be9\u67e5\u4e2d\uff1a\u6355\u6349\u7684 CO\u2082 \u6539\u7528\u8239\u904b\u5230\u5099\u7528\u5c01\u5b58\u5834 ${SHIP.months} \u500b\u6708(\u6bcf\u5678 +$${SHIP.perTonne})\u3002`);
+      }
+    } else if (ev.id === 'nox') {
       if (i === 0) {
         const am = capturing(state).filter(p => !p.washed);
-        state.funds -= 20 * am.length; am.forEach(p => { p.washed = true; });
-        addNews(state, 'build', `Water-wash sections installed on ${am.length} plant${am.length > 1 ? 's' : ''} ($${20 * am.length}M).`);
-      } else { state.anger = Math.min(100, state.anger + 8); addNews(state, 'event', 'You dismissed the amine study. Public anger +8.'); }
+        state.funds -= 25 * am.length; am.forEach(p => { p.washed = true; });
+        addNews(state, 'build', `SCR and acid-wash sections added on ${am.length} plant${am.length > 1 ? 's' : ''} ($${25 * am.length}M).`, `${am.length} \u5ea7\u5ee0\u52a0\u88dd SCR \u8207\u9178\u6d17\u6bb5($${25 * am.length}M)\u3002`);
+      } else { angry(state, 8); addNews(state, 'event', 'You dismissed the emissions protest. Public anger +8.', '\u4f60\u4e0d\u7406\u6703\u6392\u653e\u6297\u8b70\uff0c\u6c11\u6028 +8\u3002'); }
     } else if (ev.id === 'typhoon') {
       const p = findPlant(state, ev.plant);
       if (!p) return;
-      if (i === 0) { state.funds -= 60; p.down = 1; p.downWhy = 'typhoon repair'; addNews(state, 'event', `${p.name}: emergency typhoon repair ($60M), back next month.`); }
-      else { p.down = 4; p.downWhy = 'typhoon repair'; addNews(state, 'event', `${p.name}: standard typhoon repair, offline 4 months.`); }
+      if (i === 0) { state.funds -= 60; p.down = 1; p.downWhy = 'typhoon repair'; addNews(state, 'event', `${p.name}: emergency typhoon repair ($60M), back next month.`, `${pZh(p)}\uff1a\u98b1\u98a8\u7dca\u6025\u6436\u4fee($60M)\uff0c\u4e0b\u500b\u6708\u6062\u5fa9\u3002`); }
+      else { p.down = 4; p.downWhy = 'typhoon repair'; addNews(state, 'event', `${p.name}: standard typhoon repair, offline 4 months.`, `${pZh(p)}\uff1a\u98b1\u98a8\u4e00\u822c\u7dad\u4fee\uff0c\u505c\u6a5f 4 \u500b\u6708\u3002`); }
     }
   }
   function forcedEvent(state, R) {
-    const hasGas = state.plants.some(p => p.type === 'gas' && online(p));
+    const hasGas = state.plants.some(p => isGas(p.type) && online(p));
     const pool = ['subsidy'];
     const rg = RG(state);
     const mo = state.m % 12;
@@ -660,35 +779,41 @@
     const k = pool[Math.floor(R() * pool.length)];
     if (k === 'gas') {
       state.gasMult = 1.8; state.gasMonths = 6;
-      headline(state, 'gas', 'bad', 'Gas prices soar', 'Gas fuel costs 80 % more for six months',
-        'A cold spell abroad and a pipeline outage send gas prices to a record. Every gas plant in Capture City pays 80 % more for its fuel until the market calms down.');
+      headline(state, 'gas', 'bad',
+        { title: 'Gas prices soar', deck: 'Gas fuel costs 80 % more for six months', text: 'A cold spell abroad and a pipeline outage send gas prices to a record. Every gas plant in Capture City pays 80 % more for its fuel until the market calms down.' },
+        { title: '\u5929\u7136\u6c23\u50f9\u683c\u98c6\u6f32', deck: '\u516d\u500b\u6708\u5167\u71c3\u6c23\u71c3\u6599\u8cb4 80 %', text: '\u570b\u5916\u5bd2\u6d41\u52a0\u4e0a\u7ba1\u7dda\u505c\u64fa\uff0c\u5929\u7136\u6c23\u50f9\u683c\u5275\u65b0\u9ad8\u3002\u6355\u6349\u57ce\u6bcf\u5ea7\u71c3\u6c23\u5ee0\u7684\u71c3\u6599\u90fd\u8981\u591a\u4ed8 80 %\uff0c\u76f4\u5230\u5e02\u5834\u5e73\u975c\u4e0b\u4f86\u3002' });
     } else if (k === 'lng') {
       state.lngCut = 2;
-      headline(state, 'lng', 'bad', 'LNG tanker stuck at sea', 'Gas plants at half power for two months',
-        'The island keeps only days of liquefied gas in its tanks. With the next tanker delayed by a storm, gas plants must run at half power until supply is back.');
+      headline(state, 'lng', 'bad',
+        { title: 'LNG tanker stuck at sea', deck: 'Gas plants at half power for two months', text: 'The island keeps only days of liquefied gas in its tanks. With the next tanker delayed by a storm, gas plants must run at half power until supply is back.' },
+        { title: 'LNG \u8239\u53d7\u56f0\u6d77\u4e0a', deck: '\u71c3\u6c23\u5ee0\u5169\u500b\u6708\u53ea\u80fd\u534a\u8f09\u904b\u8f49', text: '\u5cf6\u4e0a\u7684\u6db2\u5316\u5929\u7136\u6c23\u53ea\u5b58\u5f97\u4e86\u5e7e\u5929\u3002\u4e0b\u4e00\u8258\u8239\u88ab\u98a8\u66b4\u803d\u64f1\uff0c\u71c3\u6c23\u5ee0\u53ea\u80fd\u534a\u8f09\u904b\u8f49\uff0c\u76f4\u5230\u4f9b\u61c9\u6062\u5fa9\u3002' });
     } else if (k === 'winter') {
       state.gasFreeze = 1;
-      headline(state, 'winter', 'bad', 'Winter storm freezes gas wells', 'Gas plants at 30 % for a month',
-        'Frozen wellheads and pipes choke the gas supply. Gas plants can only run at 30 % this month, just as heaters push demand up.');
+      headline(state, 'winter', 'bad',
+        { title: 'Winter storm freezes gas wells', deck: 'Gas plants at 30 % for a month', text: 'Frozen wellheads and pipes choke the gas supply. Gas plants can only run at 30 % this month, just as heaters push demand up.' },
+        { title: '\u51ac\u5b63\u66b4\u98a8\u96ea\u51cd\u4f4f\u6c23\u4e95', deck: '\u71c3\u6c23\u5ee0\u9019\u500b\u6708\u53ea\u5269 30 %', text: '\u4e95\u53e3\u548c\u7ba1\u7dda\u7d50\u51b0\uff0c\u5929\u7136\u6c23\u4f9b\u61c9\u5361\u4f4f\u3002\u71c3\u6c23\u5ee0\u9019\u500b\u6708\u53ea\u80fd\u8dd1 30 %\uff0c\u504f\u504f\u96fb\u6696\u5668\u53c8\u628a\u7528\u96fb\u63a8\u9ad8\u3002' });
     } else if (k === 'subsidy') {
       state.subsidy = 12;
-      headline(state, 'subsidy', 'good', 'Government backs carbon capture', 'Capture projects 30 % cheaper for a year',
-        'A new clean-air package pays part of every capture project started in the next 12 months: installing, switching and upgrading capture all cost 30 % less.');
+      headline(state, 'subsidy', 'good',
+        { title: 'Government backs carbon capture', deck: 'Capture projects 30 % cheaper for a year', text: 'A new clean-air package pays part of every capture project started in the next 12 months: installing, switching and upgrading capture all cost 30 % less.' },
+        { title: '\u653f\u5e9c\u529b\u633a\u78b3\u6355\u6349', deck: '\u4e00\u5e74\u5167\u6355\u6349\u5de5\u7a0b\u4fbf\u5b9c 30 %', text: '\u65b0\u7684\u7a7a\u6c61\u65b9\u6848\u6703\u88dc\u52a9\u672a\u4f86 12 \u500b\u6708\u5167\u958b\u5de5\u7684\u6355\u6349\u5de5\u7a0b\uff1a\u65b0\u88dd\u3001\u63db\u6eb6\u5291\u3001\u5347\u7d1a\u90fd\u4fbf\u5b9c 30 %\u3002' });
     } else if (k === 'health') {
-      state.anger = Math.min(100, state.anger + 8);
-      headline(state, 'health', 'bad', 'Doctors link smog to asthma', 'Public anger +8',
-        'A hospital study finds more childhood asthma in neighbourhoods downwind of the power plants. Parents are marching outside City Hall.');
+      angry(state, 8);
+      headline(state, 'health', 'bad',
+        { title: 'Doctors link smog to asthma', deck: 'Public anger +8', text: 'A hospital study finds more childhood asthma in neighbourhoods downwind of the power plants. Parents are marching outside City Hall.' },
+        { title: '\u91ab\u5e2b\uff1a\u7a7a\u6c61\u8207\u6c23\u5598\u6709\u95dc', deck: '\u6c11\u6028 +8', text: '\u91ab\u9662\u7814\u7a76\u767c\u73fe\uff0c\u96fb\u5ee0\u4e0b\u98a8\u8655\u7684\u793e\u5340\u5152\u7ae5\u6c23\u5598\u6bd4\u4f8b\u8f03\u9ad8\u3002\u5bb6\u9577\u5011\u5728\u5e02\u653f\u5e9c\u5916\u904a\u884c\u3002' });
     } else {
       state.usCut = true; state.resCut = 24; state.opexCut = 24;
-      headline(state, 'subcut', 'bad', 'President axes carbon-capture funding', 'Research +50 %, capture running costs +30 % for two years',
-        'The White House has cancelled federal support for carbon capture overnight. Partner labs lose their grants, so every lab project costs 50 % more, and solvent and service suppliers pass on their losses: running a capture plant costs 30 % more. Both last two years.');
+      headline(state, 'subcut', 'bad',
+        { title: 'President axes carbon-capture funding', deck: 'Research +50 %, capture running costs +30 % for two years', text: 'The White House has cancelled federal support for carbon capture overnight. Partner labs lose their grants, so every lab project costs 50 % more, and solvent and service suppliers pass on their losses: running a capture plant costs 30 % more. Both last two years.' },
+        { title: '\u7e3d\u7d71\u780d\u6389\u78b3\u6355\u6349\u88dc\u52a9', deck: '\u5169\u5e74\u5167\u7814\u767c\u8cbb +50 %\u3001\u6355\u6349\u904b\u8f49\u8cbb +30 %', text: '\u767d\u5bae\u4e00\u591c\u4e4b\u9593\u53d6\u6d88\u806f\u90a6\u7684\u78b3\u6355\u6349\u88dc\u52a9\u3002\u5408\u4f5c\u5be6\u9a57\u5ba4\u5931\u53bb\u7d93\u8cbb\uff0c\u6bcf\u500b\u7814\u767c\u5c08\u6848\u90fd\u8cb4 50 %\uff1b\u6eb6\u5291\u8207\u7dad\u4fee\u5ee0\u5546\u628a\u640d\u5931\u8f49\u5ac1\u51fa\u4f86\uff0c\u6355\u6349\u5ee0\u904b\u8f49\u8cbb\u8cb4 30 %\u3002\u5169\u8005\u90fd\u6301\u7e8c\u5169\u5e74\u3002' });
     }
   }
   // a front-page story: the page shows it as a newspaper and the game waits until it is read
-  function headline(state, id, tone, title, deck, text) {
+  function headline(state, id, tone, en, zh) {
     state.headlineN = (state.headlineN || 0) + 1;
-    state.headline = { n: state.headlineN, id, tone, title, deck, text };
-    addNews(state, tone === 'good' ? 'good' : id === 'subcut' ? 'policy' : 'event', `${title}: ${deck}.`);
+    state.headline = { n: state.headlineN, id, tone, title: en.title, deck: en.deck, text: en.text, zh };
+    addNews(state, tone === 'good' ? 'good' : id === 'subcut' ? 'policy' : 'event', `${en.title}: ${en.deck}.`, `${zh.title}\uff1a${zh.deck}\u3002`);
   }
 
   // ---- one month --------------------------------------------------------------
@@ -696,26 +821,34 @@
     if (state.over || state.pending) return state;
     const R = rng(state.seed + state.m * 7919);
     const y = year(state);
+    const evAnger = state.angerEvt || 0;   // anger from decisions and news since last month
+    state.angerEvt = 0;
+    if (!state.built) state.built = {};
 
     // scheduled news
     const rgn = RG(state);
-    if (rgn.tax && state.m === Math.max(0, (rgn.tax.from - START_YEAR) * 12 - 36)) {
-      addNews(state, 'policy', `A carbon price is coming: $${rgn.tax.base} per tonne from ${rgn.tax.from}, rising $${rgn.tax.step} every year.`);
-    }
-    if (state.m % 12 === 0 && state.m > 0) {
-      addNews(state, 'policy', `${y}: carbon price $${carbonTax(y, state)}/t, CO\u2082 limit ${f1(limitFor(state, y))} Mt/yr and falling.`);
+    if (state.m % 12 === 0) {
+      const t = carbonTax(y, state), next = carbonTax(y + 1, state);
+      if (state.m === 0) {
+        if (rgn.credit) addNews(state, 'policy', `No carbon tax here. The 45Q credit pays $${rgn.credit} per tonne stored, for ${rgn.creditMonths / 12} years per plant.`, `\u9019\u88e1\u6c92\u6709\u78b3\u7a05\u300245Q \u62b5\u6e1b\u6bcf\u5c01\u5b58\u4e00\u5678\u4ed8 $${rgn.credit}\uff0c\u6bcf\u5ea7\u5ee0\u7d66 ${rgn.creditMonths / 12} \u5e74\u3002`);
+        else addNews(state, 'policy', `${y}: carbon price $${t}/t. Storing CO\u2082 costs $${rgn.ts}/t for transport and storage.`, `${y} \u5e74\uff1a\u78b3\u50f9\u6bcf\u5678 $${t}\u3002CO\u2082 \u904b\u8f38\u8207\u5c01\u5b58\u6bcf\u5678 $${rgn.ts}\u3002`);
+      } else {
+        addNews(state, 'policy', `${y}: carbon price $${t}/t, CO\u2082 limit ${f1(limitFor(state, y))} Mt/yr and falling.`, `${y} \u5e74\uff1a\u78b3\u50f9\u6bcf\u5678 $${t}\uff0cCO\u2082 \u9650\u984d\u6bcf\u5e74 ${f1(limitFor(state, y))} Mt\uff0c\u6301\u7e8c\u4e0b\u964d\u3002`);
+      }
+      if (next >= t * 1.5 && next - t >= 15) {
+        addNews(state, 'policy', `Next year the carbon price jumps to $${next}/t.`, `\u660e\u5e74\u78b3\u50f9\u5c07\u8df3\u5230\u6bcf\u5678 $${next}\u3002`);
+        flash(state, 'event', `Carbon price jumps to $${next}/t next year.`, `\u660e\u5e74\u78b3\u50f9\u8df3\u5230\u6bcf\u5678 $${next}\u3002`);
+      }
       // forecast: warn once when today's emissions will pass the limit within 3 years
-      for (let k = 1; k <= 3; k++) {
+      for (let k = 1; k <= 3 && state.m > 0; k++) {
         if (state.rate > limitFor(state, y + k) && state.warnedYear !== y + k && state.rate <= limitFor(state, y)) {
           state.warnedYear = y + k;
-          addNews(state, 'event', `Forecast: at today's emissions you pass the CO\u2082 limit in ${y + k}. Cut emissions before then.`);
-          flash(state, 'event', `Forecast: you pass the CO\u2082 limit in ${y + k} at today's emissions.`);
+          addNews(state, 'event', `Forecast: at today's emissions you pass the CO\u2082 limit in ${y + k}. Cut emissions before then.`, `\u9810\u6e2c\uff1a\u7167\u76ee\u524d\u6392\u653e\uff0c\u4f60\u6703\u5728 ${y + k} \u5e74\u8d85\u904e CO\u2082 \u9650\u984d\u3002\u4e4b\u524d\u5c31\u8981\u6e1b\u6392\u3002`);
+          flash(state, 'event', `Forecast: you pass the CO\u2082 limit in ${y + k} at today's emissions.`, `\u9810\u6e2c\uff1a\u7167\u76ee\u524d\u6392\u653e\uff0c${y + k} \u5e74\u6703\u8d85\u904e\u9650\u984d\u3002`);
           break;
         }
       }
     }
-
-    // gas market drifts every month (imported LNG)
 
     // research progress
     for (const id of Object.keys(state.research)) {
@@ -727,21 +860,23 @@
         const pr = project(id);
         if (id !== 'screen') {
           state.unlocked[id] = true;
-          addNews(state, 'lab', `Breakthrough! ${pr.name} is ready to install.`);
-          flash(state, 'lab', `Research done: ${pr.name}.`);
+          addNews(state, 'lab', `Breakthrough! ${pr.name} is ready to install.`, `\u7a81\u7834\uff01${pr.zh.name}\u53ef\u4ee5\u5b89\u88dd\u4e86\u3002`);
+          flash(state, 'lab', `Research done: ${pr.name}.`, `\u7814\u767c\u5b8c\u6210\uff1a${pr.zh.name}\u3002`);
         } else if (R() < odds && undiscovered(state).length) {
           const found = drawSolvent(state, R);
           state.unlocked[found] = true;
           state.tries.screen = 0;
           state.discovery = { n: (state.discovery ? state.discovery.n : 0) + 1, id: found, method: mt };
-          addNews(state, 'lab', `Discovery! ${mt === 'comp' ? 'Computer screening' : 'Lab experiments'} found ${TECHS[found].name} (${'\u2605'.repeat(DROPS[found].stars)}).`);
+          addNews(state, 'lab', `Discovery! ${mt === 'comp' ? 'Computer screening' : 'Lab experiments'} found ${TECHS[found].name} (${'\u2605'.repeat(DROPS[found].stars)}).`,
+            `\u767c\u73fe\uff01${mt === 'comp' ? '\u96fb\u8166\u7be9\u9078' : '\u5be6\u9a57'}\u627e\u5230\u4e86${tZh(found)}(${'\u2605'.repeat(DROPS[found].stars)})\u3002`);
         } else {
           state.tries.screen = (state.tries.screen || 0) + 1;
-          const why = mt === 'comp'
-            ? `the predicted candidates failed in the lab. The next screen learns from it (+${Math.round(METHODS.comp.learn * 100)} % odds)`
-            : 'the experiments hit a dead end';
-          addNews(state, 'event', `Screening came up empty: ${why}.`);
-          flash(state, 'event', 'Screening came up empty. Try again.');
+          const comp = mt === 'comp';
+          addNews(state, 'event', comp
+            ? `Screening came up empty: the predicted candidates failed in the lab. The next screen learns from it (+${Math.round(METHODS.comp.learn * 100)} % odds).`
+            : 'Screening came up empty: the experiments hit a dead end.',
+            comp ? `\u7be9\u9078\u843d\u7a7a\uff1a\u9810\u6e2c\u7684\u5019\u9078\u7269\u5728\u5be6\u9a57\u5ba4\u5931\u6557\u4e86\u3002\u4e0b\u4e00\u6b21\u6703\u5f9e\u4e2d\u5b78\u7fd2(\u6a5f\u7387 +${Math.round(METHODS.comp.learn * 100)} %)\u3002` : '\u7be9\u9078\u843d\u7a7a\uff1a\u5be6\u9a57\u8d70\u9032\u6b7b\u80e1\u540c\u3002');
+          flash(state, 'event', 'Screening came up empty. Try again.', '\u7be9\u9078\u843d\u7a7a\uff0c\u518d\u8a66\u4e00\u6b21\u3002');
         }
       }
     }
@@ -753,65 +888,74 @@
       const b = p.build;
       p.build = null;
       if (b.kind === 'new') {
-        addNews(state, 'build', `${p.name} is online (+${p.gross} MW).`);
+        addNews(state, 'build', `${p.name} is online (+${p.gross} MW).`, `${pZh(p)}\u4e0a\u7dda(+${p.gross} MW)\u3002`);
       } else if (b.kind === 'convert') {
         p.type = b.toType; p.gross = PLANT_TYPES[b.toType].size;
-        p.name = `${PLANT_TYPES[b.toType].label} Plant ${p.id}`;
-        addNews(state, 'build', `${p.name}: conversion finished (${p.gross} MW ${b.toType}).`);
+        p.name = pName(p);
+        addNews(state, 'build', `${p.name}: conversion finished (${p.gross} MW).`, `${pZh(p)}\uff1a\u6539\u5efa\u5b8c\u6210(${p.gross} MW)\u3002`);
       } else {
-        if (p.tech !== b.tech) p.washed = false;
+        if (p.tech !== b.tech) { p.washed = false; p.stackAge = 0; }
         p.tech = b.tech; p.deep = !!b.deep;
         state.techUsed[p.tech] = true;
-        addNews(state, 'build', `${p.name}: ${TECHS[p.tech].short}${p.deep ? ' at 99 %' : ''} capture is online.`);
+        addNews(state, 'build', `${p.name}: ${TECHS[p.tech].short}${p.deep ? ' at 99 %' : ''} capture is online.`, `${pZh(p)}\uff1a${TECHS[p.tech].short}${p.deep ? ' 99 %' : ''} \u6355\u6349\u4e0a\u7dda\u3002`);
       }
     }
     // the next queued job starts as soon as a plant (or the lab) is free
     startQueues(state);
-    // start-up failures and precipitation
+    // start-up failures, precipitation / rotor faults, fuel-cell stack replacement
     for (const p of state.plants) {
       if (p.outage > 0) { p.outage -= 1; continue; }
       if (!p.tech || !online(p)) continue;
       const t = TECHS[p.tech];
+      const tz = t.zh || {};
       const mat = maturity(state, p.tech);
-      if (mat.risk > 0 && R() < mat.risk) {
+      if (t.stack && ++p.stackAge >= t.stack) {
+        p.stackAge = 0; p.outage = 2;
+        const c = Math.round(0.15 * capexFull(p, p.tech));
+        state.funds -= c;
+        addNews(state, 'build', `${p.name}: fuel-cell stacks worn out after ${t.stack / 12} years, replaced ($${c}M, capture off 2 months).`, `${pZh(p)}\uff1a\u71c3\u6599\u96fb\u6c60\u5806\u7528\u4e86 ${t.stack / 12} \u5e74\u5df2\u8001\u5316\uff0c\u66f4\u63db($${c}M\uff0c\u6355\u6349\u505c 2 \u500b\u6708)\u3002`);
+        flash(state, 'event', `${p.name}: fuel-cell stacks replaced ($${c}M).`, `${pZh(p)}\uff1a\u66f4\u63db\u71c3\u6599\u96fb\u6c60\u5806($${c}M)\u3002`);
+      } else if (mat.risk > 0 && R() < mat.risk) {
         p.outage = 3; p.outageWhy = 'start-up failure'; p.down = 1; p.downWhy = 'tripped';
         state.funds -= 15; state.fails += 1;
-        addNews(state, 'event', `${p.name}: ${t.short} start-up failure, ${t.fail}. Plant tripped for a month, capture off 3 months, repair $15M (${mat.exp}/${PROVEN_MONTHS} months of experience).`);
-        flash(state, 'event', `${p.name}: ${t.short} start-up failure, ${t.fail}.`);
+        addNews(state, 'event', `${p.name}: ${t.short} start-up failure, ${t.fail}. Plant tripped for a month, capture off 3 months, repair $15M (${mat.exp}/${PROVEN_MONTHS} months of experience).`,
+          `${pZh(p)}\uff1a${t.short} \u958b\u6a5f\u6545\u969c\uff0c${tz.fail || t.fail}\u3002\u96fb\u5ee0\u8df3\u6a5f 1 \u500b\u6708\u3001\u6355\u6349\u505c 3 \u500b\u6708\u3001\u7dad\u4fee $15M(\u7d2f\u7a4d\u7d93\u9a57 ${mat.exp}/${PROVEN_MONTHS} \u500b\u6708)\u3002`);
+        flash(state, 'event', `${p.name}: ${t.short} start-up failure, ${t.fail}.`, `${pZh(p)}\uff1a${t.short} \u958b\u6a5f\u6545\u969c\uff0c${tz.fail || t.fail}\u3002`);
       } else if (t.risk && R() < t.risk) {
-        p.outage = 2; p.outageWhy = 'precipitation';
-        addNews(state, 'event', `${p.name}: AMP carbamate precipitated, capture off for 2 months.`);
-        flash(state, 'event', `${p.name}: solvent precipitation, capture off 2 months.`);
+        p.outage = t.rate >= 10 ? 1 : 2; p.outageWhy = 'fault';
+        addNews(state, 'event', `${p.name}: ${t.riskText}, capture off for ${p.outage} month${p.outage > 1 ? 's' : ''}.`, `${pZh(p)}\uff1a${tz.riskText || t.riskText}\uff0c\u6355\u6349\u505c ${p.outage} \u500b\u6708\u3002`);
+        flash(state, 'event', `${p.name}: ${t.riskText}.`, `${pZh(p)}\uff1a${tz.riskText || t.riskText}\u3002`);
       }
     }
 
     // dispatch: cheapest net MWh first
     const tax = carbonTax(y, state);
-    const credit = rgn.credit;   // paid per tonne captured (Texas)
+    const ts = rgn.ts || 0;
     const units = state.plants.filter(online).map(p => {
       const pt = PLANT_TYPES[p.type];
       const on = p.tech && p.outage <= 0 && state.captureOff <= 0;
       const e = on ? eff(p.tech, p.deep, p.type) : null;
       if (e && state.opexCut > 0) e.opex *= 1.3;   // subsidy cut: suppliers pass on their losses
       const c = e ? e.capture : 0;
-      const pen = e ? pt.intensity * c * workPerTonne(e) : 0;
-      const fuel = p.type === 'gas' ? gasFuel(state) : pt.fuel;
-      const avail = p.type === 'gas' ? (state.gasFreeze > 0 ? 0.3 : state.lngCut > 0 ? 0.5 : 1) : 1;
-      const perGross = fuel + (e ? (e.opex - credit) * pt.intensity * c : 0) + tax * pt.intensity * (1 - c);
-      return { p, pt, e, c, pen, netCap: p.gross * avail * (1 - pen), marginal: perGross / (1 - pen), fuel };
+      const pen = e ? pt.intensity * c * workPerTonne(e) - e.power : 0;
+      const fuel = fuelOf(state, p.type) * (1 + (e ? e.power : 0));   // a fuel cell burns extra gas for its extra power
+      const avail = pt.gas ? (state.gasFreeze > 0 ? 0.3 : state.lngCut > 0 ? 0.5 : 1) : 1;
+      const credit = rgn.credit && (p.capMonths || 0) < rgn.creditMonths ? rgn.credit : 0;
+      const perGross = fuel + (e ? (e.opex + ts - credit) * pt.intensity * c : 0) + tax * pt.intensity * (1 - c);
+      return { p, pt, e, c, pen, credit, netCap: p.gross * avail * (1 - pen), marginal: perGross / (1 - pen), fuel };
     }).sort((a, b) => a.marginal - b.marginal);
 
     const D = demand(state);
     let left = D, revenue = 0, cost = 0, emitted = 0, captured = 0, served = 0, netCapTotal = 0;
-    let surplus = D * SURPLUS_SHARE, soldMW = 0, taxPaid = 0;
-    const burn = (u, mw, price) => {           // run a unit for `mw` net and book it at `price` per MWh
+    let surplus = D * SURPLUS_SHARE, soldMW = 0, taxPaid = 0, creditPaid = 0, tsPaid = 0;
+    const burn = (u, mw, price) => {
       const netMWh = mw * HOURS;
       const grossMWh = netMWh / (1 - u.pen);
-      const co2 = grossMWh * u.pt.intensity;         // t
+      const co2 = grossMWh * u.pt.intensity;
       const cap = co2 * u.c, emi = co2 - cap;
       emitted += emi; captured += cap;
-      cost += grossMWh * u.fuel + (u.e ? cap * u.e.opex : 0) + emi * tax;
-      taxPaid += emi * tax;
+      cost += grossMWh * u.fuel + (u.e ? cap * (u.e.opex + ts) : 0) + emi * tax;
+      taxPaid += emi * tax; tsPaid += cap * ts; creditPaid += cap * u.credit;
       revenue += netMWh * price;
       return netMWh;
     };
@@ -822,44 +966,47 @@
       served += burn(u, run, state.price);
       u.run = run;
     }
-    // spare capacity is sold to industrial / wholesale buyers when it pays (a dirty plant stops paying once carbon is priced)
     for (const u of units) {
       const spare = Math.min(u.netCap - u.run, surplus);
       if (spare <= 0 || u.marginal >= rgn.wholesale) continue;
       burn(u, spare, rgn.wholesale);
       surplus -= spare; soldMW += spare; u.run += spare;
     }
-    // neighbours lend power in a shortage (Europe)
     let importMW = 0;
     if (rgn.imports && left > 0) { importMW = Math.min(left, rgn.imports); left -= importMW; served += importMW * HOURS; revenue += importMW * HOURS * state.price; cost += importMW * HOURS * 150; }
-    for (const p of state.plants) cost += p.gross * PLANT_TYPES[p.type].fixed * 1e6;   // fixed O&M, running or not
-    const creditPaid = captured * credit;
+    for (const p of state.plants) cost += p.gross * PLANT_TYPES[p.type].fixed * 1e6;
     cost -= creditPaid;
     if (state.shipMonths > 0) cost += captured * SHIP.perTonne;
-    state.sold = soldMW; state.soldTotal += soldMW * HOURS / 1000; state.imported = importMW; state.creditPaid += creditPaid / 1e6; state.taxPaid += taxPaid / 1e6;
-    const overhead = 25e6;                              // grid, staff, maintenance
-    const profit = (revenue - cost - overhead) / 1e6;   // $M
+    for (const u of units) if (u.c > 0 && u.run > 0) {
+      const p = u.p;
+      p.capMonths = (p.capMonths || 0) + 1;
+      if (rgn.credit && p.capMonths === rgn.creditMonths) addNews(state, 'policy', `${p.name}: its 45Q credit has run out after ${rgn.creditMonths / 12} years.`, `${pZh(p)}\uff1a45Q \u62b5\u6e1b ${rgn.creditMonths / 12} \u5e74\u671f\u6eff\u3002`);
+    }
+    state.sold = soldMW; state.soldTotal += soldMW * HOURS / 1000; state.imported = importMW;
+    state.creditPaid += creditPaid / 1e6; state.taxPaid += taxPaid / 1e6; state.tsPaid = (state.tsPaid || 0) + tsPaid / 1e6;
+    const overhead = 25e6;
+    const profit = (revenue - cost - overhead) / 1e6;
     state.funds += profit;
 
-    // technology experience (a solvent is proven after 24 months in operation)
+    // technology experience (a new technology is proven after 24 months in operation)
     const seen = {};
     for (const p of state.plants) if (p.tech && online(p)) seen[p.tech] = true;
     for (const id of Object.keys(seen)) {
       state.exp[id] = (state.exp[id] || 0) + 1;
       if (TECHS[id].startup && state.exp[id] === PROVEN_MONTHS) {
-        addNews(state, 'good', `${TECHS[id].name} is now proven: no more start-up failures.`);
-        flash(state, 'good', `${TECHS[id].short} is proven after 2 years: no more start-up failures.`);
+        addNews(state, 'good', `${TECHS[id].name} is now proven: no more start-up failures.`, `${tZh(id)}\u5df2\u7d93\u6210\u719f\uff1a\u4e0d\u6703\u518d\u6709\u958b\u6a5f\u6545\u969c\u3002`);
+        flash(state, 'good', `${TECHS[id].short} is proven after 2 years: no more start-up failures.`, `${TECHS[id].short} \u904b\u8f49 2 \u5e74\u5df2\u6210\u719f\uff1a\u4e0d\u518d\u6709\u958b\u6a5f\u6545\u969c\u3002`);
       }
     }
 
     // CO2 accounting against the shrinking limit
     const unservedFrac = Math.max(0, left) / D;
     const monthMt = emitted / 1e6;
-    state.cumCO2 += monthMt;                            // Mt
+    state.cumCO2 += monthMt;
     state.captured += captured / 1e6;
     state.recent.push(monthMt);
     if (state.recent.length > 3) state.recent.shift();
-    state.rate = state.recent.reduce((a, b) => a + b, 0) / state.recent.length * 12;   // Mt/yr, 3-month average
+    state.rate = state.recent.reduce((a, b) => a + b, 0) / state.recent.length * 12;
     const lim = limit(state);
     const allow = lim / 12;
     state.greenhouse = Math.max(0, Math.min(100, state.greenhouse + breachStep(monthMt / allow)));
@@ -867,41 +1014,46 @@
       state.overMonths += 1;
       if (!state.wasOver) {
         state.wasOver = true;
-        addNews(state, 'event', `Over the CO\u2082 limit (${f1(lim)} Mt/yr)! The breach meter is rising.`);
-        flash(state, 'event', 'Over the CO\u2082 limit! The breach meter is rising (100 % = game over).');
+        addNews(state, 'event', `Over the CO\u2082 limit (${f1(lim)} Mt/yr)! The breach meter is rising.`, `\u8d85\u904e CO\u2082 \u9650\u984d(\u6bcf\u5e74 ${f1(lim)} Mt)\uff01\u8d85\u6a19\u8a08\u91cf\u4e0a\u5347\u4e2d\u3002`);
+        flash(state, 'event', 'Over the CO\u2082 limit! The breach meter is rising (100 % = game over).', '\u8d85\u904e CO\u2082 \u9650\u984d\uff01\u8d85\u6a19\u8a08\u91cf\u4e0a\u5347\u4e2d(100 % \u5c31\u7d50\u675f)\u3002');
       }
     } else {
       state.wasOver = false;
     }
-    state.maxDebt = Math.max(state.maxDebt, state.greenhouse);       // worst breach, %
+    state.maxDebt = Math.max(state.maxDebt, state.greenhouse);
 
-    const baseRate = rgn.base * HOURS * 0.95;           // t/month if all-coal, no capture (smog scale)
+    // public anger, kept per source so the page can show where it comes from
+    const baseRate = rgn.base * HOURS * 0.95;
     const smog = emitted / baseRate;
     const FAIR = rgn.fair;
-    let dA = 7 * Math.max(0, (state.price - FAIR) / FAIR)
-           + 40 * unservedFrac
-           + 1.2 * smog
-           + 0.02 * state.greenhouse
-           - 1.0;
-    if (state.price < FAIR) dA -= 0.8 * (FAIR - state.price) / FAIR;
+    const parts = {
+      price: 7 * Math.max(0, (state.price - FAIR) / FAIR) - (state.price < FAIR ? 0.8 * (FAIR - state.price) / FAIR : 0),
+      blackout: 40 * unservedFrac,
+      smog: 1.2 * smog,
+      breach: 0.02 * state.greenhouse,
+      calm: -1.0,
+      events: evAnger,
+    };
+    const dA = parts.price + parts.blackout + parts.smog + parts.breach + parts.calm;
+    state.angerParts = parts;
     state.anger = Math.max(0, Math.min(100, state.anger + dA));
-    if (unservedFrac > 0.02) { state.blackouts += 1; addNews(state, 'event', `Blackouts: ${Math.round(unservedFrac * 100)} % of demand unserved!`); }
+    if (unservedFrac > 0.02) { state.blackouts += 1; addNews(state, 'event', `Blackouts: ${Math.round(unservedFrac * 100)} % of demand unserved!`, `\u505c\u96fb\uff1a${Math.round(unservedFrac * 100)} % \u7684\u7528\u96fb\u6c92\u6709\u4f9b\u61c9\uff01`); }
 
     // timers
     if (state.demandMonths > 0 && --state.demandMonths === 0) state.demandMult = 1;
     if (state.gasMonths > 0 && --state.gasMonths === 0) state.gasMult = 1;
     if (state.subsidy > 0) state.subsidy -= 1;
     if (state.resCut > 0) state.resCut -= 1;
-    if (state.opexCut > 0 && --state.opexCut === 0) addNews(state, 'good', 'Capture running costs are back to normal.');
-    if (state.lngCut > 0 && --state.lngCut === 0) addNews(state, 'good', 'LNG supply is back to normal.');
+    if (state.opexCut > 0 && --state.opexCut === 0) addNews(state, 'good', 'Capture running costs are back to normal.', '\u6355\u6349\u904b\u8f49\u8cbb\u6062\u5fa9\u6b63\u5e38\u3002');
+    if (state.lngCut > 0 && --state.lngCut === 0) addNews(state, 'good', 'LNG supply is back to normal.', 'LNG \u4f9b\u61c9\u6062\u5fa9\u6b63\u5e38\u3002');
     if (state.gasFreeze > 0) state.gasFreeze -= 1;
-    if (state.shipMonths > 0 && --state.shipMonths === 0) addNews(state, 'good', 'The storage site is open again.');
-    if (state.captureOff > 0 && --state.captureOff === 0) addNews(state, 'good', 'Capture is back on.');
-    for (const p of state.plants) if (p.down > 0 && --p.down === 0) addNews(state, 'good', `${p.name} is running again.`);
+    if (state.shipMonths > 0 && --state.shipMonths === 0) addNews(state, 'good', 'The storage site is open again.', '\u5c01\u5b58\u5834\u91cd\u65b0\u958b\u653e\u3002');
+    if (state.captureOff > 0 && --state.captureOff === 0) addNews(state, 'good', 'Capture is back on.', '\u6355\u6349\u6062\u5fa9\u904b\u8f49\u3002');
+    for (const p of state.plants) if (p.down > 0 && --p.down === 0) addNews(state, 'good', `${p.name} is running again.`, `${pZh(p)}\u6062\u5fa9\u904b\u8f49\u3002`);
 
     state.last = {
       demand: D, netCap: netCapTotal, served: served / HOURS, unservedFrac, emitted, captured, limit: lim,
-      revenue: revenue / 1e6, cost: cost / 1e6 + overhead / 1e6, profit, tax, credit, gasFuel: gasFuel(state), sold: soldMW, imported: importMW,
+      revenue: revenue / 1e6, cost: cost / 1e6 + overhead / 1e6, profit, tax, credit: rgn.credit, gasFuel: gasFuel(state), sold: soldMW, imported: importMW,
       units: units.map(u => ({ id: u.p.id, run: u.run, netCap: u.netCap, pen: u.pen, c: u.c })),
     };
 
@@ -911,7 +1063,7 @@
     else if (state.funds < BANKRUPT) state.over = { win: false, why: 'bankrupt' };
     else if (state.m >= MONTHS) state.over = { win: true, why: 'survived' };
 
-    // random events for next month (a choice pauses the game until answered)
+    // random events for next month (a choice pauses the game until answered); at least a year apart
     if (!state.over && state.m > 6 && state.m - (state.lastEventM || -99) >= CFG.GAP) {
       const r = R();
       const hl = state.headlineN;
@@ -923,9 +1075,8 @@
   }
 
   // ---- score --------------------------------------------------------------------
-  const STARS = { three: 2600, two: 2300 };   // sim_test.js with events: MEA+99 \u2248 2\u2605, planned 2PE routes \u2248 2\u20133\u2605
   function score(s) {
-    return Math.round(Math.max(0, 250 - s.cumCO2) * 6 + (100 - s.anger) * 5 + Math.max(0, s.funds) * 0.5 + s.captured * 1.5);
+    return Math.round(Math.max(0, 250 - s.cumCO2) * 6 + (100 - s.anger) * 5 + Math.min(3000, Math.max(0, s.funds)) * 0.5 + s.captured * 1.5);
   }
   function stars(s) {
     if (!s.over || !s.over.win) return 0;
@@ -935,10 +1086,10 @@
   }
 
   const api = {
-    HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE,
-    BREACH, breachStep, REGIONS, SEASON, SURPLUS_SHARE, SHIP, METHODS, DROPS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG, STARS,
-    newGame, step, choose, offCost, online,
-    install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost,
+    HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE, START_FUNDS, CAPEX_SCALE, FOAK,
+    BREACH, breachStep, REGIONS, SEASON, SURPLUS_SHARE, SHIP, METHODS, DROPS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG,
+    newGame, step, choose, offCost, online, isGas, fuelOf, foak, pZh, tZh,
+    install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost, convertOptions,
     QUEUE_MAX, planned, canQueue, enqueue, cancelJob, canQueueResearch, enqueueResearch, cancelResearch,
     convert, canConvert, buildPlant, canBuildPlant, demolish, canDemolish,
     startResearch, canResearch, researchCost, researchMonths, researchOdds, project, maturity,
