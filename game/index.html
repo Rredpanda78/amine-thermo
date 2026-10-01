@@ -359,6 +359,17 @@ html:not([lang|="zh"]) .paper .body::first-letter { float: left; font-family: va
 
 .intro ul { padding-left: 18px; margin: 8px 0 14px; display: grid; gap: 6px; }
 /* how-to-play page: the goal and the two ways to lose, each with a small copy of its meter */
+/* guided tour: a dimmed screen with lit holes and a caption that types itself */
+#tour { position: fixed; inset: 0; z-index: 30; }
+#tour svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+#tour .ring { fill: none; stroke: #F4B740; stroke-width: 2.5; animation: ring 1.4s ease-in-out infinite; }
+@keyframes ring { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
+.tour-box { position: absolute; width: min(420px, calc(100vw - 16px)); background: #0F1B2D; border: 1px solid #F4B740; border-radius: 14px; padding: 12px 14px; box-shadow: 0 16px 50px rgba(0, 0, 0, .6); }
+.tour-box .tstep { font: 700 11px var(--mono); letter-spacing: 1px; color: #F4B740; text-transform: uppercase; }
+.tour-box p { margin: 6px 0 10px; font-size: 15.5px; line-height: 1.5; min-height: 3em; color: var(--fg); }
+.tour-box .btn-row { justify-content: flex-end; }
+.tour-box .btn { min-height: 36px; padding: 7px 14px; }
+@media (prefers-reduced-motion: reduce) { #tour .ring { animation: none; } }
 /* the animated guide: four cards, each a small looping scene */
 .guide { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 10px 0 14px; }
 @media (max-width: 560px) { .guide { grid-template-columns: minmax(0, 1fr); } }
@@ -696,11 +707,16 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   </article>
 </div>
 
+<div id="tour" hidden><svg id="tourSvg" aria-hidden="true"></svg>
+  <div class="tour-box" id="tourBox" role="dialog" aria-live="polite"><div class="tstep" id="tourStep"></div><p id="tourText"></p>
+    <div class="btn-row"><button class="btn ghost" id="tourSkip"></button><button class="btn" id="tourNext"></button></div></div>
+</div>
 <div class="overlay" id="ovGuide" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
     <button class="xclose" id="guideX" aria-label="Close">×</button>
     <h3 id="guideTitle" data-i18n="guideT">What you can do</h3>
     <div class="guide" id="guideGame"></div>
+    <div class="btn-row"><button class="btn" id="tourBtn" data-i18n="tourB">▶ Guided tour</button></div>
   </div>
 </div>
 <div class="overlay" id="ovHell" hidden>
@@ -789,6 +805,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     hMoneyT: ['Money', '資金'],
     hMoney: ['The price board sets your income. Below −$500M you go bankrupt.', '電價看板決定收入。資金低於 −5 億美元就破產。'],
     introNext: ['Next: what you can do ›', '下一步：你可以做的事 ›'], introNextB: ['Next: choose a region ›', '下一步：選地區 ›'],
+    tourB: ['▶ Guided tour', '▶ 一步步導覽'],
     introBack: ['‹ Back', '‹ 上一頁'], guideT: ['What you can do', '你可以做的事'],
     nickL: ['Nickname <small style="font-weight:400;color:var(--muted)">(optional)</small>', '暱稱 <small style="font-weight:400;color:var(--muted)">(選填)</small>'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
     credits: ['<b>Sources.</b> Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Int. J. Greenh. Gas Control 2020), pilot-plant literature, NETL, EIA and IEAGHG. <span class="est">est.</span> = game estimate; plants, events and regions are simplified.', '<b>資料來源。</b>林育正實驗室論文(Chem. Eng. J. 2025、2026;Ind. Eng. Chem. Res. 2025;Int. J. Greenh. Gas Control 2020)、前導廠文獻、NETL、EIA、IEAGHG。<span class="est">est.</span> = 遊戲估計;電廠、事件與地區皆已簡化。'],
@@ -847,7 +864,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   let speed = 1, playing = false, acc = 0, lastT = 0;
   let toastN = 0, toastTimer = null;
   const MS_PER_MONTH = 1600;   // one game month every 1.6 s at 1×
-  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard', 'ovHell', 'ovGuide'].some(id => !$(id).hidden);
+  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard', 'ovHell', 'ovGuide', 'tour'].some(id => !$(id).hidden);
 
   // ---------- best score per region (shown on the region cards) ----------
   const BEST_KEY = 'cc2050-best-v10';
@@ -1704,6 +1721,81 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       + card(capture, L('Add capture', '加裝捕捉'), L('Tap a plant and install capture: black smoke turns to white steam.', '點電廠加裝捕捉:黑煙變成白色水蒸氣。'));
   }
   function renderGuide() { $('guideIntro').innerHTML = $('guideGame').innerHTML = guideHTML(); }
+  // ---- guided tour: light up what matters, one step at a time, with a caption that types itself ----
+  const domRect = sel => { const el = document.querySelector(sel); if (!el) return null; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? r : null; };
+  function sceneRect(id) {
+    const c = cv.getBoundingClientRect();
+    if (id === 'plant') { const t = ptargets.find(x => x.id === 'A') || ptargets[0]; return t ? { left: c.left + t.cx - t.rx, top: c.top + t.cy - t.ry, width: 2 * t.rx, height: 2 * t.ry } : null; }
+    if (id === 'board') return boardBox ? { left: c.left + boardBox.x, top: c.top + boardBox.y, width: boardBox.w, height: boardBox.h } : null;
+    const h = hits.find(x => x.id === id);
+    return h ? { left: c.left + h.x0, top: c.top + h.y0, width: h.x1 - h.x0, height: h.y1 - h.y0 } : null;
+  }
+  const TOUR = [
+    { at: () => [domRect('.tb-date'), domRect('#mGh')],
+      t: () => L('Your job: keep the lights on until 2050. The green box on the CO₂ bar is the legal limit, and it shrinks every year.', '你的任務:讓城市不停電撐到 2050 年。CO₂ 條上的綠框是法定限額,每年都在縮小。') },
+    { at: () => [domRect('#cPrice') || domRect('#mGh')],
+      t: () => S.region === 'texas' ? L('Texas has no carbon tax, but the 45Q credit pays you for every tonne of CO₂ you store.', '德州沒有碳稅,但每封存一噸 CO₂,45Q 都會付你錢。')
+        : L('Every tonne you emit pays the carbon price, and it rises year after year. Waiting only makes it dearer.', '每排一噸 CO₂ 都要繳碳價,而且逐年上漲;拖越久越貴。') },
+    { at: () => [sceneRect('plant')],
+      t: () => L('Cut CO₂ by adding capture: tap a plant to install it. Coal Plant A emits the most, so start there.', '加裝碳捕捉來減少排放:點電廠就能安裝。燃煤電廠 A 排最多,從它開始。') },
+    { at: () => [domRect('#mGrid'), sceneRect('__add')],
+      t: () => L('Capture eats part of a plant\'s power. Watch the grid, and build a spare plant on the empty lot before demand peaks.', '捕捉會吃掉一部分電力。注意電網,在用電尖峰前到空地多蓋一座電廠。') },
+    { at: () => [domRect('#mFund'), sceneRect('board')],
+      t: () => L('Your income comes from the power price. Raise it and you earn more, but people get angry.', '收入來自電價。調高可以多賺,但民眾會不滿。') },
+    { at: () => [domRect('#mAng')],
+      t: () => L('If public anger reaches 100 %, you are voted out. Tap the meter any time to see what drives it.', '民怨到 100 % 你就下台。隨時點這個計量看原因。') },
+    { at: () => [sceneRect('__lab'), domRect('#labBtn')],
+      t: () => L('The lab finds better solvents and processes: less steam, cheaper capture. Our group\'s research lives here.', '研究所能找到更好的溶劑與製程:更省蒸汽、捕捉更便宜。我們實驗室的研究成果都在這裡。') },
+    { at: () => [domRect('.ctrlbar .speed')],
+      t: () => L('Pause or speed up here. Ready? Your first year starts now.', '這裡可以暫停或加速。準備好了嗎?第一年開始了。') },
+  ];
+  let tourI = -1, tourTimer = null, tourFull = '';
+  function tourDraw() {
+    const st = TOUR[tourI];
+    const rs = st.at().filter(Boolean).map(r => ({ x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 }));
+    const vw = innerWidth, vh = innerHeight;
+    $('tourSvg').setAttribute('viewBox', `0 0 ${vw} ${vh}`);
+    $('tourSvg').innerHTML = `<defs><mask id="tmask"><rect width="${vw}" height="${vh}" fill="#fff"/>${rs.map(r => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="10" fill="#000"/>`).join('')}</mask></defs>`
+      + `<rect width="${vw}" height="${vh}" fill="rgba(4,8,14,.68)" mask="url(#tmask)"/>` + rs.map(r => `<rect class="ring" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="10"/>`).join('');
+    // the caption goes below the lit area if it fits, else above, else at the bottom
+    const box = $('tourBox'), bw = box.offsetWidth, bh = box.offsetHeight;
+    const top = rs.length ? Math.min(...rs.map(r => r.y)) : vh / 2, bot = rs.length ? Math.max(...rs.map(r => r.y + r.h)) : vh / 2;
+    const mid = rs.length ? (Math.min(...rs.map(r => r.x)) + Math.max(...rs.map(r => r.x + r.w))) / 2 : vw / 2;
+    let y = bot + 12 + bh < vh ? bot + 12 : top - 12 - bh > 0 ? top - 12 - bh : vh - bh - 8;
+    box.style.top = Math.max(8, y) + 'px';
+    box.style.left = Math.max(8, Math.min(vw - bw - 8, mid - bw / 2)) + 'px';
+  }
+  function tourType(text) {
+    clearInterval(tourTimer);
+    tourFull = text; let n = 0;
+    $('tourText').textContent = '';
+    if (REDUCED) { $('tourText').textContent = text; return; }
+    tourTimer = setInterval(() => { n += 1; $('tourText').textContent = text.slice(0, n); if (n >= text.length) clearInterval(tourTimer); }, lang === 'zh' ? 45 : 22);
+  }
+  function tourGo(i) {
+    if (i >= TOUR.length) { tourEnd(); return; }
+    tourI = i;
+    $('tourStep').textContent = `${L('Tour', '導覽')} ${i + 1}/${TOUR.length}`;
+    $('tourNext').textContent = i === TOUR.length - 1 ? L('Start playing ›', '開始玩 ›') : L('Next ›', '下一步 ›');
+    $('tourSkip').textContent = L('Skip', '跳過');
+    tourType(TOUR[i].t());
+    tourDraw(); requestAnimationFrame(() => { if (tourI === i) tourDraw(); });   // again once the scene has drawn
+    SND.play('click');
+  }
+  function tourStart() { $('ovGuide').hidden = true; $('tour').hidden = false; tourGo(0); }
+  function tourEnd() { clearInterval(tourTimer); $('tour').hidden = true; tourI = -1; store.set('cc2050-tour', '1'); }
+  $('tourNext').onclick = () => {
+    if ($('tourText').textContent.length < tourFull.length) { clearInterval(tourTimer); $('tourText').textContent = tourFull; return; }   // first tap finishes the line
+    tourGo(tourI + 1);
+  };
+  $('tourSkip').onclick = tourEnd;
+  $('tourBtn').onclick = () => { SND.play('click'); tourStart(); };
+  window.addEventListener('resize', () => { if (tourI >= 0) tourDraw(); });
+  document.addEventListener('keydown', e => {
+    if (tourI < 0) return;
+    if (e.key === 'Escape') tourEnd();
+    else if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); $('tourNext').click(); }
+  });
   function openGuide() { renderGuide(); $('ovGuide').hidden = false; }
   $('helpBtn').onclick = () => { SND.play('click'); openGuide(); };
   $('guideX').onclick = () => { $('ovGuide').hidden = true; };
@@ -1734,6 +1826,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     document.documentElement.classList.toggle('hell', S.diff === 'hell');
     SND.unlock(); SND.play(S.diff === 'hell' ? 'hell' : 'click');
     $('ovIntro').hidden = true; setTab('city'); renderAll(); setSpeed(1); playing = true;
+    if (!store.get('cc2050-tour')) setTimeout(tourStart, 350);
   }
   $('startBtn').onclick = () => {
     store.set('cc2050-nick', nick());   // optional: without a nickname the game is played but not ranked
@@ -2076,7 +2169,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     hits.push({ id, x0: lx, x1: lx + tw, y0: ly, y1: ly + th });
   }
   function drawCoach(streetY, lay, layoutOnly) {
-    if (S.over || !playing) return;
+    if (S.over || !playing || tourI >= 0) return;
     if (coach.build && plotTip && (!coach.plant || S.m >= 9) && S.m <= 72) drawArrow(plotTip.x, plotTip.y, 'down', L('Build a new plant', '點這裡蓋新電廠'), '__add', 3.6, layoutOnly);
     if (S.m > 24) return;
     const pt = ptargets.find(t => S.plants.some(p => p.id === t.id && !p.build));
