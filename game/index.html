@@ -48,7 +48,8 @@ button, input { font: inherit; color: inherit; }
 .speed button[aria-pressed="true"] { background: var(--amine); color: #062320; font-weight: 600; }
 .snd button { min-width: 0; padding: 8px 9px; font-size: 12px; }
 .snd button[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
-.langbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; cursor: pointer; font-weight: 700; font-size: 13px; }
+.langbtn { background: var(--panel-2); border: 2px solid var(--amine); color: var(--amine); border-radius: 10px; padding: 8px 16px; min-height: 42px; min-width: 64px; cursor: pointer; font-weight: 700; font-size: 16px; }
+.langbtn:hover { background: var(--amine); color: #062320; }
 .speed button:focus-visible, .btn:focus-visible, input:focus-visible, summary:focus-visible, .langbtn:focus-visible, .meter[role=button]:focus-visible { outline: 2px solid var(--co2); outline-offset: 2px; }
 
 /* meters */
@@ -339,7 +340,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   .qs { width: 40px; height: 40px; }
   .qrow { gap: 6px; }
   .qrow .ql { display: none; }
-  .info { height: 270px; }
+  .info { height: 252px; }
   .news { max-height: 130px; }
   .top { gap: 8px; }
   .meter { padding: 6px 8px; }
@@ -535,7 +536,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   };
 
   // ---------- language: every string has an English and a Traditional Chinese version ----------
-  let lang = store.get('cc2050-lang') || (/^zh/i.test(navigator.language || '') ? 'zh' : 'en');
+  let lang = store.get('cc2050-lang') || 'en';   // English unless the player picked Chinese
   const L = (en, zh) => (lang === 'zh' ? zh : en);
   const zhOf = (en, zh) => (lang === 'zh' && zh ? zh : en);
   const I18N = {
@@ -560,7 +561,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       '<li><b>資金</b>來自電費：點城市裡的<b>電價看板</b>調整電價。封存 CO₂ 要付運輸與封存費。資金低於 −5 億美元就破產。</li>' +
       '<li>點<b>電廠</b>下指令：加裝 CO₂ 捕捉、升級到 99 %、換燃料或拆除。工程可以<b>排隊</b>：排入就付錢，取消全額退費。點<b>空地</b>蓋新電廠。</li>' +
       '<li>點<b>研究所</b>：用慢但可靠的<b>實驗</b>或快但有風險的<b>電腦篩選</b>找新溶劑，或前導測試新製程。新技術前 2 年可能故障。</li>'],
-    nickL: ['Nickname', '暱稱'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
+    nickL: ['Nickname <small style="font-weight:400;color:var(--muted)">(optional, for the leaderboard)</small>', '暱稱 <small style="font-weight:400;color:var(--muted)">(選填，上排行榜用)</small>'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
     credits: [
       '<b>Where the numbers come from.</b> Capture technologies use values from Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Sep. Purif. Technol. 2025) and pilot-plant literature; costs, carbon prices and build times were checked against NETL, EIA and IEAGHG. Values marked <span class="est">est.</span> are game estimates. Plants, the CO₂ limit, events and regions are simplified for play and are not forecasts.',
       '<b>數字從哪來。</b>捕捉技術的數值來自林育正實驗室的論文(Chem. Eng. J. 2025、2026；Ind. Eng. Chem. Res. 2025；Sep. Purif. Technol. 2025)與前導廠文獻；成本、碳價與工期對照過 NETL、EIA、IEAGHG。標 <span class="est">est.</span> 的是遊戲估計值。電廠、CO₂ 限額、事件和地區都為了好玩而簡化，不是預測。'],
@@ -876,7 +877,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       + row(L('Running cost', '運轉費'), '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
       + `</div><div class="barkey">${L('Bars run from the best to the worst option for this plant: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.', '長條從這座廠最好到最差的選項排列：<b style="color:var(--good)">綠色</b>越長越好，<b style="color:#E07A5F">橘色</b>越長越花錢。')}</div>`;
   }
-  const ICON = { mea90: ['MEA', 'solvent', '溶劑'], afs: ['AS', 'MEA + stripper', 'MEA + 汽提'], rpb: ['RPB', 'rotating bed', '旋轉床'], pz: ['PZ', '+ stripper', '+ 汽提'], ampnmp: ['AMP', '– NMP', '– NMP'], pe2eg: ['2PE', '– EG', '– EG'], mcfc: ['MCFC', 'fuel cell', '燃料電池'] };
+  const ICON = { mea90: ['MEA', 'solvent', '溶劑'], afs: ['AS', 'MEA + stripper', 'MEA + 汽提'], rpb: ['RPB', 'rotating bed', '旋轉床'], amp: ['AMP', 'in water', '水溶液'], pz: ['PZ', '+ stripper', '+ 汽提'], ampnmp: ['NMP', 'AMP + NMP', 'AMP + NMP'], pe2eg: ['2PE', '– EG', '– EG'], mcfc: ['MCFC', 'fuel cell', '燃料電池'] };
   const CV = { gasb: ['→ GB', 'gas boiler', '燃氣鍋爐', '#B9B2E8'], gas: ['→ CC', 'combined cycle', '複循環', '#9CC7F2'], coal: ['→ coal', 'back to coal', '改回燃煤', '#F0A58A'] };
   const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' ? { kind: 'deep' } : k.startsWith('cv_') ? { kind: 'convert', to: k.slice(3) } : null;
   function jobLook(j) {
@@ -1341,8 +1342,11 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       const best = loadBest();
       const b = best[s.region];
       if (!b || sc > b.score) { best[s.region] = { score: sc, stars: st }; saveBest(best); }
+    }
+    if (win && !nick()) $('endRank').textContent = L('No nickname this time, so this game is not on the board. Add one on the start screen next time.', '這局沒有輸入暱稱，所以不會上榜。下次在開始畫面填一個吧。');
+    else if (win) {
       const d = new Date();
-      lastEntry = { name: nick() || 'Player', score: sc, stars: st, region: s.region, ts: Date.now(), date: `${d.getMonth() + 1}/${d.getDate()}` };
+      lastEntry = { name: nick(), score: sc, stars: st, region: s.region, ts: Date.now(), date: `${d.getMonth() + 1}/${d.getDate()}` };
       const board = addScore(lastEntry).filter(e => e.region === s.region);
       const rank = board.findIndex(e => e.ts === lastEntry.ts) + 1;
       $('endRank').textContent = L(`${lastEntry.name}: #${rank} of ${board.length} in ${rgName}.`, `${lastEntry.name}：${rgName}第 ${rank} 名(共 ${board.length} 局)。`);
@@ -1358,6 +1362,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     const u = s.techUsed, deepN = s.plants.filter(p => p.deep).length, coalN = s.plants.filter(p => p.type === 'coal').length;
     if (u.pe2eg) return [L('Solvent pioneer', '溶劑先鋒'), L('You ran the city on 2PE–EG, the water-lean solvent that reacts 4.5× faster than MEA and carries 2.8× more CO₂ per cycle, so it needs less steam.', '你用 2PE–EG 撐起整座城市：這種低水溶劑反應比 MEA 快 4.5 倍、每次循環多帶 2.8 倍 CO₂，所以更省蒸汽。'), '10.1016/j.cej.2026.174224'];
     if (u.ampnmp) return [L('Kinetics chaser', '動力學玩家'), L('You bet on AMP–NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '你押寶 AMP–NMP：NMP 讓高容量的 AMP 反應快 3 倍，代價是胺甲酸鹽可能析出。'), '10.1016/j.cej.2025.160544'];
+    if (u.amp && !u.pz && !u.rpb && !u.afs) return [L('Trade-off taker', '取捨大師'), L('You ran aqueous AMP: twice the CO₂ per kilogram and a little less steam, paid for with taller absorbers and amine that keeps evaporating. Research found something different, not something better.', '你用了 AMP 水溶液：每公斤帶走兩倍 CO₂、蒸汽稍省，代價是更高的吸收塔和不斷揮發的胺。研發找到的是「不一樣」，不是「更好」。'), '10.1016/j.egypro.2011.01.029'];
     if (u.mcfc) return [L('Fuel-cell pioneer', '燃料電池先鋒'), L('You put carbonate fuel cells on your gas plants: capture that makes power instead of eating it, until the stacks wear out.', '你在燃氣廠裝了碳酸鹽燃料電池：捕捉不但不吃電，還能發電，直到電池堆老化。'), '10.1016/j.ijggc.2009.11.007'];
     if (u.rpb) return [L('Process intensifier', '製程強化派'), L('You shrank the absorber ten-fold with rotating packed beds: cheap, fast to build, as long as the rotors keep spinning.', '你用旋轉填充床把吸收器縮小十倍：便宜、蓋得快，只要轉子別壞。'), '10.1021/acs.iecr.4c01614'];
     if (u.afs) return [L('Process optimizer', '製程優化派'), L('You kept MEA but recovered its heat with an advanced stripper, cutting the steam bill from 3.5 to 2.8 GJ per tonne.', '你保留 MEA，但用進階汽提回收熱量，把每噸蒸汽從 3.5 降到 2.8 GJ。'), '10.1021/acs.iecr.5c03760'];
@@ -1387,13 +1392,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     playing = false;
   }
   $('startBtn').onclick = () => {
-    const n = nick();
-    if (!n) {
-      $('nick').classList.add('bad'); $('nickErr').hidden = false;
-      $('nickErr').textContent = L('Enter a nickname for the leaderboard.', '請輸入暱稱，才能上排行榜。');
-      $('nick').focus(); SND.play('nope'); return;
-    }
-    store.set('cc2050-nick', n);
+    store.set('cc2050-nick', nick());   // optional: without a nickname the game is played but not ranked
     S = M.newGame(undefined, region); particles.length = 0; toastN = 0; findN = 0; headN = 0;
     SND.unlock(); SND.play('click');
     $('ovIntro').hidden = true; setTab('city'); renderAll(); setSpeed(1); playing = true;
@@ -1405,7 +1404,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   function resize() {
     const box = cv.parentElement.getBoundingClientRect();
     W = Math.round(box.width);
-    H = Math.round(Math.max(210, Math.min(340, W * (W < 520 ? 0.66 : 0.46))));
+    H = Math.round(Math.max(250, Math.min(390, W * (W < 520 ? 0.86 : 0.5))));
     DPR = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     cv.style.height = H + 'px';
@@ -1422,7 +1421,9 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   }
   function hitAt(x, y) {
     for (let i = hits.length - 1; i >= 0; i--) { const h = hits[i]; if (x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1) return h.id; }
-    return null;
+    let best = null, bd = 1.15;
+    for (const t of ptargets) { const d = ((x - t.cx) / t.rx) ** 2 + ((y - t.cy) / t.ry) ** 2; if (d < bd) { bd = d; best = t.id; } }
+    return best;
   }
   cv.addEventListener('click', e => {
     const id = hitAt(...scenePos(e));
@@ -1453,20 +1454,22 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   const houses = Array.from({ length: 5 }, (_, i) => ({ w: 0.07 + (i % 3) * 0.012, h: 0.16 + ((i * 37) % 5) * 0.035, hue: ['#D9C6A5', '#C9D6E3', '#E3C9C9', '#CFE3CF', '#E6DDB8'][i % 5] }));
   const PLOT_X = 0.958;   // the empty lot where a new plant can be built
 
-  // plants fill the right half; more than 5 go on two rows (back row smaller)
+  // scene layout: on a phone the town is narrower so the plant yard (the part you tap) gets more room
+  const LAY = () => W < 520 ? { town: 0.36, houses: 3, yard0: 0.39 } : { town: 0.48, houses: 5, yard0: 0.51 };
+  // plants fill the yard; more than 5 go on two rows, the back row raised and set BETWEEN the front plants so both stay tappable
   function plantSlots(n) {
-    const rows = n > 5 ? 2 : 1;
-    const perRow = Math.ceil(n / rows);
+    const x0 = LAY().yard0, x1 = 0.9;
+    const front = n > 5 ? Math.ceil(n / 2) : n, back = n - front;
+    const k0 = Math.min(1, 4 / Math.max(4, front));
     const out = [];
     for (let i = 0; i < n; i++) {
-      const r = rows === 2 && i >= perRow ? 0 : rows - 1;   // later plants go to the back row
-      const k = r === rows - 1 ? i : i - perRow;
-      const count = r === rows - 1 ? perRow : n - perRow;
-      const x0 = 0.51, x1 = 0.9;
-      out.push({ x: x0 + (x1 - x0) * (k + 0.5) / count, back: rows === 2 && r === 0, scale: Math.min(1, 4 / Math.max(4, count)) * (rows === 2 && r === 0 ? 0.8 : 1) });
+      if (i < front) out.push({ x: x0 + (x1 - x0) * (i + 0.5) / front, back: false, scale: k0 });
+      else out.push({ x: x0 + (x1 - x0) * Math.min(0.97, (i - front + 1) / front), back: true, scale: k0 * 0.8 });
     }
     return out;
   }
+  // plant tap targets: the nearest plant centre wins, so a raised back-row plant is hit on its upper part
+  let ptargets = [];
 
   // name tag on the ground under a plant: id + capture, and the number of queued jobs
   function drawTag(p, cx, base, k, down) {
@@ -1566,7 +1569,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   }
   // ---- the price billboard in the sky over the town: − / + change the price, the middle opens the sheet ----
   function drawBoard(horizon) {
-    const bw = Math.max(118, W * 0.2), bh = Math.max(50, H * 0.17);
+    const bw = Math.max(128, W * 0.2), bh = Math.max(58, H * 0.17);
     const x = Math.min(W * 0.27, W * 0.48 - bw), y = Math.max(6, H * 0.05);
     const fair = M.fairPrice(S), d = S.price - fair;
     ctx.fillStyle = '#5B4636'; ctx.fillRect(x + bw * 0.2, y + bh, 3, horizon - y - bh); ctx.fillRect(x + bw * 0.8 - 3, y + bh, 3, horizon - y - bh);
@@ -1578,7 +1581,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     ctx.font = FONT(600, 9); ctx.fillStyle = d > 0 ? '#EF6351' : '#7BD389';
     ctx.fillText(d > 0 ? L(`+$${d} over OK`, `超出 $${d}`) : L(`OK ≤ $${fair}`, `可接受 ≤ $${fair}`), x + bw / 2, y + bh - 6);
     // − and + buttons on the sides
-    const r = Math.max(10, bh * 0.22);
+    const r = Math.max(14, bh * 0.24);   // finger-sized on phones
     [['__pm', x + r + 3, '−'], ['__pp', x + bw - r - 3, '+']].forEach(([id, bx, ch]) => {
       const cy = y + bh * 0.5;
       ctx.fillStyle = hoverId === id ? '#2EC4B6' : '#2B4163'; ctx.beginPath(); ctx.arc(bx, cy, r, 0, 7); ctx.fill();
@@ -1654,14 +1657,15 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     for (let x = 0; x <= W; x += 20) ctx.lineTo(x, horizon - 18 - 10 * Math.sin(x / W * 5.5));
     ctx.lineTo(W, horizon); ctx.fill();
     ctx.fillStyle = mix('#6DB36F', '#8C7B4F', g); ctx.fillRect(0, horizon, W, H - horizon);
-    ctx.fillStyle = mix('#5E6B73', '#4A4A46', g); ctx.fillRect(0, horizon + (H - horizon) * 0.42, W * 0.5, (H - horizon) * 0.18); // street
+    ctx.fillStyle = mix('#5E6B73', '#4A4A46', g); ctx.fillRect(0, horizon + (H - horizon) * 0.42, W * (LAY().town + 0.02), (H - horizon) * 0.18); // street
 
     drawBoard(horizon);
     // town (left half): the research lab, then houses
     const blackout = Ls && Ls.unservedFrac > 0.01;
     drawLab(horizon, blackout);
+    const lay = LAY();
     let hx = W * 0.13;
-    houses.forEach(h => {
+    houses.slice(0, lay.houses).forEach(h => {
       const hw = h.w * W * 0.68, hh = h.h * H;
       const y = horizon - hh + 4;
       ctx.fillStyle = h.hue; ctx.fillRect(hx, y, hw, hh);
@@ -1671,17 +1675,18 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       hx += hw + W * 0.01;
     });
     ctx.strokeStyle = 'rgba(40,40,40,.55)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(W * 0.46, horizon - H * 0.2);
-    ctx.quadraticCurveTo(W * 0.49, horizon - H * 0.14, W * 0.52, horizon - H * 0.2); ctx.stroke();
-    ctx.fillStyle = '#444'; ctx.fillRect(W * 0.46 - 1, horizon - H * 0.2, 2, H * 0.2);
+    const pole = W * (lay.town - 0.02);
+    ctx.beginPath(); ctx.moveTo(pole, horizon - H * 0.2);
+    ctx.quadraticCurveTo(pole + W * 0.03, horizon - H * 0.14, pole + W * 0.06, horizon - H * 0.2); ctx.stroke();
+    ctx.fillStyle = '#444'; ctx.fillRect(pole - 1, horizon - H * 0.2, 2, H * 0.2);
 
     // people on the street (tap them to see why they are angry)
     const ang = S.anger / 100;
     const streetY = horizon + (H - horizon) * 0.5;
     people.forEach((p, i) => {
       if (playing && speed > 0 && !paused()) p.x += p.v * dt * 0.001 * (1 + speed * 0.3);
-      if (p.x < 0.01 || p.x > 0.48) p.v *= -1;
-      p.x = Math.max(0.01, Math.min(0.48, p.x));
+      if (p.x < 0.01 || p.x > lay.town) p.v *= -1;
+      p.x = Math.max(0.01, Math.min(lay.town, p.x));
       const x = p.x * W, bob = Math.sin((performance.now() / 180) + p.phase) * 1.5;
       const angry = ang > 0.35 && (i / people.length) < ang;
       ctx.fillStyle = angry ? '#E0533C' : '#2F3E57';
@@ -1693,23 +1698,28 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
         ctx.strokeStyle = '#555'; ctx.beginPath(); ctx.moveTo(x + 3, streetY - 17 + bob); ctx.lineTo(x + 3, streetY - 6 + bob); ctx.stroke();
       }
     });
-    hits.push({ id: '__crowd', x0: W * 0.005, x1: W * 0.485, y0: streetY - 28, y1: streetY + 4 });
+    hits.push({ id: '__crowd', x0: W * 0.005, x1: W * (lay.town + 0.005), y0: streetY - 28, y1: streetY + 4 });
 
     drawPlot(horizon);
 
     // plants (right half); back row first so the front row overlaps it
     const slots = plantSlots(S.plants.length);
+    ptargets = [];
+    const backTags = [];
     const order = S.plants.map((p, i) => ({ p, s: slots[i], i })).sort((a, b) => (a.s.back ? 0 : 1) - (b.s.back ? 0 : 1));
     order.forEach(({ p, s, i }) => {
       const k = s.scale;
-      const base = horizon - (s.back ? H * 0.07 : 0);
+      const base = horizon - (s.back ? H * 0.11 : 0);
       const cx = s.x * W;
       const big = p.type !== 'gas';   // coal and gas-boiler plants keep the big steam-plant building
       const bw = W * 0.085 * k, bh = H * (big ? 0.2 : 0.15) * k;
       const by = base - bh + 6 * k;
-      const hit = { id: p.id, x0: cx - bw * 0.7, x1: cx + bw / 2 + Math.max(5, W * 0.014) * k * 2 + 12 * k, y0: base - H * 0.34 * k, y1: base + 22 };
-      hits.push(hit);
-      if (hoverId === p.id) outline(hit);
+      const unitW = Math.max(5, W * 0.014) * k * 2 + 12 * k;
+      const tcx = cx + unitW / 2 - bw * 0.1, rx = bw * 0.62 + unitW / 2;
+      const target = s.back ? { id: p.id, cx: tcx, cy: base - H * 0.24 * k, rx, ry: H * 0.13 * k } : { id: p.id, cx: tcx, cy: base - H * 0.12 * k, rx, ry: H * 0.2 * k + 12 };
+      ptargets.push(target);
+      if (hoverId === p.id) outline({ x0: target.cx - target.rx, x1: target.cx + target.rx, y0: target.cy - target.ry, y1: target.cy + target.ry });
+      const tag = down => (s.back ? backTags.push([p, cx, base - H * 0.36 * k - 16, k, down]) : drawTag(p, cx, base, k, down));
       const frac = p.build ? 1 - p.build.left / p.build.total : 0;
       const bodyCol = { coal: '#6E3F33', gas: '#5A6E86', gasb: '#6D6A8A' }[p.type];
       if (p.build && p.build.kind === 'new') {
@@ -1720,7 +1730,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
         drawCrane(cx + bw * 0.62, base, by - bh * 0.55, bw * 1.1, k, i);
         drawWorkers(cx - bw / 2, cx + bw / 2, base + 2, k, 2);
         drawProgress(cx, by - bh * 0.55 - 22 - (i % 2) * 16, Math.max(50, bw * 1.25), frac, `${L('BUILD', '施工')} ${Math.round(frac * 100)}%`);
-        drawTag(p, cx, base, k, false);
+        tag(false);
         return;
       }
       const down = !M.online(p);
@@ -1775,7 +1785,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
         drawCrane(cx - bw * 0.62, base, by - bh * 0.6, bw * 0.9, k, i);
         drawProgress(cx, by - bh * 0.6 - 22 - (i % 2) * 16, Math.max(56, bw * 1.25), frac, `→${CV[p.build.toType][0].replace('→ ', '')} ${Math.round(frac * 100)}%`);
       }
-      drawTag(p, cx, base, k, down);
+      tag(down);
       if (down) return;
 
       // smoke: no capture -> dark (coal) or grey (gas); capture running -> only a white steam plume
@@ -1793,6 +1803,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       });
     });
 
+    backTags.forEach(a => drawTag(...a));
     for (let i = particles.length - 1; i >= 0; i--) {
       const q = particles[i];
       q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000; q.r += dt / 1000 * (q.steam ? 4 : 5); q.life -= dt / 1000 * (q.steam ? 0.4 : 0.22);

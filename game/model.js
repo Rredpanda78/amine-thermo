@@ -7,6 +7,9 @@
  *   MEA regeneration 3.5 GJ/t ......... Chen, Wu & Lin, Chem. Eng. J. 2026 (155 kJ/mol CO2)
  *   Advanced MEA stripper 2.8 GJ/t .... Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (122 kJ/mol)
  *   AMP\u2013NMP 3\u00d7 faster, ~2\u00d7 capacity ... Cheng, Chen & Lin, Chem. Eng. J. 2025 (duty not reported -> est. 3.0)
+ *   Aqueous AMP (trade-off find) ...... Chen, Closmann & Rochelle, Energy Procedia 2011: rate 0.56\u00d7 MEA, capacity 2\u00d7,
+ *                                       73 vs 82 kJ/mol, 1.8\u00d7 packing; Le Li 2015 dissertation: 3.5\u00d7 more volatile;
+ *                                       Luo et al. 2016: regeneration about 7 % below MEA (-> 3.25 GJ/t, est.)
  *   2PE\u2013EG 2.9 GJ/t (128 kJ/mol) ...... Chen, Wu & Lin, Chem. Eng. J. 2026 (4.5\u00d7 rate, 2.8\u00d7 capacity, 25.8 cP)
  *   99 % capture needs 20\u201330 m packing  Chang, Chou & Lin, Sep. Purif. Technol. 2025 (+9 % duty is est.)
  *   QM + MD screening, 28 amines ...... Chien, Wu & Lin, GHGT-18 (2026): reaction \u0394G MAE 3.6 kJ/mol
@@ -47,11 +50,11 @@
       zh: { label: '\u53f0\u7063', hint: '\u6a19\u6e96', blurb: '\u5b64\u5cf6\u96fb\u7db2\uff0c\u7121\u6cd5\u9032\u53e3\u96fb\u529b\u3002\u5929\u7136\u6c23\u9760 LNG \u8239\u904b\uff0c\u5b58\u91cf\u53ea\u6709\u5e7e\u5929\u3002\u6709\u98b1\u98a8\u3002\u78b3\u8cbb 2026 \u5e74\u8d77\u6bcf\u5678 10 \u7f8e\u5143\u30012030 \u5e74\u8df3\u5230 40 \u7f8e\u5143\u3002CO\u2082 \u96e2\u5cb8\u5c01\u5b58\u9084\u5728\u8d77\u6b65\u3002' },
     },
     germany: {
-      label: 'Germany', hint: 'standard', stars: [2550, 3150], base: 1250, peak: 'cold', fair: 140, growth: 0.012, gas: 70, coal: 25,
+      label: 'Germany', hint: 'standard', stars: [3000, 3450], base: 1250, peak: 'cold', fair: 145, growth: 0.012, gas: 70, coal: 25,
       tax: [[2026, 85], [2050, 205]], credit: 0, creditMonths: 0, ts: 35,
       limitMul: 0.9, imports: 300, wholesale: 90, typhoon: false, lng: false, winter: false, heat: 1,
-      blurb: 'Lignite and gas heartland under the EU carbon price ($85/t from day one, +$5 a year). Captured CO\u2082 is shipped to North Sea storage. Winter is the peak; European neighbours lend up to 300 MW.',
-      zh: { label: '\u5fb7\u570b', hint: '\u6a19\u6e96', blurb: '\u8910\u7164\u8207\u5929\u7136\u6c23\u91cd\u93ae\uff0c\u7b2c\u4e00\u5929\u5c31\u9069\u7528\u6b50\u76df\u78b3\u50f9(\u6bcf\u5678 85 \u7f8e\u5143\uff0c\u6bcf\u5e74 +5)\u3002\u6355\u6349\u7684 CO\u2082 \u7528\u8239\u904b\u5230\u5317\u6d77\u5c01\u5b58\u3002\u51ac\u5b63\u662f\u7528\u96fb\u5c16\u5cf0\uff0c\u6b50\u6d32\u9130\u570b\u6700\u591a\u652f\u63f4 300 MW\u3002' },
+      blurb: 'Lignite and gas heartland under the EU carbon price ($85/t from day one, +$5 a year). Captured CO\u2082 is shipped to North Sea storage. Winter is the peak; European neighbours lend up to 300 MW. Margins are thin: price close to what people accept.',
+      zh: { label: '\u5fb7\u570b', hint: '\u6a19\u6e96', blurb: '\u8910\u7164\u8207\u5929\u7136\u6c23\u91cd\u93ae\uff0c\u7b2c\u4e00\u5929\u5c31\u9069\u7528\u6b50\u76df\u78b3\u50f9(\u6bcf\u5678 85 \u7f8e\u5143\uff0c\u6bcf\u5e74 +5)\u3002\u6355\u6349\u7684 CO\u2082 \u7528\u8239\u904b\u5230\u5317\u6d77\u5c01\u5b58\u3002\u51ac\u5b63\u662f\u7528\u96fb\u5c16\u5cf0\uff0c\u6b50\u6d32\u9130\u570b\u6700\u591a\u652f\u63f4 300 MW\u3002\u5229\u6f64\u5f88\u8584\uff1a\u96fb\u50f9\u8981\u63a5\u8fd1\u5927\u5bb6\u80fd\u63a5\u53d7\u7684\u4e0a\u9650\u3002' },
     },
     texas: {
       label: 'Texas', hint: 'fast growth', stars: [3300, 3560], base: 1300, peak: 'heat', fair: 75, growth: 0.025, gas: 26, coal: 23,
@@ -138,10 +141,21 @@
         pitch: '\u8ca8\u6ac3\u5927\u5c0f\u7684\u65cb\u8f49\u5438\u6536\u5668\uff1a\u4fbf\u5b9c\u3001\u5de5\u671f\u5feb\u4e00\u500d\uff0c\u4f46\u8f49\u5b50\u8981\u5e38\u4fdd\u990a\u3002',
         fact: '\u6eb6\u5291\u88ab\u7529\u904e\u4ee5\u7d04 50 \u500d\u91cd\u529b\u9ad8\u901f\u65cb\u8f49\u7684\u586b\u6599\u74b0\uff0c\u6db2\u819c\u53c8\u8584\u53c8\u4e0d\u65b7\u66f4\u65b0\uff0c\u5438\u6536\u5feb\u5230\u5438\u6536\u5668\u53ea\u8981\u50b3\u7d71\u5854\u7684 1/10\u20131/20\uff0c\u9084\u80fd\u7528 70 wt% \u7684\u6fc3 MEA\u3002\u4ee3\u50f9\uff1a\u65cb\u8f49\u6a5f\u68b0\u6703\u6545\u969c\uff1b\u6bcf\u53f0\u4e0a\u9650\u7d04\u6bcf\u5e74 0.1 Mt CO\u2082\uff0c\u5927\u96fb\u5ee0\u8981\u5f88\u591a\u53f0\uff1b\u8f49\u5b50\u4e5f\u8981\u8017\u96fb\u3002' },
     },
+    amp: {
+      name: 'Aqueous AMP (30 wt%)', short: 'AMP', capture: 0.90, duty: 3.25, capex: 1.4, opex: 12, rate: 0.56,
+      unlocked: false, research: { cost: 60, months: 12, exp: 0.95, comp: 0.8 }, color: '#A3B18A', est: ['duty', 'opex'], stage: 'Pilot-tested',
+      startup: 0.01, solvent: true, fail: 'AMP vapour escaped faster than the water wash could catch it',
+      pitch: 'A trade-off, not an upgrade: twice the CO\u2082 per kilogram and a little less steam, but it absorbs slowly (tall, pricey absorber) and evaporates.',
+      fact: '2-Amino-2-methyl-1-propanol is sterically hindered: it forms little carbamate, so it carries about twice the CO\u2082 of MEA per kilogram and gives it back with less heat (73 vs 82 kJ/mol). But it reacts about 10\u00d7 slower; in a wetted-wall column its overall absorption rate was 45 % below MEA, so the absorber needs about 1.8\u00d7 the packing. It is also about 3.5\u00d7 more volatile than MEA, so more amine escapes and must be replaced. Screening found something different, not something better: what you need decides whether it is worth it.',
+      src: 'Chen, Closmann & Rochelle, Energy Procedia 2011 (doi 10.1016/j.egypro.2011.01.029); Le Li, PhD dissertation, UT Austin 2015; Luo et al., Sep. Purif. Technol. 2016',
+      zh: { name: '30 wt% AMP \u6c34\u6eb6\u6db2', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: 'AMP \u84b8\u6c23\u9038\u6563\u5f97\u6bd4\u6c34\u6d17\u6bb5\u6536\u5f97\u9084\u5feb',
+        pitch: '\u662f\u53d6\u6368\uff0c\u4e0d\u662f\u5347\u7d1a\uff1a\u6bcf\u516c\u65a4\u5e36\u8d70\u5169\u500d CO\u2082\u3001\u84b8\u6c7d\u7a0d\u7701\uff0c\u4f46\u5438\u6536\u6162(\u5438\u6536\u5854\u9ad8\u53c8\u8cb4)\uff0c\u800c\u4e14\u6703\u63ee\u767c\u3002',
+        fact: '2-\u80fa\u57fa-2-\u7532\u57fa-1-\u4e19\u9187(AMP)\u662f\u7acb\u9ad4\u969c\u7919\u80fa\uff1a\u5e7e\u4e4e\u4e0d\u5f62\u6210\u80fa\u7532\u9178\u9e7d\uff0c\u6240\u4ee5\u6bcf\u516c\u65a4\u80fd\u5e36\u8d70\u7d04\u5169\u500d\u65bc MEA \u7684 CO\u2082\uff0c\u91cb\u653e\u6642\u7684\u71b1\u4e5f\u8f03\u5c11(73 vs 82 kJ/mol)\u3002\u4f46\u5b83\u7684\u53cd\u61c9\u6162\u7d04 10 \u500d\uff1b\u6fd5\u58c1\u5854\u5be6\u6e2c\u7684\u6574\u9ad4\u5438\u6536\u901f\u7387\u6bd4 MEA \u4f4e 45 %\uff0c\u5438\u6536\u5854\u8981\u7d04 1.8 \u500d\u7684\u586b\u6599\u3002\u5b83\u7684\u63ee\u767c\u6027\u4e5f\u7d04\u662f MEA \u7684 3.5 \u500d\uff0c\u8dd1\u6389\u7684\u80fa\u8981\u4e00\u76f4\u88dc\u3002\u7be9\u9078\u627e\u5230\u7684\u662f\u300c\u4e0d\u4e00\u6a23\u300d\uff0c\u4e0d\u662f\u300c\u66f4\u597d\u300d\uff1a\u503c\u4e0d\u503c\u5f97\uff0c\u770b\u4f60\u9700\u8981\u4ec0\u9ebc\u3002' },
+    },
     ampnmp: {
       name: 'AMP\u2013NMP (semi-aqueous)', short: 'AMP-NMP', capture: 0.90, duty: 3.0, capex: 1.45, opex: 6, rate: 0.3,
       unlocked: false, research: { cost: 100, months: 18, exp: 0.9, comp: 0.6 }, color: '#0E9F6E', est: ['duty', 'opex', 'capex'], stage: 'Lab scale',
-      startup: 0.025, risk: 0.006, solvent: true, fail: 'AMP carbamate precipitated and clogged a line', riskText: 'AMP carbamate precipitated',
+      startup: 0.025, risk: 0.006, solvent: true, scaleUp: true, fail: 'AMP carbamate precipitated and clogged a line', riskText: 'AMP carbamate precipitated',
       pitch: 'Cheapest to run, but it absorbs slowly: the tallest absorber, the priciest to build, and it can clog.',
       fact: 'NMP does not react with CO\u2082; it makes the hindered amine AMP 3\u00d7 faster than in water, and AMP holds about twice the CO\u2082 of MEA, so only half the solvent has to circulate: smaller pumps and less make-up, the cheapest to run. Catch: AMP carbamate can precipitate at high loading and clog lines, even years after start-up.',
       src: 'Cheng, Chen & Lin, Chem. Eng. J. 2025',
@@ -152,7 +166,7 @@
     pe2eg: {
       name: '2PE\u2013EG (water-lean)', short: '2PE-EG', capture: 0.90, duty: 2.9, capex: 0.80, opex: 9, rate: 4.5,
       unlocked: false, research: { cost: 180, months: 24, exp: 0.85, comp: 0.5 }, color: '#E2A93B', est: ['capex'], star: true, stage: 'Lab scale',
-      startup: 0.035, solvent: true, fail: 'the viscous solvent overloaded the heat exchanger',
+      startup: 0.035, solvent: true, scaleUp: true, fail: 'the viscous solvent overloaded the heat exchanger',
       pitch: 'The rarest find and shaky first years, then fast, compact and efficient: the best all-rounder.',
       fact: 'Ethylene glycol reacts: it turns the carbamate into alkyl carbonate and frees the amine again, so 2-piperidineethanol gets both 4.5\u00d7 faster reaction and 2.8\u00d7 cyclic capacity vs MEA; regeneration 128 kJ/mol (\u2248 2.9 GJ/t). Catch: 15\u00d7 more viscous than MEA.',
       src: 'Chen, Wu & Lin, Chem. Eng. J. 2026',
@@ -184,13 +198,13 @@
         fact: '\u7194\u878d\u78b3\u9178\u9e7d\u71c3\u6599\u96fb\u6c60\u88dd\u5728\u7159\u9053\u4e0a\uff0c\u591a\u71d2\u4e00\u9ede\u5929\u7136\u6c23\u4f86\u767c\u96fb\uff1b\u5b83\u904b\u4f5c\u6642\u5fc5\u9808\u628a\u7159\u6c23\u88e1\u7684 CO\u2082 \u4ee5\u78b3\u9178\u6839\u96e2\u5b50\u7684\u5f62\u5f0f\u642c\u5230\u53e6\u4e00\u5074\uff0c\u6240\u4ee5 CO\u2082 \u5728\u53e6\u4e00\u5074\u8b8a\u5f97\u5f88\u6fc3\uff0c\u5bb9\u6613\u6536\u96c6\u3002\u88dd\u5728\u71c3\u6c23\u5ee0\u4e0a\u53ef\u6e1b\u5c11\u7d04 80 % CO\u2082\uff0c\u6574\u9ad4\u6548\u7387\u5e7e\u4e4e\u4e0d\u8b8a\u3002\u4ee3\u50f9\uff1a650 \u00b0C \u7684\u96fb\u6c60\u5806\u6703\u8001\u5316\uff0c\u6355\u6349\u7387\u4e0a\u9650\u7d04 85\u201390 %\uff0c\u71c3\u7164\u7159\u6c23\u6703\u6bd2\u5316\u5b83\u3002' },
     },
   };
-  const TECH_ORDER = ['mea90', 'afs', 'rpb', 'pz', 'ampnmp', 'pe2eg', 'mcfc'];
+  const TECH_ORDER = ['mea90', 'afs', 'rpb', 'amp', 'pz', 'ampnmp', 'pe2eg', 'mcfc'];
   // Solvent screening: each campaign discovers ONE random solvent you do not have yet (rarer = better/newer).
   const METHODS = {
     exp: { label: 'Lab experiments', zh: '\u5be6\u9a57', cost: 120, months: 18, odds: 0.9 },
     comp: { label: 'Computer screening (QM + MD)', zh: '\u96fb\u8166\u7be9\u9078(QM + MD)', cost: 50, months: 6, odds: 0.5, learn: 0.15 },
   };
-  const DROPS = { pz: { weight: 40, stars: 3 }, ampnmp: { weight: 35, stars: 3 }, pe2eg: { weight: 25, stars: 4 } };
+  const DROPS = { amp: { weight: 40, stars: 2 }, pz: { weight: 30, stars: 3 }, ampnmp: { weight: 25, stars: 3 }, pe2eg: { weight: 18, stars: 4 } };
   const PROJECTS = {};
   const LAB_ORDER = ['screen', 'afs', 'rpb', 'mcfc'];   // one project at a time, more can queue
 
@@ -296,8 +310,10 @@
   }
   const methodOf = (id, method) => id !== 'screen' ? 'exp' : (METHODS[method] ? method : 'exp');
   const undiscovered = state => Object.keys(DROPS).filter(k => !state.unlocked[k]);
+  // each solvent already found makes the next screen 50 % dearer: the easy candidates go first
   function researchCost(state, id, method) {
-    const base = id === 'screen' ? METHODS[methodOf(id, method)].cost : project(id).cost;
+    const found = Object.keys(DROPS).length - undiscovered(state).length;
+    const base = id === 'screen' ? METHODS[methodOf(id, method)].cost * (1 + 0.5 * found) : project(id).cost;
     return Math.round(base * (state.resCut > 0 ? 1.5 : 1));
   }
   function researchMonths(state, id, method) { return id === 'screen' ? METHODS[methodOf(id, method)].months : project(id).months; }
@@ -381,12 +397,19 @@
     if (t.gasOnly && plant.type !== 'gas') return 'Gas (combined-cycle) plants only';
     return null;
   }
+  // scale-up: a lab-scale solvent goes on ONE plant first and spreads only once it is proven (24 months running)
+  function scaleUpBlock(state, plant, techId) {
+    const t = TECHS[techId];
+    if (!t.scaleUp || maturity(state, techId).proven) return null;
+    const onIt = state.plants.filter(q => q !== plant && planned(q).tech === techId).length;
+    return onIt ? 'Prove it on one plant first (2 years)' : null;
+  }
   function canInstall(state, plant, techId, paid) {
     if (!TECHS[techId]) return { ok: false, why: 'Unknown technology' };
     if (!state.unlocked[techId]) return { ok: false, why: 'Research it first' };
     if (plant.build) return { ok: false, why: 'Construction in progress' };
     if (plant.tech === techId) return { ok: false, why: 'Already installed' };
-    const fit = techFits(plant, techId);
+    const fit = techFits(plant, techId) || scaleUpBlock(state, plant, techId);
     if (fit) return { ok: false, why: fit };
     const cost = installCost(state, plant, techId);
     if (!paid && state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
@@ -472,7 +495,7 @@
       if (!TECHS[job.tech]) return { ok: false, why: 'Unknown technology' };
       if (!state.unlocked[job.tech]) return { ok: false, why: TECHS[job.tech].solvent ? 'Find it by solvent screening' : 'Run the pilot test first' };
       if (v.tech === job.tech) return { ok: false, why: plant.tech === job.tech && !plant.build && !qOf(plant).length ? 'Already installed' : 'Already queued' };
-      const fit = techFits(v, job.tech);
+      const fit = techFits(v, job.tech) || scaleUpBlock(state, plant, job.tech);
       if (fit) return { ok: false, why: fit };
       cost = installCost(state, v, job.tech); months = installMonths(v, job.tech);
     } else if (job.kind === 'deep') {
@@ -966,10 +989,12 @@
       served += burn(u, run, state.price);
       u.run = run;
     }
+    const surplusCap = surplus;
     for (const u of units) {
       const spare = Math.min(u.netCap - u.run, surplus);
-      if (spare <= 0 || u.marginal >= rgn.wholesale) continue;
-      burn(u, spare, rgn.wholesale);
+      const wp = rgn.wholesale * (1 - 0.3 * (soldMW + spare / 2) / surplusCap);   // selling more pushes the market price down
+      if (spare <= 0 || u.marginal >= wp) continue;
+      burn(u, spare, wp);
       surplus -= spare; soldMW += spare; u.run += spare;
     }
     let importMW = 0;
