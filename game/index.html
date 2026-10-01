@@ -316,6 +316,18 @@ html:not([lang|="zh"]) .paper .body::first-letter { float: left; font-family: va
 .tip .btn { justify-self: end; background: #2A1C02; color: #FFF8E1; }
 
 .intro ul { padding-left: 18px; margin: 8px 0 14px; display: grid; gap: 6px; }
+/* how-to-play page: the goal and the two ways to lose, each with a small copy of its meter */
+.howto { display: grid; gap: 10px; margin: 10px 0 14px; }
+.hcard { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 12px; align-items: start; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.hcard .ico { grid-row: span 2; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font: 700 20px var(--mono); }
+.hcard b { font-size: 16px; }
+.hcard p { margin: 0; font-size: 14px; color: var(--muted); grid-column: 2; }
+.hcard .demo { grid-column: 2; margin-top: 6px; }
+.hcard.goal .ico { background: rgba(46, 196, 182, .18); color: var(--amine); }
+.hcard.co2 { border-color: #6B5B2E; } .hcard.co2 .ico { background: rgba(244, 183, 64, .18); color: var(--co2); }
+.hcard.ang { border-color: #6B3E33; } .hcard.ang .ico { background: rgba(239, 99, 81, .18); color: var(--anger); }
+.hcard.money .ico { background: rgba(123, 211, 137, .15); color: var(--good); }
+.introlink { background: none; border: 0; color: var(--amine); cursor: pointer; font-weight: 700; padding: 0; margin: 0 0 6px; }
 .intro .big { font-family: var(--display); font-size: clamp(28px, 7vw, 40px); line-height: 1; margin: 0 0 6px; font-weight: 400; }
 .intro .tag { color: var(--amine); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .result-stars { font-size: 34px; letter-spacing: 4px; color: var(--gold); margin: 4px 0 8px; }
@@ -414,6 +426,21 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
 <div class="overlay" id="ovIntro">
   <div class="sheet intro">
     <div class="tag"><span>GHGT-18 · Perth 2026</span><button class="langbtn" id="langBtn2">中文</button></div>
+    <div id="introA">
+      <h3 class="big" data-i18n="brand">Capture City 2050</h3>
+      <p class="lead" data-i18n="howLead">How to play, in one minute.</p>
+      <div class="howto">
+        <div class="hcard goal"><div class="ico">2050</div><b data-i18n="hGoalT">Your goal</b><p data-i18n="hGoal">You run the power company of a coal-and-gas town. Keep the lights on every month until December 2050 while the law cuts the CO₂ you may emit, year after year, toward net zero.</p></div>
+        <div class="hcard co2"><div class="ico">CO₂</div><b data-i18n="hCO2T">Watch out 1: the CO₂ limit</b><p data-i18n="hCO2">Keep the orange bar inside the green box. The box shrinks every year. Go over and the red limit-breach meter fills; at 100 % you lose your licence. Add CO₂ capture to your plants in time: it takes a year to build.</p>
+          <div class="demo"><div class="limbar"><b style="width:62%"></b><i style="width:58%"></i></div><div class="breach"><span data-i18n="mBreach">Limit breach</span><span class="bar"><i style="width:30%"></i></span><b>30 %</b></div></div></div>
+        <div class="hcard ang"><div class="ico">!</div><b data-i18n="hAngT">Watch out 2: public anger</b><p data-i18n="hAng">High electricity prices, blackouts and smog make people angry. At 100 % you are voted out. Capture eats power, so plan spare plants for the summer or winter peak.</p>
+          <div class="demo"><div class="bar"><i style="width:45%;background:linear-gradient(90deg,#F29B6B,var(--anger))"></i></div></div></div>
+        <div class="hcard money"><div class="ico">$</div><b data-i18n="hMoneyT">And keep some money</b><p data-i18n="hMoney">Electricity bills pay for everything: capture plants, research, CO₂ storage. Below −$500M you go bankrupt. The price board in the town sets the bill.</p></div>
+      </div>
+      <div class="btn-row"><button class="btn" id="introNext" data-i18n="introNext">Next: choose a region ›</button></div>
+    </div>
+    <div id="introB" hidden>
+    <button class="introlink" id="introBack" data-i18n="introBack">‹ How to play</button>
     <h3 class="big" data-i18n="brand">Capture City 2050</h3>
     <p class="lead" data-i18n="introLead">You run the power company of a coal-and-gas town. Keep the lights on until December 2050.</p>
     <ul data-i18n="introList">
@@ -423,6 +450,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     <div class="regions" id="regions" role="radiogroup" aria-label="Region"></div>
     <div class="btn-row"><button class="btn" id="startBtn" data-i18n="start">Start 2026</button><button class="btn ghost" id="boardBtn" data-i18n="boardB">Leaderboard</button></div>
     <p class="credits" style="margin:12px 0 0" data-i18n="credits">Where the numbers come from.</p>
+    </div>
   </div>
 </div>
 
@@ -561,6 +589,21 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       '<li><b>資金</b>來自電費：點城市裡的<b>電價看板</b>調整電價。封存 CO₂ 要付運輸與封存費。資金低於 −5 億美元就破產。</li>' +
       '<li>點<b>電廠</b>下指令：加裝 CO₂ 捕捉、升級到 99 %、換燃料或拆除。工程可以<b>排隊</b>：排入就付錢，取消全額退費。點<b>空地</b>蓋新電廠。</li>' +
       '<li>點<b>研究所</b>：用慢但可靠的<b>實驗</b>或快但有風險的<b>電腦篩選</b>找新溶劑，或前導測試新製程。新技術前 2 年可能故障。</li>'],
+    howLead: ['How to play, in one minute.', '一分鐘看懂怎麼玩。'],
+    hGoalT: ['Your goal', '你的目標'],
+    hGoal: ['You run the power company of a coal-and-gas town. Keep the lights on every month until December 2050 while the law cuts the CO₂ you may emit, year after year, toward net zero.',
+      '你經營一座燒煤和天然氣城市的電力公司。每個月都不能停電，一路撐到 2050 年 12 月；同時法律每年都在降低你能排放的 CO₂，一路降向淨零。'],
+    hCO2T: ['Watch out 1: the CO₂ limit', '注意 1：CO₂ 限額'],
+    hCO2: ['Keep the orange bar inside the green box. The box shrinks every year. Go over and the red limit-breach meter fills; at 100 % you lose your licence. Add CO₂ capture to your plants in time: it takes a year to build.',
+      '讓橘色條留在綠框裡，綠框每年縮小。超過的話，紅色的超標計量會累積；到 100 % 就被吊銷執照。要及早替電廠加裝 CO₂ 捕捉：蓋一套要一年。'],
+    hAngT: ['Watch out 2: public anger', '注意 2：民怨'],
+    hAng: ['High electricity prices, blackouts and smog make people angry. At 100 % you are voted out. Capture eats power, so plan spare plants for the summer or winter peak.',
+      '電價太高、停電和空污都會讓民眾不滿。民怨到 100 % 你就會被趕下台。捕捉會吃掉電力，要為夏季或冬季尖峰準備備用電廠。'],
+    hMoneyT: ['And keep some money', '還有：別把錢燒光'],
+    hMoney: ['Electricity bills pay for everything: capture plants, research, CO₂ storage. Below −$500M you go bankrupt. The price board in the town sets the bill.',
+      '一切都靠電費：捕捉設備、研發、CO₂ 封存。資金低於 −5 億美元就破產。城市裡的電價看板決定電費。'],
+    introNext: ['Next: choose a region ›', '下一步：選地區 ›'],
+    introBack: ['‹ How to play', '‹ 怎麼玩'],
     nickL: ['Nickname <small style="font-weight:400;color:var(--muted)">(optional, for the leaderboard)</small>', '暱稱 <small style="font-weight:400;color:var(--muted)">(選填，上排行榜用)</small>'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
     credits: [
       '<b>Where the numbers come from.</b> Capture technologies use values from Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Sep. Purif. Technol. 2025) and pilot-plant literature; costs, carbon prices and build times were checked against NETL, EIA and IEAGHG. Values marked <span class="est">est.</span> are game estimates. Plants, the CO₂ limit, events and regions are simplified for play and are not forecasts.',
@@ -1357,7 +1400,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     $('ovEnd').hidden = false;
     SND.play(win ? 'win' : 'lose');
   }
-  $('againBtn').onclick = () => { $('ovEnd').hidden = true; tipsShown = { start: true, box: true }; showIntro(); };
+  $('againBtn').onclick = () => { $('ovEnd').hidden = true; tipsShown = { start: true, box: true }; showIntro(); introPage(true); };
 
   // ending title from the approach the player took (links to the paper behind it)
   function approach(s) {
@@ -1382,6 +1425,9 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
   const nick = () => ($('nick').value || '').trim().slice(0, 16);
   $('nick').value = store.get('cc2050-nick') || '';
   $('nick').addEventListener('input', () => { $('nick').classList.remove('bad'); $('nickErr').hidden = true; });
+  function introPage(b) { $('introA').hidden = b; $('introB').hidden = !b; $('ovIntro').querySelector('.sheet').scrollTop = 0; }
+  $('introNext').onclick = () => { SND.play('click'); introPage(true); };
+  $('introBack').onclick = () => { SND.play('click'); introPage(false); };
   function showIntro() {
     const best = loadBest();
     $('regions').innerHTML = Object.entries(M.REGIONS).map(([id, r]) => {
