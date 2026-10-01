@@ -208,6 +208,27 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .btn.danger.armed { background: var(--anger); color: #2A0A06; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 
+/* plant card: compact type so the icons, comparison bars and the button read at a glance */
+#ovPlant .sheet { padding: 14px 16px; line-height: 1.35; }
+#ovPlant .sheet h3 { font-size: 19px; }
+#ovPlant .sheet .lead { font-size: 13px; }
+#ovPlant .qrow .ql { font-size: 11px; }
+#ovPlant .qs { width: 40px; height: 40px; font-size: 11px; border-radius: 8px; }
+#ovPlant .icons { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 6px; margin-top: 8px; }
+#ovPlant .ic { font-size: 12.5px; border-radius: 10px; padding: 3px; }
+#ovPlant .ic small { font-size: 10px; }
+#ovPlant .ic.done::after { font-size: 12px; }
+#ovPlant .info { margin-top: 8px; padding: 8px 10px; gap: 5px; height: clamp(200px, 36vh, 300px); }
+#ovPlant .info .nm { font-size: 15px; }
+#ovPlant .info .pitch { font-size: 13px; }
+#ovPlant .chip { font-size: 11px; padding: 1px 6px; }
+#ovPlant .kv { font-size: 12px; }
+#ovPlant .fits { font-size: 12px; }
+#ovPlant .bars { font-size: 12px; grid-template-columns: 6.8em 1fr 5em; }
+#ovPlant details, #ovPlant details summary { font-size: 12.5px; }
+#ovPlant .info .btn { font-size: 14px; min-height: 36px; padding: 7px 12px; }
+#ovPlant .cmd-hint { font-size: 12px; margin-top: 6px; }
+
 /* lab */
 .lab-list { display: grid; gap: 8px; }
 .drops { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
@@ -423,7 +444,7 @@ html, body { height: 100%; overflow: hidden; }
 /* sheets use most of the screen; the lab and the build sheet lay their cards out in columns */
 .sheet { width: min(860px, 96vw); max-height: 94vh; padding: 20px; }
 .overlay { padding: 2vh 2vw; }
-.cmd { width: min(760px, 96vw); }
+.cmd { width: min(700px, 96vw); }
 .info { height: clamp(210px, 42vh, 330px); }
 .labsheet { width: min(1040px, 96vw); }
 .labsheet .lab-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
@@ -640,6 +661,11 @@ html, body { height: 100%; overflow: hidden; }
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // first-time arrows in the scene: a plant, the lab and the people can be tapped (each goes away once opened)
+  const COACH_KEY = 'cc2050-coach';
+  let coach = { plant: 1, lab: 1, crowd: 1 };
+  try { const c = JSON.parse(localStorage.getItem(COACH_KEY) || 'null'); if (c) coach = Object.assign(coach, c); } catch (e) { /* storage blocked: show the arrows */ }
+  function coachDone(k) { if (!coach[k]) return; coach[k] = 0; try { localStorage.setItem(COACH_KEY, JSON.stringify(coach)); } catch (e) { /* ignore */ } }
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
@@ -937,7 +963,7 @@ html, body { height: 100%; overflow: hidden; }
     ['breach', 'Over the CO₂ limit', '超過 CO₂ 限額'], ['events', 'News & decisions', '新聞與決定'], ['calm', 'Calming down', '自然平息'],
   ];
   function angerParts() { return S.angerParts || { price: 0, blackout: 0, smog: 0, breach: 0, events: 0, calm: -1 }; }
-  function openAnger() { renderAnger(); $('ovAnger').hidden = false; }
+  function openAnger() { coachDone('crowd'); renderAnger(); $('ovAnger').hidden = false; }
   $('agClose').onclick = () => { $('ovAnger').hidden = true; };
   $('ovAnger').addEventListener('click', e => { if (e.target === $('ovAnger')) $('ovAnger').hidden = true; });
   $('mAng').onclick = () => { SND.play('click'); openAnger(); };
@@ -985,7 +1011,7 @@ html, body { height: 100%; overflow: hidden; }
 
   // ---------- plant command card: work queue, icon grid, info box (hover on desktop, tap on phones) ----------
   let curPlant = null, sel = null, hoverK = null, lastPtr = 'mouse', armed = false;
-  function openPlant(id) { curPlant = id; sel = null; hoverK = null; armed = false; renderPlant(); $('ovPlant').hidden = false; }
+  function openPlant(id) { coachDone('plant'); curPlant = id; sel = null; hoverK = null; armed = false; renderPlant(); $('ovPlant').hidden = false; }
   function closePlant() { $('ovPlant').hidden = true; curPlant = null; }
   $('plClose').onclick = closePlant;
   $('ovPlant').addEventListener('click', e => { if (e.target === $('ovPlant')) closePlant(); });
@@ -1608,7 +1634,7 @@ html, body { height: 100%; overflow: hidden; }
     if (id === '__lab') openLab(); else if (id === '__add') openBuild(); else if (id === '__price') openPrice(); else if (id === '__crowd') openAnger(); else openPlant(id);
   });
   // the lab in the town opens the research panel (a tab on phones; a highlight on wide screens)
-  function openLab() { renderLab(); $('ovLab').hidden = false; }
+  function openLab() { coachDone('lab'); renderLab(); $('ovLab').hidden = false; }
   $('labBtn').onclick = () => { SND.play('click'); openLab(); };
   $('labX').onclick = () => { $('ovLab').hidden = true; };
   $('ovLab').addEventListener('click', e => { if (e.target === $('ovLab')) $('ovLab').hidden = true; });
@@ -1647,7 +1673,7 @@ html, body { height: 100%; overflow: hidden; }
     return out;
   }
   // plant tap targets: the nearest plant centre wins, so a raised back-row plant is hit on its upper part
-  let ptargets = [];
+  let ptargets = [], labTip = null;
 
   // name tag on the ground under a plant: id + capture, and the number of queued jobs
   function drawTag(p, cx, base, k, down) {
@@ -1731,6 +1757,7 @@ html, body { height: 100%; overflow: hidden; }
     hits.push(hit);
     if (hoverId === '__lab') outline(hit);
     const cx = x + w / 2, by = y - 46;
+    labTip = { x: cx, y: by - 4 };
     if (busy) {
       const left = S.research[busy], total = Math.max(left, S.resTotal || left);
       const now = performance.now() / 1000;
@@ -1786,6 +1813,41 @@ html, body { height: 100%; overflow: hidden; }
     ctx.strokeStyle = '#1A1A1A'; ctx.lineWidth = 1; ctx.strokeRect(x - sw / 2, horizon - 44 * k, sw, 20 * k);
     ctx.fillStyle = '#1A1A1A'; ctx.font = FONT(700, Math.round(11 * k)); ctx.textAlign = 'center';
     ctx.fillText(label, x, horizon - 30 * k); ctx.textAlign = 'left';
+  }
+  // ---- first-time arrows ----
+  function drawArrow(x, y, dir, text, id, ph) {
+    const b = REDUCED ? 0 : Math.abs(Math.sin(performance.now() / 260 + ph)) * 6;
+    ctx.font = FONT(700, 13);
+    const tw = ctx.measureText(text).width + 14, th = 22;
+    let lx, ly;
+    ctx.save();
+    ctx.fillStyle = '#F4B740'; ctx.strokeStyle = '#2A1C02'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (dir === 'down') {   // tip at (x, y), shaft above it
+      const t = y - b;
+      ctx.moveTo(x, t); ctx.lineTo(x - 11, t - 12); ctx.lineTo(x - 4, t - 12); ctx.lineTo(x - 4, t - 26);
+      ctx.lineTo(x + 4, t - 26); ctx.lineTo(x + 4, t - 12); ctx.lineTo(x + 11, t - 12); ctx.closePath();
+      lx = x - tw / 2; ly = t - 26 - th - 2;
+    } else {   // 'left': tip at (x, y), shaft to the right
+      const t = x + b;
+      ctx.moveTo(t, y); ctx.lineTo(t + 12, y - 11); ctx.lineTo(t + 12, y - 4); ctx.lineTo(t + 26, y - 4);
+      ctx.lineTo(t + 26, y + 4); ctx.lineTo(t + 12, y + 4); ctx.lineTo(t + 12, y + 11); ctx.closePath();
+      lx = t + 28; ly = y - th / 2;
+    }
+    ctx.fill(); ctx.stroke();
+    lx = Math.max(4, Math.min(W - tw - 4, lx)); ly = Math.max(TOP + 2, ly);
+    ctx.fillStyle = 'rgba(11,20,34,.92)'; ctx.fillRect(lx, ly, tw, th);
+    ctx.strokeStyle = '#F4B740'; ctx.lineWidth = 1; ctx.strokeRect(lx + 0.5, ly + 0.5, tw - 1, th - 1);
+    ctx.fillStyle = '#F4B740'; ctx.textAlign = 'left'; ctx.fillText(text, lx + 7, ly + 15.5);
+    ctx.restore();
+    hits.push({ id, x0: lx, x1: lx + tw, y0: ly, y1: ly + th });
+  }
+  function drawCoach(streetY, lay) {
+    if (S.over || S.m > 24 || !playing) return;
+    const pt = ptargets.find(t => S.plants.some(p => p.id === t.id && !p.build));
+    if (coach.plant && pt) drawArrow(pt.cx, pt.cy - pt.ry - 2, 'down', L('Tap a plant to add capture', '點電廠加裝捕捉'), pt.id, 0);
+    if (coach.lab && labTip) drawArrow(labTip.x, labTip.y, 'down', L('Tap the lab to research', '點研究所做研發'), '__lab', 1.2);
+    if (coach.crowd) drawArrow(W * (lay.town + 0.025), streetY - 6, 'left', L('Tap the people: why angry?', '點民眾:為什麼生氣?'), '__crowd', 2.4);
   }
   // ---- weather for what is happening this month ----
   function drawWeather(horizon) {
@@ -1997,6 +2059,7 @@ html, body { height: 100%; overflow: hidden; }
 
     if (!REDUCED) drawWeather(horizon);
     if (g > 0.05) { ctx.fillStyle = `rgba(150,120,80,${0.28 * g})`; ctx.fillRect(0, 0, W, H); }
+    drawCoach(streetY, lay);
     ctx.fillStyle = 'rgba(15,26,43,.75)'; ctx.fillRect(W - 156, TOP + 4, 150, 18);
     ctx.fillStyle = S.captureOff > 0 ? '#EF6351' : '#8FE6DC'; ctx.font = FONT(600, 12);
     ctx.fillText(S.captureOff > 0 ? L('Capture paused', '捕捉暫停') : L('CO₂ stored ', 'CO₂ 已封存 ') + fmt(S.captured, 1) + ' Mt', W - 150, TOP + 17);
@@ -2030,6 +2093,7 @@ html, body { height: 100%; overflow: hidden; }
   if (/[?&]debug(&|=|$)/.test(location.search)) {
     window.__cc = {
       get state() { return S; },
+      plant(id) { openPlant(id); },
       run(frames) {
         for (let i = 0; i < frames && !S.over; i++) {
           frame((lastT || performance.now()) + 100);
