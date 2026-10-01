@@ -136,7 +136,7 @@ button, input { font: inherit; color: inherit; }
 .status .ok { color: var(--good); font-weight: 700; }
 .paused-badge { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(15, 26, 43, .45); border: 0; color: #FFF; font: 700 18px var(--body); letter-spacing: 1px; cursor: pointer; }
 .paused-badge span { background: rgba(15, 26, 43, .9); border: 1px solid var(--line); border-radius: 999px; padding: 10px 18px; }
-.toast { position: absolute; left: 10px; right: 10px; top: 10px; background: rgba(15, 26, 43, .92); border: 1px solid var(--line); border-left: 4px solid var(--co2); border-radius: 10px; padding: 8px 12px; font-size: 15px; font-weight: 700; box-shadow: 0 6px 20px var(--shadow); }
+.toast { position: absolute; left: 10px; right: 10px; top: var(--hudb, 10px); z-index: 7; background: rgba(15, 26, 43, .92); border: 1px solid var(--line); border-left: 4px solid var(--co2); border-radius: 10px; padding: 8px 12px; font-size: 15px; font-weight: 700; box-shadow: 0 6px 20px var(--shadow); }
 .toast.event { border-left-color: var(--anger); }
 .toast.good { border-left-color: var(--good); }
 .toast.lab { border-left-color: var(--gold); }
@@ -441,6 +441,18 @@ html, body { height: 100%; overflow: hidden; }
   .hud .ctl { grid-column: 2 / span 2; grid-row: 1; justify-items: end; }
   .hud .m-gh { grid-row: 2; grid-column: 1 / span 2; }
   .meter .val { font-size: 18px; }
+}
+.hud.mini .lim .u { display: none; }
+@media (max-width: 700px) and (min-height: 521px) {
+  .hud { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .hud .clockled { grid-row: 1; grid-column: 1 / span 3; }
+  .hud .ctl { grid-row: 1; grid-column: 4 / span 3; }
+  .hud .m-gh { grid-row: 2; grid-column: 1 / span 4; }
+  .hud #mAng { grid-row: 2; grid-column: 5 / span 2; }
+  .hud #mFund { grid-row: 3; grid-column: 1 / span 3; }
+  .hud #mGrid { grid-row: 3; grid-column: 4 / span 3; }
+  .ctl button.mini { padding: 6px 8px; }
+  .ctl .langbtn { padding: 4px 8px; }
 }
 @media (max-height: 520px) { .hud { grid-template-columns: auto minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto; } .hud .m-gh, .hud .clockled, .hud .ctl { grid-row: auto; grid-column: auto; } }
 </style>
@@ -1361,7 +1373,7 @@ html, body { height: 100%; overflow: hidden; }
     const lim = M.limit(S);
     const rate = S.last ? S.rate : 0;
     const over = rate > lim;
-    $('gLim').textContent = L('limit ', '限額 ') + fmt(lim, 1) + L(' Mt/yr', ' Mt/年');
+    $('gLim').innerHTML = L('limit ', '限額 ') + fmt(lim, 1) + `<span class="u">${L(' Mt/yr', ' Mt/年')}</span>`;
     $('vGh').innerHTML = (S.last ? fmt(rate, 1) : '—') + `<small>${L(' Mt/yr', ' Mt/年')}</small>`;
     const y = M.START_YEAR + Math.floor(m / 12);
     const nextY = y < 2050 ? Math.min(2050, (Math.floor(y / 5) + 1) * 5) : null;
@@ -1557,13 +1569,14 @@ html, body { height: 100%; overflow: hidden; }
 
   // ---------- scene ----------
   const cv = $('cv'), ctx = cv.getContext('2d');
-  let W = 0, H = 0, DPR = 1, TOP = 0, BOT = 0;
+  let W = 0, H = 0, DPR = 1, TOP = 0, BOT = 0, SH = 0;   // SH: height unit for buildings (a tall phone screen must not stretch them)
   function resize() {
     const box = cv.parentElement.getBoundingClientRect();
     W = Math.round(box.width);
     H = Math.round(box.height);   // full screen: the canvas is the window
     const hud = document.getElementById('hud').getBoundingClientRect(), tk = document.getElementById('ticker').getBoundingClientRect();
     TOP = Math.round(hud.bottom) + 4; BOT = Math.round(box.bottom - tk.top) + 4;
+    document.documentElement.style.setProperty('--hudb', TOP + 'px');   // toasts sit just under the billboards
     DPR = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     cv.style.height = H + 'px';
@@ -1702,7 +1715,7 @@ html, body { height: 100%; overflow: hidden; }
 
   // ---- the research lab (tap it to open the research panel) ----
   function drawLab(horizon, blackout) {
-    const x = W * 0.02, w = W * 0.095, h = H * 0.2, y = horizon - h + 4;
+    const x = W * 0.02, w = W * 0.095, h = SH * 0.2, y = horizon - h + 4;
     const busy = Object.keys(S.research)[0];
     ctx.fillStyle = '#E4EAF0'; ctx.fillRect(x, y, w, h);
     ctx.fillStyle = '#9DB0CB'; ctx.fillRect(x - 2, y - 4, w + 4, 5);
@@ -1733,11 +1746,11 @@ html, body { height: 100%; overflow: hidden; }
     }
   }
   // ---- the price billboard in the sky over the town: − / + change the price, the middle opens the sheet ----
-  function drawBoard(horizon) {
-    const bw = Math.min(210, Math.max(128, W * 0.2)), bh = Math.min(74, Math.max(58, H * 0.17));   // full screen: keep the board sign-sized
-    const x = Math.min(W * 0.27, W * 0.48 - bw), y = TOP + 6;
+  function drawBoard(horizon, polesOnly) {
+    const bw = Math.min(210, Math.max(150, W * 0.2)), bh = Math.min(74, Math.max(58, H * 0.17));   // full screen: keep the board sign-sized
+    const x = Math.max(4, Math.min(W * 0.27, W * 0.48 - bw)), y = Math.max(TOP + 6, horizon - SH * 0.6 - bh);   // tall screens: not up in the sky
     const fair = M.fairPrice(S), d = S.price - fair;
-    ctx.fillStyle = '#5B4636'; ctx.fillRect(x + bw * 0.2, y + bh, 3, horizon - y - bh); ctx.fillRect(x + bw * 0.8 - 3, y + bh, 3, horizon - y - bh);
+    if (polesOnly) { ctx.fillStyle = '#5B4636'; ctx.fillRect(x + bw * 0.2, y + bh, 3, horizon - y - bh); ctx.fillRect(x + bw * 0.8 - 3, y + bh, 3, horizon - y - bh); return; }
     ctx.fillStyle = '#16243A'; ctx.fillRect(x, y, bw, bh);
     ctx.strokeStyle = d > 0 ? '#EF6351' : '#7BD389'; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, bw - 2, bh - 2);
     ctx.textAlign = 'center';
@@ -1808,13 +1821,14 @@ html, body { height: 100%; overflow: hidden; }
     hits = [];
     const g = S.last ? Math.max(0, Math.min(1, (S.rate - 0.5) / 10)) : 0.85;   // sky dirt follows today's emissions
     const Ls = S.last;
-    const horizon = H * 0.74;
+    SH = Math.min(H, Math.max(300, W * 0.62));
+    const horizon = SH >= H ? H * 0.74 : H - BOT - Math.max(80, SH * 0.3);   // portrait: the town stands at the bottom
     const sky = ctx.createLinearGradient(0, 0, 0, horizon);
     sky.addColorStop(0, mix('#6FB6EA', '#7C7466', g));
     sky.addColorStop(1, mix('#D6EEFB', '#C7AE86', g));
     ctx.fillStyle = sky; ctx.fillRect(0, 0, W, horizon);
     const mm = (S.m + 11) % 12, hot = S.demandMult > 1 && !(mm >= 10 || mm <= 2);
-    const sx = W * (W < 520 ? 0.08 : 0.17), sy = H * 0.2, sr = Math.max(14, W * 0.035) * (hot ? 1.35 : 1);
+    const sx = W * (W < 520 ? 0.08 : 0.17), sy = TOP + (horizon - TOP) * 0.3, sr = Math.max(14, W * 0.035) * (hot ? 1.35 : 1);
     const glow = ctx.createRadialGradient(sx, sy, sr * 0.3, sx, sy, sr * 3);
     glow.addColorStop(0, mix('#FFF4C2', '#FFB36B', hot ? 1 : g)); glow.addColorStop(1, 'rgba(255,220,150,0)');
     ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(sx, sy, sr * 3, 0, 7); ctx.fill();
@@ -1826,14 +1840,14 @@ html, body { height: 100%; overflow: hidden; }
     ctx.fillStyle = mix('#6DB36F', '#8C7B4F', g); ctx.fillRect(0, horizon, W, H - horizon);
     ctx.fillStyle = mix('#5E6B73', '#4A4A46', g); ctx.fillRect(0, horizon + (H - horizon) * 0.42, W * (LAY().town + 0.02), (H - horizon) * 0.18); // street
 
-    drawBoard(horizon);
+    drawBoard(horizon, true);
     // town (left half): the research lab, then houses
     const blackout = Ls && Ls.unservedFrac > 0.01;
     drawLab(horizon, blackout);
     const lay = LAY();
     let hx = W * 0.13;
     houses.slice(0, lay.houses).forEach(h => {
-      const hw = h.w * W * 0.68, hh = h.h * H;
+      const hw = h.w * W * 0.68, hh = h.h * SH;
       const y = horizon - hh + 4;
       ctx.fillStyle = h.hue; ctx.fillRect(hx, y, hw, hh);
       ctx.fillStyle = '#7A4E3C'; ctx.beginPath(); ctx.moveTo(hx - 3, y); ctx.lineTo(hx + hw / 2, y - hh * 0.28); ctx.lineTo(hx + hw + 3, y); ctx.fill();
@@ -1843,9 +1857,10 @@ html, body { height: 100%; overflow: hidden; }
     });
     ctx.strokeStyle = 'rgba(40,40,40,.55)'; ctx.lineWidth = 1;
     const pole = W * (lay.town - 0.02);
-    ctx.beginPath(); ctx.moveTo(pole, horizon - H * 0.2);
-    ctx.quadraticCurveTo(pole + W * 0.03, horizon - H * 0.14, pole + W * 0.06, horizon - H * 0.2); ctx.stroke();
-    ctx.fillStyle = '#444'; ctx.fillRect(pole - 1, horizon - H * 0.2, 2, H * 0.2);
+    ctx.beginPath(); ctx.moveTo(pole, horizon - SH * 0.2);
+    ctx.quadraticCurveTo(pole + W * 0.03, horizon - SH * 0.14, pole + W * 0.06, horizon - SH * 0.2); ctx.stroke();
+    ctx.fillStyle = '#444'; ctx.fillRect(pole - 1, horizon - SH * 0.2, 2, SH * 0.2);
+    drawBoard(horizon);   // in front of the roofs so the price stays readable
 
     // people on the street (tap them to see why they are angry)
     const ang = S.anger / 100;
@@ -1876,17 +1891,17 @@ html, body { height: 100%; overflow: hidden; }
     const order = S.plants.map((p, i) => ({ p, s: slots[i], i })).sort((a, b) => (a.s.back ? 0 : 1) - (b.s.back ? 0 : 1));
     order.forEach(({ p, s, i }) => {
       const k = s.scale;
-      const base = horizon - (s.back ? H * 0.11 : 0);
+      const base = horizon - (s.back ? SH * 0.11 : 0);
       const cx = s.x * W;
       const big = p.type !== 'gas';   // coal and gas-boiler plants keep the big steam-plant building
-      const bw = W * 0.085 * k, bh = H * (big ? 0.2 : 0.15) * k;
+      const bw = W * 0.085 * k, bh = SH * (big ? 0.2 : 0.15) * k;
       const by = base - bh + 6 * k;
       const unitW = Math.max(5, W * 0.014) * k * 2 + 12 * k;
       const tcx = cx + unitW / 2 - bw * 0.1, rx = bw * 0.62 + unitW / 2;
-      const target = s.back ? { id: p.id, cx: tcx, cy: base - H * 0.24 * k, rx, ry: H * 0.13 * k } : { id: p.id, cx: tcx, cy: base - H * 0.12 * k, rx, ry: H * 0.2 * k + 12 };
+      const target = s.back ? { id: p.id, cx: tcx, cy: base - SH * 0.24 * k, rx, ry: SH * 0.13 * k } : { id: p.id, cx: tcx, cy: base - SH * 0.12 * k, rx, ry: SH * 0.2 * k + 12 };
       ptargets.push(target);
       if (hoverId === p.id) outline({ x0: target.cx - target.rx, x1: target.cx + target.rx, y0: target.cy - target.ry, y1: target.cy + target.ry });
-      const tag = down => (s.back ? backTags.push([p, cx, base - H * 0.36 * k - 16, k, down]) : drawTag(p, cx, base, k, down));
+      const tag = down => (s.back ? backTags.push([p, cx, base - SH * 0.36 * k - 16, k, down]) : drawTag(p, cx, base, k, down));
       const frac = p.build ? 1 - p.build.left / p.build.total : 0;
       const bodyCol = { coal: '#6E3F33', gas: '#5A6E86', gasb: '#6D6A8A' }[p.type];
       if (p.build && p.build.kind === 'new') {
@@ -1905,7 +1920,7 @@ html, body { height: 100%; overflow: hidden; }
       ctx.fillRect(cx - bw / 2, by, bw, bh);
       ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(cx - bw / 2, by, bw, 3);
       const chimneys = big ? [cx - bw * 0.22, cx + bw * 0.15] : [cx + bw * 0.1];
-      const chH = (big ? H * 0.28 : H * 0.18) * k;
+      const chH = (big ? SH * 0.28 : SH * 0.18) * k;
       chimneys.forEach(chx => {
         ctx.fillStyle = p.type === 'coal' ? '#8C8C8C' : '#9EAAB8';
         ctx.fillRect(chx - 4 * k, base - chH, 8 * k, chH);
@@ -1917,7 +1932,7 @@ html, body { height: 100%; overflow: hidden; }
       const ax = cx + bw / 2 + 3 * k, aw = Math.max(5, W * 0.014) * k;
       if (t || job) {
         const nt = job && job.kind === 'tech' ? M.TECHS[job.tech] : t;
-        const h90 = H * 0.26 * k, h99 = H * 0.32 * k;
+        const h90 = SH * 0.26 * k, h99 = SH * 0.32 * k;
         const shown = t || nt;
         let ah = p.deep ? h99 : h90;
         if (job && job.kind === 'deep') ah = h90 + (h99 - h90) * frac;
@@ -1942,7 +1957,7 @@ html, body { height: 100%; overflow: hidden; }
         }
       }
       if (job) {
-        const top = base - H * 0.36 * k;
+        const top = base - SH * 0.36 * k;
         drawCrane(ax + aw * 2 + 8 * k, base, top, aw * 3.2, k * 0.8, i);
         drawWorkers(ax - 2, ax + aw * 2 + 4 * k, base + 2, k, 1);
         const lab = job.kind === 'deep' ? '99%' : job.kind === 'ic' || job.kind === 'sf' ? job.kind.toUpperCase() : ICON[job.tech][0];
@@ -1982,9 +1997,9 @@ html, body { height: 100%; overflow: hidden; }
 
     if (!REDUCED) drawWeather(horizon);
     if (g > 0.05) { ctx.fillStyle = `rgba(150,120,80,${0.28 * g})`; ctx.fillRect(0, 0, W, H); }
-    ctx.fillStyle = 'rgba(15,26,43,.75)'; ctx.fillRect(W - 156, H - 24 - BOT, 150, 18);
+    ctx.fillStyle = 'rgba(15,26,43,.75)'; ctx.fillRect(W - 156, TOP + 4, 150, 18);
     ctx.fillStyle = S.captureOff > 0 ? '#EF6351' : '#8FE6DC'; ctx.font = FONT(600, 12);
-    ctx.fillText(S.captureOff > 0 ? L('Capture paused', '捕捉暫停') : L('CO₂ stored ', 'CO₂ 已封存 ') + fmt(S.captured, 1) + ' Mt', W - 150, H - 10 - BOT);
+    ctx.fillText(S.captureOff > 0 ? L('Capture paused', '捕捉暫停') : L('CO₂ stored ', 'CO₂ 已封存 ') + fmt(S.captured, 1) + ' Mt', W - 150, TOP + 17);
   }
 
   // ---------- main loop ----------
