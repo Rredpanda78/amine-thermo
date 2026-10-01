@@ -973,8 +973,8 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     n.push(d > 0 ? L(`<span class="hot">$${S.price}/MWh · $${d} over OK</span>`, `<span class="hot">電價 $${S.price} · 超出 $${d}</span>`)
       : L(`$${S.price}/MWh · OK ≤ $${fair}`, `電價 $${S.price} · 可接受 ≤ $${fair}`));
     if (S.gasMult > 1) n.push(L(`<span class="hot">Gas price spike: $${fmt(M.gasFuel(S))}/MWh.</span>`, `<span class="hot">氣價飆漲：每 MWh $${fmt(M.gasFuel(S))}。</span>`));
-    if (S.lngCut > 0) n.push(L('<span class="hot">LNG shortage: gas plants at half power.</span>', '<span class="hot">LNG 短缺：燃氣廠半載。</span>'));
-    if (S.gasFreeze > 0) n.push(L('<span class="hot">Winter storm: gas plants at 30 %.</span>', '<span class="hot">暴風雪：燃氣廠只剩 30 %。</span>'));
+    if (S.lngCut > 0) n.push(L(`<span class="hot">LNG shortage: gas for ${M.GAS_CRISIS.lng} MW in all.</span>`, `<span class="hot">LNG 短缺：燃氣廠合計只有 ${M.GAS_CRISIS.lng} MW。</span>`));
+    if (S.gasFreeze > 0) n.push(L(`<span class="hot">Winter storm: gas for ${M.GAS_CRISIS.freeze} MW in all.</span>`, `<span class="hot">暴風雪：燃氣廠合計只有 ${M.GAS_CRISIS.freeze} MW。</span>`));
     if (S.shipMonths > 0) n.push(L(`CO₂ shipped to a backup site (${S.shipMonths} mo).`, `CO₂ 改船運到備用封存場(${S.shipMonths} 個月)。`));
     if (S.resSlow > 0) n.push(L(`<span class="hot">Lab grants delayed (${S.resSlow} mo).</span>`, `<span class="hot">研究經費拖欠(${S.resSlow} 個月)。</span>`));
     if (S.opexCut > 0) n.push(L(`<span class="hot">Subsidy cut: capture running costs +30 % (${S.opexCut} mo).</span>`, `<span class="hot">補助取消：捕捉運轉費 +30 %(${S.opexCut} 個月)。</span>`));
@@ -1246,8 +1246,8 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         <div class="row"><button class="btn" data-build="${type}" ${chk.ok ? '' : 'disabled'}>${L('Build', '興建')} · $${pt.build.cost}M · ${mo(pt.build.months)}</button>${chk.ok ? '' : `<span class="src">${why(chk.why)}</span>`}</div></div>`;
     };
     $('bdOpts').innerHTML =
-      card('coal', L('Cheap fuel; capture is cheaper per tonne.', '燃料便宜;每噸捕捉較便宜。'), L('2.6× the CO₂ of gas, smog, 4 years to build.', 'CO₂ 是燃氣 2.6 倍、有空污、要蓋 4 年。')) +
-      card('gas', L('Cleaner, 2 years to build, fuel cells fit.', '較乾淨、2 年蓋好、可裝燃料電池。'), L('Pricey, volatile fuel; supply scares.', '燃料貴又波動,可能斷氣。'));
+      card('coal', L('Cheap, steady fuel that no tanker can cut off; capture is cheaper per tonne.', '燃料便宜穩定,不怕斷氣;每噸捕捉較便宜。'), L('2.6× the CO₂ of gas, smog, slower to build.', 'CO₂ 是燃氣 2.6 倍、有空污、蓋得較久。')) +
+      card('gas', L('Cleaner, quick to build, fuel cells fit.', '較乾淨、蓋得快、可裝燃料電池。'), L('Pricey, volatile fuel; a supply cut starves every gas plant at once.', '燃料貴又波動;一斷氣,所有燃氣廠一起停擺。'));
     $('bdOpts').querySelectorAll('[data-build]').forEach(b => b.onclick = () => { const r = M.buildPlant(S, b.dataset.build); SND.play(r.ok ? 'queue' : 'nope'); closeBuild(); renderAll(); });
   }
 

@@ -42,7 +42,8 @@
   const DIFFS = {
     easy: { label: 'Easy', zh: '\u7c21\u55ae', tighten: 0, funds: 1500, bonus: 1, hint: 'the gentle version', zhHint: '\u8f15\u9b06\u7248' },
     normal: { label: 'Normal', zh: '\u666e\u901a', tighten: 0.12, funds: 1400, bonus: 1.15, hint: 'tighter CO\u2082 limit, a bit less money', zhHint: 'CO\u2082 \u9650\u984d\u66f4\u7dca\u3001\u8cc7\u91d1\u7565\u5c11' },
-    hell: { label: 'Hell', zh: '\u5730\u7344', tighten: 0.3, funds: 800, bonus: 1.6, events: 1.7, gap: 8, hidden: true, hint: 'you were warned', zhHint: '\u4f60\u88ab\u8b66\u544a\u904e\u4e86' },
+    hell: { label: 'Hell', zh: '\u5730\u7344', tighten: 0.3, funds: 800, bonus: 1.6, events: 1.7, gap: 8, hidden: true,
+      region: { germany: { tighten: 0.22, funds: 950 }, taiwan: { tighten: 0.34, late: 0.3 }, texas: { tighten: 0.36, late: 0.3 } }, hint: 'you were warned', zhHint: '\u4f60\u88ab\u8b66\u544a\u904e\u4e86' },
     hard: { label: 'Hard', zh: '\u56f0\u96e3', tighten: 0.18, funds: 1000, bonus: 1.3, hint: 'much tighter limit, \u2153 less money', zhHint: '\u9650\u984d\u7dca\u5f88\u591a\u3001\u8cc7\u91d1\u5c11 \u2153' },
   };
   const CAPEX_SCALE = 1.3;            // capture unit \u2248 $1,300 per kW (MEA, coal) before the first-of-a-kind premium
@@ -54,7 +55,7 @@
     taiwan: {
       label: 'Taiwan', hint: 'standard', stars: [2700, 3200], base: 1150, peak: 'heat', fair: 135, growth: 0.02, gas: 72, coal: 42,
       tax: [[2026, 10], [2029, 10], [2030, 40], [2050, 120]], credit: 0, creditMonths: 0, ts: 15,
-      limitMul: 1.0, imports: 0, wholesale: 95, typhoon: true, lng: true, winter: false, heat: 1,
+      limitMul: 1.0, imports: 0, wholesale: 95, typhoon: true, lng: true, winter: false, heat: 1, surplus: 0.12,
       blurb: 'Island grid, LNG by ship, typhoons. Carbon fee $10/t, jumping to $40 in 2030.',
       zh: { label: '\u53f0\u7063', hint: '\u6a19\u6e96', blurb: '\u5b64\u5cf6\u96fb\u7db2\u3001LNG \u9760\u8239\u904b\u3001\u6709\u98b1\u98a8\u3002\u78b3\u8cbb\u6bcf\u5678 $10,2030 \u5e74\u8df3\u5230 $40\u3002' },
     },
@@ -87,6 +88,8 @@
   })();
   const seasonOf = state => (SEASON[state.region] || SEASON.taiwan)[state.m % 12];
   const peakSeason = state => Math.max(...(SEASON[state.region] || SEASON.taiwan));
+  // in a gas-supply crisis the whole fleet shares what gas arrives (gross MW it can feed), however many gas plants you own
+  const GAS_CRISIS = { lng: 300, freeze: 160 };
   const SURPLUS_SHARE = 0.25;         // industrial / wholesale buyers take up to 25 % of demand at the wholesale price
   const BANKRUPT = -500;              // $M
   const MAX_PLANTS = 10;
@@ -103,7 +106,7 @@
   // heatRate: fuel per MWh relative to a combined-cycle plant burning the same gas (a converted boiler is less efficient)
   const PLANT_TYPES = {
     coal: { label: 'Coal', zh: '\u71c3\u7164', intensity: 0.95, fixed: 0.0030, capexFactor: 1.0, dutyMul: 1.0, opexMul: 1.0,
-      size: 600, build: { cost: 900, months: 48 } },
+      size: 600, build: { cost: 760, months: 40 } },
     gas:  { label: 'Gas', zh: '\u71c3\u6c23', intensity: 0.37, fixed: 0.0020, capexFactor: 0.75, dutyMul: 1.15, opexMul: 1.2, gas: true,
       size: 400, build: { cost: 420, months: 27 } },
     gasb: { label: 'Gas-boiler', zh: '\u71c3\u6c23\u934b\u7210', intensity: 0.55, fixed: 0.0030, capexFactor: 0.9, dutyMul: 1.08, opexMul: 1.1, gas: true, heatRate: 1.45,
@@ -328,9 +331,14 @@
     }
     return P[P.length - 1][1];
   }
-  function limitFor(state, t) {
+  // a difficulty's settings for this game's region (Hell differs by region)
+  function diffOf(state) {
     const d = DIFFS[(state && state.diff) || 'easy'] || DIFFS.easy;
-    return limitAt(t) * RG(state).limitMul * (1 - d.tighten * Math.max(0, Math.min(1, (t - 2026) / 9)));
+    return Object.assign({}, d, (d.region && state && d.region[state.region]) || {});
+  }
+  function limitFor(state, t) {
+    const d = diffOf(state), ramp = (a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+    return limitAt(t) * RG(state).limitMul * (1 - d.tighten * ramp(2026, 2035) - (d.late || 0) * ramp(2035, 2050));
   }
   function limit(state) { return limitFor(state, START_YEAR + Math.min(state.m, MONTHS - 1) / 12); }
   function fairPrice(state) { return RG(state).fair; }
@@ -414,12 +422,13 @@
   function newGame(seed, region, diff) {
     region = REGIONS[region] ? region : 'taiwan';
     diff = DIFFS[diff] ? diff : 'normal';
+    const dv = Object.assign({}, DIFFS[diff], (DIFFS[diff].region || {})[region] || {});
     const unlocked = {};
     TECH_ORDER.forEach(id => { unlocked[id] = !!TECHS[id].unlocked; });
     const four = region !== 'taiwan';
     return {
       seed: seed || Math.floor(Math.random() * 1e9),
-      region, diff, m: 0, funds: DIFFS[diff].funds, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
+      region, diff, m: 0, funds: dv.funds, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
       greenhouse: 0, maxDebt: 0, rate: 0, recent: [], overMonths: 0, wasOver: false,
       over: null, subsidy: 0, resCut: 0, resSlow: 0, opexCut: 0, usCut: false, headline: null, headlineN: 0, labQueue: [], captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
       warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0, tsPaid: 0, built: {},
@@ -881,7 +890,10 @@
     const pool = ['subsidy'];
     const rg = RG(state);
     const mo = state.m % 12;
-    if (hasGas) { pool.push('gas'); if (rg.lng) pool.push('lng', 'lng'); if (rg.winter && (mo === 11 || mo <= 1)) pool.push('winter', 'winter', 'winter'); }
+    const grossAll = state.plants.reduce((a, p) => a + p.gross, 0) || 1;
+    const gasShare = state.plants.filter(p => isGas(p.type)).reduce((a, p) => a + p.gross, 0) / grossAll;
+    const heavy = gasShare > 0.45 ? 2 : 1;   // relying on gas makes gas trouble likelier
+    for (let i = 0; i < heavy && hasGas; i++) { pool.push('gas'); if (rg.lng) pool.push('lng', 'lng'); if (rg.winter && (mo === 11 || mo <= 1)) pool.push('winter', 'winter', 'winter'); }
     if (state.rate > 6) pool.push('health');
     if (!state.usCut && state.m >= 18) pool.push('uscut');
     if (!state.resSlow && Object.keys(state.research).length) pool.push('arrears');   // only bites while the lab is working
@@ -894,13 +906,13 @@
     } else if (k === 'lng') {
       state.lngCut = 2;
       headline(state, 'lng', 'bad',
-        { title: 'LNG tanker stuck at sea', deck: 'Gas plants at half power for two months', text: 'The next LNG tanker is late: gas plants run at half power until it arrives.' },
-        { title: 'LNG \u8239\u53d7\u56f0\u6d77\u4e0a', deck: '\u71c3\u6c23\u5ee0\u5169\u500b\u6708\u53ea\u80fd\u534a\u8f09\u904b\u8f49', text: '\u4e0b\u4e00\u8258 LNG \u8239\u5ef6\u8aa4:\u71c3\u6c23\u5ee0\u534a\u8f09\u904b\u8f49,\u76f4\u5230\u88dc\u7d66\u5230\u6e2f\u3002' });
+        { title: 'LNG tanker stuck at sea', deck: `Gas for only ${GAS_CRISIS.lng} MW for two months`, text: `The next LNG tanker is late: all your gas plants together get gas for ${GAS_CRISIS.lng} MW until it arrives.` },
+        { title: 'LNG \u8239\u53d7\u56f0\u6d77\u4e0a', deck: `\u5169\u500b\u6708\u53ea\u6709 ${GAS_CRISIS.lng} MW \u7684\u5929\u7136\u6c23`, text: `\u4e0b\u4e00\u8258 LNG \u8239\u5ef6\u8aa4:\u6240\u6709\u71c3\u6c23\u5ee0\u52a0\u8d77\u4f86\u53ea\u6709 ${GAS_CRISIS.lng} MW \u7684\u6c23\u53ef\u71d2,\u76f4\u5230\u88dc\u7d66\u5230\u6e2f\u3002` });
     } else if (k === 'winter') {
       state.gasFreeze = 1;
       headline(state, 'winter', 'bad',
-        { title: 'Winter storm freezes gas wells', deck: 'Gas plants at 30 % for a month', text: 'Frozen wellheads: gas plants run at 30 % this month, just as heaters push demand up.' },
-        { title: '\u51ac\u5b63\u66b4\u98a8\u96ea\u51cd\u4f4f\u6c23\u4e95', deck: '\u71c3\u6c23\u5ee0\u9019\u500b\u6708\u53ea\u5269 30 %', text: '\u4e95\u53e3\u7d50\u51b0:\u71c3\u6c23\u5ee0\u9019\u500b\u6708\u53ea\u5269 30 %,\u504f\u504f\u7528\u96fb\u53c8\u8b8a\u9ad8\u3002' });
+        { title: 'Winter storm freezes gas wells', deck: `Gas for only ${GAS_CRISIS.freeze} MW this month`, text: `Frozen wellheads: all your gas plants together get gas for ${GAS_CRISIS.freeze} MW, just as heaters push demand up.` },
+        { title: '\u51ac\u5b63\u66b4\u98a8\u96ea\u51cd\u4f4f\u6c23\u4e95', deck: `\u9019\u500b\u6708\u53ea\u6709 ${GAS_CRISIS.freeze} MW \u7684\u5929\u7136\u6c23`, text: `\u4e95\u53e3\u7d50\u51b0:\u6240\u6709\u71c3\u6c23\u5ee0\u52a0\u8d77\u4f86\u53ea\u6709 ${GAS_CRISIS.freeze} MW \u7684\u6c23,\u504f\u504f\u7528\u96fb\u53c8\u8b8a\u9ad8\u3002` });
     } else if (k === 'subsidy') {
       state.subsidy = 12;
       headline(state, 'subsidy', 'good',
@@ -1050,6 +1062,9 @@
     // dispatch: cheapest net MWh first
     const tax = carbonTax(y, state);
     const ts = rgn.ts || 0;
+    const gasGross = state.plants.filter(p => online(p) && PLANT_TYPES[p.type].gas).reduce((a, p) => a + p.gross, 0);
+    const gasCap = state.gasFreeze > 0 ? GAS_CRISIS.freeze : state.lngCut > 0 ? GAS_CRISIS.lng : Infinity;
+    const gasAvail = gasGross > 0 ? Math.min(1, gasCap / gasGross) : 1;
     const units = state.plants.filter(online).map(p => {
       const pt = PLANT_TYPES[p.type];
       const on = p.tech && p.outage <= 0 && state.captureOff <= 0;
@@ -1058,7 +1073,7 @@
       const c = e ? e.capture * (flexNow(state) ? FLEX : 1) : 0;
       const pen = e ? pt.intensity * c * workPerTonne(e) - e.power : 0;
       const fuel = fuelOf(state, p.type) * (1 + (e ? e.power : 0));   // a fuel cell burns extra gas for its extra power
-      const avail = pt.gas ? (state.gasFreeze > 0 ? 0.3 : state.lngCut > 0 ? 0.5 : 1) : 1;
+      const avail = pt.gas ? gasAvail : 1;
       const credit = rgn.credit && (p.capMonths || 0) < rgn.creditMonths ? rgn.credit : 0;
       const perGross = fuel + (e ? (e.opex + ts - credit) * pt.intensity * c : 0) + tax * pt.intensity * (1 - c);
       return { p, pt, e, c, pen, credit, netCap: p.gross * avail * (1 - pen), marginal: perGross / (1 - pen), fuel };
@@ -1066,7 +1081,7 @@
 
     const D = demand(state);
     let left = D, revenue = 0, cost = 0, emitted = 0, captured = 0, served = 0, netCapTotal = 0;
-    let surplus = D * SURPLUS_SHARE, soldMW = 0, taxPaid = 0, creditPaid = 0, tsPaid = 0;
+    let surplus = D * (rgn.surplus || SURPLUS_SHARE), soldMW = 0, taxPaid = 0, creditPaid = 0, tsPaid = 0;
     const burn = (u, mw, price) => {
       const netMWh = mw * HOURS;
       const grossMWh = netMWh / (1 - u.pen);
@@ -1186,7 +1201,7 @@
     else if (state.m >= MONTHS) state.over = { win: true, why: 'survived' };
 
     // random events for next month (a choice pauses the game until answered); at least a year apart
-    const dv = DIFFS[state.diff] || DIFFS.easy, evx = dv.events || 1;   // Hell: more news, closer together
+    const dv = diffOf(state), evx = dv.events || 1;   // Hell: more news, closer together
     if (!state.over && state.m > 6 && state.m - (state.lastEventM || -99) >= (dv.gap || CFG.GAP)) {
       const r = R();
       const hl = state.headlineN;
@@ -1211,7 +1226,7 @@
   }
 
   const api = {
-    HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE, START_FUNDS, DIFFS, CAPEX_SCALE, FOAK,
+    HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE, START_FUNDS, DIFFS, GAS_CRISIS, diffOf, CAPEX_SCALE, FOAK,
     BREACH, breachStep, REGIONS, SEASON, SURPLUS_SHARE, SHIP, METHODS, DROPS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG,
     newGame, step, choose, offCost, online, isGas, fuelOf, foak, pZh, tZh,
     install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost, convertOptions,
