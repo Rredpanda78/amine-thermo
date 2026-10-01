@@ -925,6 +925,7 @@ html, body { height: 100%; overflow: hidden; }
     if (S.lngCut > 0) n.push(L('<span class="hot">LNG shortage: gas plants at half power.</span>', '<span class="hot">LNG 短缺：燃氣廠半載。</span>'));
     if (S.gasFreeze > 0) n.push(L('<span class="hot">Winter storm: gas plants at 30 %.</span>', '<span class="hot">暴風雪：燃氣廠只剩 30 %。</span>'));
     if (S.shipMonths > 0) n.push(L(`CO₂ shipped to a backup site (${S.shipMonths} mo).`, `CO₂ 改船運到備用封存場(${S.shipMonths} 個月)。`));
+    if (S.resSlow > 0) n.push(L(`<span class="hot">Lab grants delayed (${S.resSlow} mo).</span>`, `<span class="hot">研究經費拖欠(${S.resSlow} 個月)。</span>`));
     if (S.opexCut > 0) n.push(L(`<span class="hot">Subsidy cut: capture running costs +30 % (${S.opexCut} mo).</span>`, `<span class="hot">補助取消：捕捉運轉費 +30 %(${S.opexCut} 個月)。</span>`));
     if (M.flexNow(S)) n.push(L('<span class="ok">Flexible capture: peak month, capture at 75 %.</span>', '<span class="ok">彈性捕捉：尖峰月份，捕捉 75 %。</span>'));
     if (S.subsidy > 0) n.push(L(`<span class="ok">Capture subsidy: −30 % (${S.subsidy} mo).</span>`, `<span class="ok">捕捉補助：−30 %(${S.subsidy} 個月)。</span>`));
@@ -1204,6 +1205,7 @@ html, body { height: 100%; overflow: hidden; }
     const busy = Object.keys(S.research).length > 0, lq = S.labQueue || [];
     const idle = !busy && !lq.length;
     const notes = [];
+    if (S.resSlow > 0) notes.push(L(`<span class="hot">Grants delayed: research 50 % slower for ${S.resSlow} more months.</span>`, `<span class="hot">經費被拖欠:研發時間 +50 %,還有 ${S.resSlow} 個月。</span>`));
     if (S.resCut > 0) notes.push(L(`<span class="hot">Funding cut: research costs +50 % for ${S.resCut} more months.</span>`, `<span class="hot">經費刪減：研發費 +50 %，還有 ${S.resCut} 個月。</span>`));
     $('labNote').innerHTML = notes.join(' ');
     $('labNote').hidden = !notes.length;
@@ -1293,6 +1295,7 @@ html, body { height: 100%; overflow: hidden; }
   const SKY = 'M0 160V122h18v-16h16v26h14v-38h20v38h12v-20h18v32h14v-48h22v48h12v-24h18v38h14v-10h24V160Z';
   const svg = body => `<svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg" role="img">${body}</svg>`;
   const ART = {
+    arrears: svg(`<rect width="220" height="160" fill="#E6DFCF"/><rect x="0" y="122" width="220" height="38" fill="#8A6A4A"/><rect x="0" y="118" width="220" height="6" fill="#6F5238"/>${[0, 1, 2, 3, 4, 5, 6].map(i => `<rect x="${36 + (i % 2) * 3}" y="${110 - i * 9}" width="78" height="10" fill="${i % 2 ? '#F7F3E8' : '#ECE5D3'}" stroke="#B9AE95" stroke-width=".8"/>`).join('')}<rect x="40" y="24" width="72" height="30" fill="#FBF8F0" stroke="#B9AE95"/><path d="M46 32h50M46 38h40M46 44h46" stroke="#9A9078" stroke-width="2"/><g transform="rotate(-12 76 40)"><rect x="50" y="30" width="56" height="20" fill="none" stroke="#B3261E" stroke-width="2.5"/><text x="78" y="44" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#B3261E">PENDING</text></g><path d="M140 70h28l-14 22 14 22h-28l14-22z" fill="#F3EEE2" stroke="#5B4636" stroke-width="2.5"/><path d="M146 108h16l-8-10z" fill="#D9A441"/><rect x="138" y="66" width="32" height="5" fill="#5B4636"/><rect x="138" y="113" width="32" height="5" fill="#5B4636"/><path d="M190 80v14l-12 22h32l-12-22V80z" fill="none" stroke="#2F6F8F" stroke-width="2.5"/><path d="M186 80h16" stroke="#2F6F8F" stroke-width="2.5"/>`),
     heat: svg(`<rect width="220" height="160" fill="#EAD9AE"/><g stroke="#E9A93B" stroke-width="5" stroke-linecap="round"><path d="M70 14v10M70 96v10M24 60h10M106 60h10M38 28l7 7M95 85l7 7M38 92l7-7M95 35l7-7"/></g><circle cx="70" cy="60" r="26" fill="#F2B544"/><path d="${SKY}" fill="#4A4540"/><rect x="164" y="24" width="16" height="84" rx="8" fill="#FFF" stroke="#222" stroke-width="2"/><rect x="169" y="40" width="6" height="66" fill="#B3261E"/><circle cx="172" cy="112" r="12" fill="#B3261E" stroke="#222" stroke-width="2"/>`),
     cold: svg(`<rect width="220" height="160" fill="#CFDCE6"/><g stroke="#FFF" stroke-width="5" stroke-linecap="round"><path d="M70 22v76M37 41l66 38M37 79l66-38"/><path d="M62 30l8 8 8-8M62 90l8-8 8 8"/></g><path d="${SKY}" fill="#3F4852"/><path d="M0 122h18v4H0zM34 106h16v4H34zM68 94h20v4H68zM132 84h22v4h-22z" fill="#FFF"/><rect x="164" y="24" width="16" height="84" rx="8" fill="#FFF" stroke="#222" stroke-width="2"/><rect x="169" y="92" width="6" height="14" fill="#2F6FB3"/><circle cx="172" cy="112" r="12" fill="#2F6FB3" stroke="#222" stroke-width="2"/>`),
     typhoon: svg(`<rect width="220" height="160" fill="#BFC4C4"/><path d="M110 80c0-14 12-22 24-18 14 5 16 26 2 36-18 13-46 2-50-22-4-26 18-50 48-48" fill="none" stroke="#FFF" stroke-width="9" stroke-linecap="round"/><path d="M110 80c0 14-12 22-24 18-14-5-16-26-2-36 18-13 46-2 50 22 4 26-18 50-48 48" fill="none" stroke="#E8EBEB" stroke-width="7" stroke-linecap="round"/><circle cx="110" cy="80" r="6" fill="#6B7373"/><g stroke="#6B7373" stroke-width="2"><path d="M16 20l-8 20M36 12l-8 20M190 110l-8 20M206 120l-8 20M22 120l-8 20"/></g>`),
@@ -1312,7 +1315,7 @@ html, body { height: 100%; overflow: hidden; }
     heat: ['Air-conditioners strain the grid.', '冷氣讓電網吃緊。'], cold: ['Heaters strain the grid.', '電暖器讓電網吃緊。'], typhoon: ['The storm on satellite.', '衛星雲圖上的颱風。'],
     storage: ['Residents at the injection wells.', '注入井旁的居民。'], nox: ['Residents downwind of the plants.', '電廠下風處的居民。'], gas: ['Gas prices hit a record.', '氣價創新高。'],
     lng: ['The delayed tanker, days from port.', '延誤的 LNG 船，離港還有幾天。'], winter: ['Frozen pipes at a gas field.', '氣田結冰的管線。'], subsidy: ['The new clean-air package.', '新的空污方案。'],
-    health: ['Smog over the city.', '城市上空的霧霾。'], subcut: ['The President signs the order. (Cartoon)', '總統簽下命令。(漫畫)'],
+    health: ['Smog over the city.', '城市上空的霧霾。'], arrears: ['The grant forms, still waiting for a stamp.', '經費單據,還在等蓋章。'], subcut: ['The President signs the order. (Cartoon)', '總統簽下命令。(漫畫)'],
   };
   let headN = 0;
   function showPaper(h, opts, quiet) {

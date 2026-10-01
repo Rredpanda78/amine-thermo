@@ -409,7 +409,7 @@
       seed: seed || Math.floor(Math.random() * 1e9),
       region, m: 0, funds: START_FUNDS, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
       greenhouse: 0, maxDebt: 0, rate: 0, recent: [], overMonths: 0, wasOver: false,
-      over: null, subsidy: 0, resCut: 0, opexCut: 0, usCut: false, headline: null, headlineN: 0, labQueue: [], captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
+      over: null, subsidy: 0, resCut: 0, resSlow: 0, opexCut: 0, usCut: false, headline: null, headlineN: 0, labQueue: [], captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
       warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0, tsPaid: 0, built: {},
       angerParts: null, angerEvt: 0,
       plants: four
@@ -872,6 +872,7 @@
     if (hasGas) { pool.push('gas'); if (rg.lng) pool.push('lng', 'lng'); if (rg.winter && (mo === 11 || mo <= 1)) pool.push('winter', 'winter', 'winter'); }
     if (state.rate > 6) pool.push('health');
     if (!state.usCut && state.m >= 18) pool.push('uscut');
+    if (!state.resSlow && Object.keys(state.research).length) pool.push('arrears');   // only bites while the lab is working
     const k = pool[Math.floor(R() * pool.length)];
     if (k === 'gas') {
       state.gasMult = 1.8; state.gasMonths = 6;
@@ -893,6 +894,11 @@
       headline(state, 'subsidy', 'good',
         { title: 'Government backs carbon capture', deck: 'Capture projects 30 % cheaper for a year', text: 'A clean-air package: capture projects started in the next 12 months cost 30 % less.' },
         { title: '\u653f\u5e9c\u529b\u633a\u78b3\u6355\u6349', deck: '\u4e00\u5e74\u5167\u6355\u6349\u5de5\u7a0b\u4fbf\u5b9c 30 %', text: '\u7a7a\u6c61\u65b0\u65b9\u6848:\u672a\u4f86 12 \u500b\u6708\u958b\u5de5\u7684\u6355\u6349\u5de5\u7a0b\u4fbf\u5b9c 30 %\u3002' });
+    } else if (k === 'arrears') {
+      state.resSlow = 6;
+      headline(state, 'arrears', 'bad',
+        { title: 'Lab grants stuck in the admin office', deck: 'Research 50 % slower for six months', text: 'The office sits on the grant payments: no reagents, no cluster time. Research takes 50 % longer for six months.' },
+        { title: '\u7814\u7a76\u7d93\u8cbb\u88ab\u884c\u653f\u55ae\u4f4d\u62d6\u6b20', deck: '\u534a\u5e74\u5167\u7814\u767c\u6642\u9593 +50 %', text: '\u884c\u653f\u55ae\u4f4d\u9072\u9072\u4e0d\u64a5\u6b3e:\u8cb7\u4e0d\u5230\u85e5\u54c1\u3001\u79df\u4e0d\u5230\u8a08\u7b97\u8cc7\u6e90\u3002\u534a\u5e74\u5167\u7814\u767c\u6642\u9593 +50 %\u3002' });
     } else if (k === 'health') {
       angry(state, 8);
       headline(state, 'health', 'bad',
@@ -946,9 +952,10 @@
       }
     }
 
-    // research progress
+    // research progress (unpaid grants: the lab stalls one month in three, so work takes 50 % longer)
+    const stall = state.resSlow > 0 && state.resSlow % 3 === 0;
     for (const id of Object.keys(state.research)) {
-      state.research[id] -= 1;
+      if (!stall) state.research[id] -= 1;
       if (state.research[id] <= 0) {
         const mt = state.resMethod[id] || 'exp';
         const odds = researchOdds(state, id, mt);
@@ -1146,6 +1153,7 @@
     if (state.gasMonths > 0 && --state.gasMonths === 0) state.gasMult = 1;
     if (state.subsidy > 0) state.subsidy -= 1;
     if (state.resCut > 0) state.resCut -= 1;
+    if (state.resSlow > 0 && --state.resSlow === 0) addNews(state, 'good', 'The lab grants are paid: research is back to full speed.', '\u7814\u7a76\u7d93\u8cbb\u64a5\u4e0b\u4f86\u4e86:\u7814\u767c\u901f\u5ea6\u6062\u5fa9\u6b63\u5e38\u3002');
     if (state.opexCut > 0 && --state.opexCut === 0) addNews(state, 'good', 'Capture running costs are back to normal.', '\u6355\u6349\u904b\u8f49\u8cbb\u6062\u5fa9\u6b63\u5e38\u3002');
     if (state.lngCut > 0 && --state.lngCut === 0) addNews(state, 'good', 'LNG supply is back to normal.', 'LNG \u4f9b\u61c9\u6062\u5fa9\u6b63\u5e38\u3002');
     if (state.gasFreeze > 0) state.gasFreeze -= 1;
