@@ -63,6 +63,7 @@ DIFF=hell PX=1 node tools/extreme.js texas  # 極端打法;PX = 電價相對可�
 ## 介面架構重點
 
 - 三段版面:上 `.topbar#hud`(資訊)、中 `#sceneBox` 的 canvas(城市)、下 `.ctrlbar#ticker`(研究所、蓋廠、新聞、倍速)。
+- 「你可以做的事」動畫說明(`guideHTML()`,SVG + CSS 動畫):開場第 2 頁,遊戲中右上角 `?` 也能開。新增可點的功能時,一併補一張說明卡。
 - 場景裡的文字(電廠名牌、進度條、引導箭頭)一律經過 `queueLabel()` / `flushLabels()` 排版,不會互相蓋住;新增場景文字也要走這條。
 - 難度在 `M.DIFFS`:easy / normal / hard,以及隱藏的 hell(彩蛋:3.5 秒內點研究所 10 次解鎖,整個畫面換成恐怖風格 `html.hell`)。
 - localStorage 鍵:`cc2050-board-v10`(排行榜)、`cc2050-coach`(引導箭頭)、`cc2050-diff`、`cc2050-hell`、`cc2050-lang`、`cc2050-nick`、`cc2050-sfx`。

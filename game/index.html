@@ -359,6 +359,40 @@ html:not([lang|="zh"]) .paper .body::first-letter { float: left; font-family: va
 
 .intro ul { padding-left: 18px; margin: 8px 0 14px; display: grid; gap: 6px; }
 /* how-to-play page: the goal and the two ways to lose, each with a small copy of its meter */
+/* the animated guide: four cards, each a small looping scene */
+.guide { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 10px 0 14px; }
+@media (max-width: 560px) { .guide { grid-template-columns: minmax(0, 1fr); } }
+.gcard { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; }
+.gcard svg { width: 100%; height: auto; max-height: 120px; background: #10213A; border-radius: 8px; display: block; }
+.gcard b { font-size: 15px; }
+.gcard p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.g-bub { animation: gbub 2.4s ease-in infinite; transform-box: fill-box; }
+@keyframes gbub { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-22px); opacity: 0; } }
+.g-star { animation: gstar 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes gstar { 0%, 50% { transform: scale(0); opacity: 0; } 65% { transform: scale(1.3); opacity: 1; } 80% { transform: scale(1); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+.g-p1 { animation: gp1 4s steps(1) infinite; } .g-p2 { animation: gp2 4s steps(1) infinite; }
+@keyframes gp1 { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes gp2 { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
+.g-press { animation: gpress 4s infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes gpress { 0%, 40%, 58%, 100% { transform: scale(1); } 45%, 52% { transform: scale(.8); } }
+.g-ang { animation: gang 4s ease-in-out infinite; transform-box: fill-box; transform-origin: left center; }
+@keyframes gang { 0%, 48% { transform: scaleX(.3); } 65%, 100% { transform: scaleX(.85); } }
+.g-rise { animation: grise 4s ease-out infinite; transform-box: fill-box; transform-origin: bottom; }
+@keyframes grise { 0% { transform: scaleY(0); } 70%, 100% { transform: scaleY(1); } }
+.g-hook { animation: ghook 4s ease-in-out infinite; }
+@keyframes ghook { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(16px); } }
+.g-bar { animation: gbar 4s linear infinite; transform-box: fill-box; transform-origin: left; }
+@keyframes gbar { 0% { transform: scaleX(0); } 70%, 100% { transform: scaleX(1); } }
+.g-tower { animation: gtower 5s ease-out infinite; transform-box: fill-box; transform-origin: bottom; }
+@keyframes gtower { 0%, 20% { transform: scaleY(0); } 45%, 100% { transform: scaleY(1); } }
+.g-black { animation: gblack 5s linear infinite; } @keyframes gblack { 0%, 40% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.g-white { animation: gwhite 5s linear infinite; } @keyframes gwhite { 0%, 45% { opacity: 0; } 55%, 100% { opacity: 1; } }
+.g-puff { animation: gpuff 2s ease-out infinite; transform-box: fill-box; }
+@keyframes gpuff { 0% { transform: translate(0, 0) scale(.6); opacity: .95; } 100% { transform: translate(12px, -20px) scale(1.5); opacity: 0; } }
+.g-dot { animation: gdot 1.6s linear infinite; }
+@keyframes gdot { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(20px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .guide * { animation: none !important; } }
+#ovGuide .sheet { width: min(980px, 96vw); }
 .howto { display: grid; gap: 10px; margin: 10px 0 14px; }
 .hcard { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 12px; align-items: start; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
 .hcard .ico { grid-row: span 2; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font: 700 20px var(--mono); }
@@ -531,7 +565,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     <div class="led meter m-ang" id="mAng" role="button" tabindex="0"><div class="lab"><span data-i18n="mAnger">Public anger</span><span class="short" data-i18n="mAngerS">Anger</span><span data-i18n="mWhy">why? ›</span></div><div class="val" id="vAng">10%</div><div class="bar"><i id="bAng"></i></div><div class="sub" id="angWhy"></div></div>
     <div class="led meter" id="mFund"><div class="lab"><span data-i18n="mFunds">Funds</span></div><div class="val" id="vFund">$1,500M</div><div class="sub" id="sFund">± $0M / month</div></div>
     <div class="led meter" id="mGrid"><div class="lab"><span data-i18n="mGrid">Grid</span></div><div class="val" id="vGrid">— MW</div><div class="sub" id="sGrid">demand — MW</div></div>
-    <div class="sys" role="group" aria-label="Sound and language"><button id="sfxBtn" aria-pressed="true" title="Sound effects" aria-label="Sound effects">🔊</button><button id="musBtn" aria-pressed="false" title="Music" aria-label="Music">♪</button><button class="langbtn" id="langBtn" title="English / 繁體中文">中文</button></div>
+    <div class="sys" role="group" aria-label="Sound and language"><button id="sfxBtn" aria-pressed="true" title="Sound effects" aria-label="Sound effects">🔊</button><button id="musBtn" aria-pressed="false" title="Music" aria-label="Music">♪</button><button class="langbtn" id="langBtn" title="English / 繁體中文">中文</button><button id="helpBtn" title="What you can do" aria-label="What you can do">?</button></div>
   </header>
   <div class="scene" id="sceneBox"><canvas id="cv" aria-label="The town and its power plants. Tap a plant, the lab, the price board or the empty lot."></canvas><button class="paused-badge" id="pausedBadge" hidden><span data-i18n="pausedB">❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div></div>
   <footer class="ctrlbar" id="ticker">
@@ -577,8 +611,14 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       </div>
       <div class="btn-row"><button class="btn" id="introNext" data-i18n="introNext">Next: choose a region ›</button></div>
     </div>
+    <div id="introG" hidden>
+      <button class="introlink" id="introBackG" data-i18n="introBack">‹ Back</button>
+      <h3 class="big" data-i18n="guideT">What you can do</h3>
+      <div class="guide" id="guideIntro"></div>
+      <div class="btn-row"><button class="btn" id="introNextG" data-i18n="introNextB">Next: choose a region ›</button></div>
+    </div>
     <div id="introB" hidden>
-    <button class="introlink" id="introBack" data-i18n="introBack">‹ How to play</button>
+    <button class="introlink" id="introBack" data-i18n="introBack">‹ Back</button>
     <h3 class="big" data-i18n="brand">Capture City 2050</h3>
     <p class="lead" data-i18n="introLead">You run the power company of a coal-and-gas town. Keep the lights on until December 2050.</p>
     <div class="nick"><label for="nick" data-i18n="nickL">Nickname</label><input id="nick" maxlength="16" autocomplete="nickname"><span class="err" id="nickErr" hidden></span></div>
@@ -656,6 +696,13 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   </article>
 </div>
 
+<div class="overlay" id="ovGuide" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <button class="xclose" id="guideX" aria-label="Close">×</button>
+    <h3 id="guideTitle" data-i18n="guideT">What you can do</h3>
+    <div class="guide" id="guideGame"></div>
+  </div>
+</div>
 <div class="overlay" id="ovHell" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hellTitle">
     <div style="font-size:44px;line-height:1">☠</div>
@@ -741,8 +788,8 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     hAng: ['High prices, blackouts and smog anger people. At 100 % you are voted out.', '電價高、停電、空污都會累積民怨,到 100 % 就下台。'],
     hMoneyT: ['Money', '資金'],
     hMoney: ['The price board sets your income. Below −$500M you go bankrupt.', '電價看板決定收入。資金低於 −5 億美元就破產。'],
-    introNext: ['Next: choose a region ›', '下一步：選地區 ›'],
-    introBack: ['‹ How to play', '‹ 怎麼玩'],
+    introNext: ['Next: what you can do ›', '下一步：你可以做的事 ›'], introNextB: ['Next: choose a region ›', '下一步：選地區 ›'],
+    introBack: ['‹ Back', '‹ 上一頁'], guideT: ['What you can do', '你可以做的事'],
     nickL: ['Nickname <small style="font-weight:400;color:var(--muted)">(optional)</small>', '暱稱 <small style="font-weight:400;color:var(--muted)">(選填)</small>'], start: ['Start 2026', '開始 2026'], boardB: ['Leaderboard', '排行榜'],
     credits: ['<b>Sources.</b> Lin Research Group papers (Chem. Eng. J. 2025, 2026; Ind. Eng. Chem. Res. 2025; Int. J. Greenh. Gas Control 2020), pilot-plant literature, NETL, EIA and IEAGHG. <span class="est">est.</span> = game estimate; plants, events and regions are simplified.', '<b>資料來源。</b>林育正實驗室論文(Chem. Eng. J. 2025、2026;Ind. Eng. Chem. Res. 2025;Int. J. Greenh. Gas Control 2020)、前導廠文獻、NETL、EIA、IEAGHG。<span class="est">est.</span> = 遊戲估計;電廠、事件與地區皆已簡化。'],
     close: ['Close', '關閉'], buildT: ['Build a new plant', '蓋新電廠'], priceT: ['Electricity price', '電價'],
@@ -788,6 +835,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     lang = l; store.set('cc2050-lang', l);
     applyI18n(); renderAll();
     if (!$('ovIntro').hidden) showIntro();
+    if (!$('introG').hidden || !$('ovGuide').hidden) renderGuide();
     if (!$('ovEvent').hidden) { if (S.pending) openEvent(); else if (S.headline) showPaper(S.headline, null, true); }
     if (!$('ovPrice').hidden) renderPriceSheet();
     if (!$('ovAnger').hidden) renderAnger();
@@ -799,7 +847,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   let speed = 1, playing = false, acc = 0, lastT = 0;
   let toastN = 0, toastTimer = null;
   const MS_PER_MONTH = 1600;   // one game month every 1.6 s at 1×
-  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard', 'ovHell'].some(id => !$(id).hidden);
+  const paused = () => ['ovLab', 'ovPlant', 'ovBuild', 'ovEvent', 'ovFind', 'ovPrice', 'ovAnger', 'ovBoard', 'ovHell', 'ovGuide'].some(id => !$(id).hidden);
 
   // ---------- best score per region (shown on the region cards) ----------
   const BEST_KEY = 'cc2050-best-v10';
@@ -1607,9 +1655,59 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   const nick = () => ($('nick').value || '').trim().slice(0, 16);
   $('nick').value = store.get('cc2050-nick') || '';
   $('nick').addEventListener('input', () => { $('nick').classList.remove('bad'); $('nickErr').hidden = true; });
-  function introPage(b) { $('introA').hidden = b; $('introB').hidden = !b; $('ovIntro').querySelector('.sheet').scrollTop = 0; }
-  $('introNext').onclick = () => { SND.play('click'); introPage(true); };
-  $('introBack').onclick = () => { SND.play('click'); introPage(false); };
+  // intro pages: 0 how to play, 1 what you can do, 2 region (true / false kept for the old calls)
+  function introPage(p) {
+    const n = p === true ? 2 : p === false ? 0 : p;
+    $('introA').hidden = n !== 0; $('introG').hidden = n !== 1; $('introB').hidden = n !== 2;
+    if (n === 1) renderGuide();
+    $('ovIntro').querySelector('.sheet').scrollTop = 0;
+  }
+  $('introNext').onclick = () => { SND.play('click'); introPage(1); };
+  $('introNextG').onclick = () => { SND.play('click'); introPage(2); };
+  $('introBackG').onclick = () => { SND.play('click'); introPage(0); };
+  $('introBack').onclick = () => { SND.play('click'); introPage(1); };
+  // ---- the animated guide: what the four things you can tap do ----
+  function guideHTML() {
+    const card = (svg, t, p) => `<div class="gcard"><svg viewBox="0 0 200 100" aria-hidden="true">${svg}</svg><b>${t}</b><p>${p}</p></div>`;
+    const ground = '<rect y="86" width="200" height="14" fill="#2A3B52"/>';
+    const lab = ground + `<ellipse cx="80" cy="86" rx="58" ry="6" fill="rgba(46,196,182,.35)"/>
+      <rect x="40" y="38" width="80" height="48" fill="#F2F6F8"/><rect x="40" y="41" width="80" height="4" fill="#2EC4B6"/>
+      <rect x="46" y="50" width="42" height="28" fill="#5FB8D0"/><path d="M60 50v28M74 50v28M46 59h42M46 68h42" stroke="#fff" stroke-opacity=".5"/>
+      <circle cx="104" cy="58" r="9" fill="#16243A"/><path d="M102 52h4v4l5 8h-14l5-8z" fill="#F4B740"/>
+      <path d="M96 38a10 10 0 0 1 20 0z" fill="#C9D6E0"/><rect x="105" y="28" width="2" height="10" fill="#16243A"/>
+      <rect x="98" y="72" width="12" height="14" fill="#2E8FB0"/>
+      <rect x="42" y="24" width="48" height="11" rx="2" fill="#16243A"/><text x="66" y="32.5" font-size="8" font-weight="700" fill="#F4B740" text-anchor="middle">${L('LAB', '研究所')}</text>
+      <circle class="g-bub" cx="104" cy="50" r="2" fill="#7FE0D6"/><circle class="g-bub" cx="101" cy="50" r="1.6" fill="#7FE0D6" style="animation-delay:.8s"/><circle class="g-bub" cx="107" cy="50" r="1.8" fill="#7FE0D6" style="animation-delay:1.6s"/>
+      <path class="g-star" d="M152 20l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill="#F4B740"/>`;
+    const price = ground + `<rect x="45" y="12" width="110" height="46" rx="4" fill="#16243A" stroke="#7BD389" stroke-width="2"/>
+      <text x="100" y="23" font-size="7" font-weight="700" fill="#9DB0CB" text-anchor="middle">${L('POWER PRICE', '電價')}</text>
+      <circle cx="62" cy="37" r="9" fill="#2B4163"/><text x="62" y="41" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">−</text>
+      <g class="g-press"><circle cx="138" cy="37" r="9" fill="#2EC4B6"/><text x="138" y="41" font-size="12" font-weight="700" fill="#0B1422" text-anchor="middle">+</text></g>
+      <text class="g-p1" x="100" y="43" font-size="16" font-weight="700" fill="#E9EFF7" text-anchor="middle" font-family="monospace">$135</text>
+      <text class="g-p2" x="100" y="43" font-size="16" font-weight="700" fill="#FF8A73" text-anchor="middle" font-family="monospace">$160</text>
+      <text x="45" y="72" font-size="7" fill="#9DB0CB">${L('anger', '民怨')}</text><rect x="70" y="66" width="85" height="7" rx="3" fill="#0B1422"/><rect class="g-ang" x="70" y="66" width="85" height="7" rx="3" fill="#EF6351"/>
+      <text class="g-p2" x="155" y="83" font-size="8" font-weight="700" fill="#7BD389" text-anchor="end">+$$$</text>`;
+    const build = ground + `<rect x="66" y="50" width="62" height="36" fill="none" stroke="#fff" stroke-opacity=".6" stroke-dasharray="3 3"/>
+      <rect class="g-rise" x="70" y="52" width="54" height="34" fill="#6E3F33"/><rect class="g-rise" x="110" y="30" width="7" height="56" fill="#8C8C8C"/>
+      <path d="M152 86V14M96 16h74" stroke="#E2A93B" stroke-width="3"/><g class="g-hook"><path d="M120 16v14" stroke="#ddd"/><rect x="116" y="30" width="8" height="5" fill="#E2A93B"/></g>
+      <rect x="66" y="90" width="62" height="5" fill="#0B1422"/><rect class="g-bar" x="66" y="90" width="62" height="5" fill="#F4B740"/>
+      <path d="M26 86V58" stroke="#6B4A2E" stroke-width="2"/><rect x="10" y="46" width="34" height="13" fill="#F3EEE2" stroke="#1A1A1A"/><text x="27" y="55.5" font-size="7" font-weight="700" fill="#1A1A1A" text-anchor="middle">${L('+ BUILD', '+ 蓋廠')}</text>`;
+    const puff = (fill, cls) => [0, 0.66, 1.33].map(d => `<circle class="g-puff" cx="80" cy="20" r="5" fill="${fill}" style="animation-delay:${d}s"/>`).join('');
+    const capture = ground + `<rect x="40" y="50" width="50" height="36" fill="#6E3F33"/><rect x="76" y="24" width="8" height="62" fill="#8C8C8C"/><rect x="76" y="28" width="8" height="3" fill="#C0392B"/>
+      <g class="g-black">${puff('#3A3533')}</g><g class="g-white">${puff('#FFFFFF')}</g>
+      <rect class="g-tower" x="100" y="34" width="12" height="52" fill="#2EC4B6"/><rect class="g-tower" x="114" y="50" width="9" height="36" fill="#2EC4B6"/>
+      <g class="g-white"><path d="M106 86v12" stroke="#2EC4B6" stroke-width="2"/><circle class="g-dot" cx="106" cy="86" r="2" fill="#8FE6DC"/><circle class="g-dot" cx="106" cy="86" r="2" fill="#8FE6DC" style="animation-delay:.8s"/>
+      <text x="140" y="96" font-size="7" fill="#8FE6DC">CO₂ ${L('stored', '封存')}</text></g>`;
+    return card(lab, L('Research lab', '研究所'), L('Tap the lab: screen for new solvents or develop new processes.', '點研究所:篩選新溶劑、研發新製程。'))
+      + card(price, L('Power price', '電價'), L('Tap − / + on the price board: a higher price brings money but angers people.', '點電價看板的 − / +:電價越高錢越多,但民怨也越高。'))
+      + card(build, L('Build a plant', '蓋電廠'), L('Tap the empty lot: a spare plant covers peaks and breakdowns.', '點空地蓋電廠:多一座可應付尖峰與故障。'))
+      + card(capture, L('Add capture', '加裝捕捉'), L('Tap a plant and install capture: black smoke turns to white steam.', '點電廠加裝捕捉:黑煙變成白色水蒸氣。'));
+  }
+  function renderGuide() { $('guideIntro').innerHTML = $('guideGame').innerHTML = guideHTML(); }
+  function openGuide() { renderGuide(); $('ovGuide').hidden = false; }
+  $('helpBtn').onclick = () => { SND.play('click'); openGuide(); };
+  $('guideX').onclick = () => { $('ovGuide').hidden = true; };
+  $('ovGuide').addEventListener('click', e => { if (e.target === $('ovGuide')) $('ovGuide').hidden = true; });
   function showIntro() {
     const best = loadBest();
     $('regions').innerHTML = Object.entries(M.REGIONS).map(([id, r]) => {
@@ -1848,18 +1946,39 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
 
   // ---- the research lab (tap it to open the research panel) ----
   function drawLab(horizon, blackout) {
-    const x = W * 0.02, w = W * 0.095, h = SH * 0.2, y = horizon - h + 4;
-    const busy = Object.keys(S.research)[0];
-    ctx.fillStyle = '#E4EAF0'; ctx.fillRect(x, y, w, h);
-    ctx.fillStyle = '#9DB0CB'; ctx.fillRect(x - 2, y - 4, w + 4, 5);
-    ctx.fillStyle = blackout ? '#2B2F38' : '#8CC8EE';
-    for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) ctx.fillRect(x + w * (0.1 + c * 0.3), y + h * (0.22 + r * 0.3), w * 0.2, h * 0.16);
-    ctx.fillStyle = '#5B6F8A'; ctx.fillRect(x + w * 0.42, y + h * 0.78, w * 0.16, h * 0.22);
-    ctx.strokeStyle = '#6B7C93'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + w * 0.8, y - 4); ctx.lineTo(x + w * 0.8, y - 14); ctx.stroke();
-    ctx.fillStyle = '#C9D3DE'; ctx.beginPath(); ctx.arc(x + w * 0.8, y - 16, 6, Math.PI * 0.9, Math.PI * 2.1); ctx.fill();
-    ctx.fillStyle = '#16243A'; ctx.fillRect(x + w * 0.02, y - 19, Math.max(w * 0.7, 40), 14);
-    ctx.fillStyle = '#E2A93B'; ctx.font = FONT(700, 11); ctx.textAlign = 'center';
-    ctx.fillText(L('LAB', '研究所'), x + w * 0.02 + Math.max(w * 0.7, 40) / 2, y - 8); ctx.textAlign = 'left';
+    const x = W * 0.02, w = W * 0.1, h = SH * 0.22, y = horizon - h + 4;
+    const busy = Object.keys(S.research)[0], now = performance.now() / 1000;
+    // a teal glow on the ground marks it as a place you can use
+    const gw = ctx.createRadialGradient(x + w / 2, horizon, 2, x + w / 2, horizon, w);
+    gw.addColorStop(0, 'rgba(46,196,182,.5)'); gw.addColorStop(1, 'rgba(46,196,182,0)');
+    ctx.fillStyle = gw; ctx.fillRect(x - w * 0.5, horizon - w * 0.4, w * 2, w * 0.8);
+    // white research block with a teal band, a glass front, a flask emblem and a door
+    ctx.fillStyle = '#F2F6F8'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#2EC4B6'; ctx.fillRect(x, y + h * 0.05, w, Math.max(3, h * 0.05));
+    const gx = x + w * 0.07, gy = y + h * 0.18, gW = w * 0.52, gH = h * 0.6;
+    const gl = ctx.createLinearGradient(gx, gy, gx + gW, gy + gH);
+    gl.addColorStop(0, blackout ? '#2B2F38' : '#B8F0F5'); gl.addColorStop(1, blackout ? '#1E2128' : '#2E8FB0');
+    ctx.fillStyle = gl; ctx.fillRect(gx, gy, gW, gH);
+    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let i = 1; i < 3; i++) { ctx.moveTo(gx + gW * i / 3, gy); ctx.lineTo(gx + gW * i / 3, gy + gH); ctx.moveTo(gx, gy + gH * i / 3); ctx.lineTo(gx + gW, gy + gH * i / 3); }
+    ctx.stroke();
+    const ex = x + w * 0.8, ey = y + h * 0.42, er = Math.max(6, w * 0.14);
+    ctx.fillStyle = '#16243A'; ctx.beginPath(); ctx.arc(ex, ey, er, 0, 7); ctx.fill();
+    ctx.fillStyle = '#F4B740'; ctx.beginPath();
+    ctx.moveTo(ex - er * 0.18, ey - er * 0.62); ctx.lineTo(ex + er * 0.18, ey - er * 0.62); ctx.lineTo(ex + er * 0.18, ey - er * 0.12);
+    ctx.lineTo(ex + er * 0.6, ey + er * 0.55); ctx.lineTo(ex - er * 0.6, ey + er * 0.55); ctx.lineTo(ex - er * 0.18, ey - er * 0.12); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#2E8FB0'; ctx.fillRect(x + w * 0.69, y + h * 0.72, w * 0.2, h * 0.28);
+    // observatory dome with a blinking beacon
+    const dr = Math.max(5, w * 0.15), dx = x + w * 0.8;
+    ctx.fillStyle = '#C9D6E0'; ctx.beginPath(); ctx.arc(dx, y, dr, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#16243A'; ctx.fillRect(dx - 1.5, y - dr, 3, dr);
+    ctx.strokeStyle = '#6B7C93'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(dx, y - dr); ctx.lineTo(dx, y - dr - 8); ctx.stroke();
+    ctx.fillStyle = `rgba(239,99,81,${0.4 + 0.6 * Math.max(0, Math.sin(now * 3))})`; ctx.beginPath(); ctx.arc(dx, y - dr - 9, 2.2, 0, 7); ctx.fill();
+    // name sign
+    const sw = Math.max(w * 0.6, 44);
+    ctx.fillStyle = '#16243A'; ctx.fillRect(x + w * 0.02, y - 19, sw, 14);
+    ctx.fillStyle = '#F4B740'; ctx.font = FONT(700, 11); ctx.textAlign = 'center';
+    ctx.fillText(L('LAB', '研究所'), x + w * 0.02 + sw / 2, y - 8); ctx.textAlign = 'left';
     const hit = { id: '__lab', x0: x - 4, x1: x + w + 4, y0: y - 52, y1: horizon + 6 };
     hits.push(hit);
     if (hoverId === '__lab') outline(hit);
