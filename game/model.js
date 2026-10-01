@@ -152,6 +152,28 @@
         pitch: '\u662f\u53d6\u6368\uff0c\u4e0d\u662f\u5347\u7d1a\uff1a\u6bcf\u516c\u65a4\u5e36\u8d70\u5169\u500d CO\u2082\u3001\u84b8\u6c7d\u7a0d\u7701\uff0c\u4f46\u5438\u6536\u6162(\u5438\u6536\u5854\u9ad8\u53c8\u8cb4)\uff0c\u800c\u4e14\u6703\u63ee\u767c\u3002',
         fact: '2-\u80fa\u57fa-2-\u7532\u57fa-1-\u4e19\u9187(AMP)\u662f\u7acb\u9ad4\u969c\u7919\u80fa\uff1a\u5e7e\u4e4e\u4e0d\u5f62\u6210\u80fa\u7532\u9178\u9e7d\uff0c\u6240\u4ee5\u6bcf\u516c\u65a4\u80fd\u5e36\u8d70\u7d04\u5169\u500d\u65bc MEA \u7684 CO\u2082\uff0c\u91cb\u653e\u6642\u7684\u71b1\u4e5f\u8f03\u5c11(73 vs 82 kJ/mol)\u3002\u4f46\u5b83\u7684\u53cd\u61c9\u6162\u7d04 10 \u500d\uff1b\u6fd5\u58c1\u5854\u5be6\u6e2c\u7684\u6574\u9ad4\u5438\u6536\u901f\u7387\u6bd4 MEA \u4f4e 45 %\uff0c\u5438\u6536\u5854\u8981\u7d04 1.8 \u500d\u7684\u586b\u6599\u3002\u5b83\u7684\u63ee\u767c\u6027\u4e5f\u7d04\u662f MEA \u7684 3.5 \u500d\uff0c\u8dd1\u6389\u7684\u80fa\u8981\u4e00\u76f4\u88dc\u3002\u7be9\u9078\u627e\u5230\u7684\u662f\u300c\u4e0d\u4e00\u6a23\u300d\uff0c\u4e0d\u662f\u300c\u66f4\u597d\u300d\uff1a\u503c\u4e0d\u503c\u5f97\uff0c\u770b\u4f60\u9700\u8981\u4ec0\u9ebc\u3002' },
     },
+    mdeapz: {
+      name: 'MDEA/PZ (activated MDEA)', short: 'MDEA/PZ', capture: 0.90, duty: 3.1, capex: 0.88, opex: 10, rate: 1.8, work: 0.02,
+      unlocked: false, research: { cost: 90, months: 18, exp: 0.9, comp: 0.7 }, color: '#4EA8DE', est: ['duty', 'capex', 'opex'], stage: 'Pilot-tested',
+      startup: 0.012, solvent: true, fail: 'the blend foamed and carried over into the stripper',
+      pitch: 'A tertiary amine sped up by piperazine: twice the capacity of MEA, no freeze-out, but MDEA breaks down above ~120 \u00b0C, so the stripper runs cooler and compression costs more.',
+      fact: "MDEA is a tertiary amine: it cannot form carbamate, so it carries about 1.7\u20132\u00d7 the CO\u2082 of MEA per kilogram with a lower heat of absorption (68\u201370 vs 72\u201382 kJ/mol), but on its own it is far too slow for flue gas. At least 2 m of piperazine speeds it up to about 1.6\u20132\u00d7 MEA. Simulations and a 2025 pilot put its regeneration energy roughly 10\u201325 % below MEA (pilot: 3.4 vs 3.74 MJ/kg on the same rig). Catch: MDEA breaks down above about 120\u2013135 \u00b0C, so the stripper runs at lower pressure (6\u20137 bar vs 16.5 bar for PZ) and CO\u2082 compression costs more.",
+      src: "Frailie, PhD dissertation, UT Austin 2014; Xi Chen, PhD dissertation, UT Austin 2011; Closmann, Nguyen & Rochelle, Energy Procedia 2009 (doi 10.1016/j.egypro.2009.01.177); J\u00f8rsboe et al., Fuel 2025 (doi 10.1016/j.fuel.2025.135296)",
+      zh: { name: 'MDEA/PZ(\u6d3b\u5316 MDEA)', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u6df7\u5408\u6eb6\u5291\u8d77\u6ce1\uff0c\u88ab\u5e36\u9032\u6c7d\u63d0\u5854',
+        pitch: '\u7528\u54cc\u55ea\u52a0\u901f\u7684\u4e09\u7d1a\u80fa\uff1a\u5bb9\u91cf\u662f MEA \u7684\u5169\u500d\u3001\u4e0d\u6703\u6790\u51fa\uff0c\u4f46 MDEA \u8d85\u904e\u7d04 120 \u00b0C \u5c31\u6703\u5206\u89e3\uff0c\u6c7d\u63d0\u5854\u53ea\u80fd\u8dd1\u4f4e\u6eab\uff0c\u58d3\u7e2e\u5c31\u66f4\u8017\u96fb\u3002',
+        fact: "MDEA \u662f\u4e09\u7d1a\u80fa\uff1a\u4e0d\u80fd\u5f62\u6210\u80fa\u7532\u9178\u9e7d\uff0c\u6240\u4ee5\u6bcf\u516c\u65a4\u80fd\u5e36\u8d70\u7d04 1.7\u20132 \u500d\u65bc MEA \u7684 CO\u2082\uff0c\u5438\u6536\u71b1\u4e5f\u8f03\u4f4e(68\u201370 vs 72\u201382 kJ/mol)\uff0c\u4f46\u55ae\u7368\u4f7f\u7528\u5c0d\u7159\u6c23\u592a\u6162\u3002\u52a0\u5165\u81f3\u5c11 2 m \u54cc\u55ea\u5f8c\uff0c\u901f\u5ea6\u63d0\u5347\u5230 MEA \u7684\u7d04 1.6\u20132 \u500d\u3002\u6a21\u64ec\u8207 2025 \u5e74\u524d\u5c0e\u5ee0\u986f\u793a\u518d\u751f\u80fd\u8017\u6bd4 MEA \u4f4e\u7d04 10\u201325 %(\u540c\u4e00\u5ea7\u524d\u5c0e\u5ee0\uff1a3.4 vs 3.74 MJ/kg)\u3002\u4ee3\u50f9\uff1aMDEA \u8d85\u904e\u7d04 120\u2013135 \u00b0C \u6703\u5206\u89e3\uff0c\u6c7d\u63d0\u5854\u53ea\u80fd\u5728\u8f03\u4f4e\u58d3\u529b\u904b\u8f49(6\u20137 bar\uff0cPZ \u53ef\u5230 16.5 bar)\uff0cCO\u2082 \u58d3\u7e2e\u66f4\u8017\u96fb\u3002" },
+    },
+    aas: {
+      name: 'Amino-acid salt (K-sarcosinate)', short: 'AAS', capture: 0.90, duty: 3.7, capex: 1.02, opex: 8, rate: 1.16, gasDuty: 3.8, noEmit: true,
+      unlocked: false, research: { cost: 70, months: 12, exp: 0.95, comp: 0.75 }, color: '#C9A227', est: ['duty', 'capex', 'opex'], stage: 'Pilot-tested',
+      startup: 0.01, risk: 0.002, solvent: true, fail: 'salt crystals formed in the cold rich line', riskText: 'salt crystals clogged a line',
+      pitch: 'Not better, just different: a salt that does not evaporate, so no amine in the air and no emission protests, but it holds less CO\u2082 and needs more steam on coal.',
+      fact: "Potassium sarcosinate is the salt of an amino acid. Salts do not evaporate, so almost no amine reaches the air. But it holds only about 0.6\u00d7 the CO\u2082 of MEA per kilogram and can crystallise out. An independent pilot measured MORE regeneration energy than MEA; the vendor's advanced process (Siemens POSTCAP) claims 2.4\u20132.7 GJ/t. Lab tests also found that it oxidises: less than MEA, but it is not immune as advertised. It does relatively better on dilute gas-plant flue gas, where it absorbs about 1.6\u00d7 faster than MEA.",
+      src: "Le Li, PhD dissertation, UT Austin 2015; Knuutila et al., Energy Procedia 2011 (doi 10.1016/j.egypro.2011.02.024); Jockenh\u00f6vel & Schneider, Energy Procedia 2011 (doi 10.1016/j.egypro.2011.02.011)",
+      zh: { name: '\u80fa\u57fa\u9178\u9e7d(\u808c\u80fa\u9178\u9240)', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u51b7\u7684\u5bcc\u6db2\u7ba1\u7dda\u6790\u51fa\u9e7d\u7d50\u6676', riskText: '\u9e7d\u7d50\u6676\u585e\u4f4f\u7ba1\u7dda',
+        pitch: '\u4e0d\u662f\u66f4\u597d\uff0c\u53ea\u662f\u4e0d\u4e00\u6a23\uff1a\u9e7d\u985e\u4e0d\u6703\u63ee\u767c\uff0c\u7a7a\u6c23\u88e1\u6c92\u6709\u80fa\uff0c\u4e0d\u6703\u88ab\u6297\u8b70\u6392\u653e\uff1b\u4f46 CO\u2082 \u5bb9\u91cf\u8f03\u4f4e\uff0c\u7528\u5728\u71c3\u7164\u5ee0\u66f4\u8017\u84b8\u6c7d\u3002',
+        fact: "\u808c\u80fa\u9178\u9240\u662f\u80fa\u57fa\u9178\u7684\u9e7d\u985e\u3002\u9e7d\u4e0d\u6703\u63ee\u767c\uff0c\u6240\u4ee5\u5e7e\u4e4e\u6c92\u6709\u80fa\u9032\u5230\u7a7a\u6c23\u88e1\u3002\u4f46\u5b83\u6bcf\u516c\u65a4\u53ea\u80fd\u5e36\u8d70\u7d04 0.6 \u500d\u65bc MEA \u7684 CO\u2082\uff0c\u800c\u4e14\u53ef\u80fd\u7d50\u6676\u6790\u51fa\u3002\u7368\u7acb\u524d\u5c0e\u5ee0\u91cf\u5230\u7684\u518d\u751f\u80fd\u8017\u53cd\u800c\u300c\u9ad8\u65bc\u300dMEA\uff1b\u5ee0\u5546\u7684\u9032\u968e\u6d41\u7a0b(Siemens POSTCAP)\u5ba3\u7a31 2.4\u20132.7 GJ/t\u3002\u5be6\u9a57\u5ba4\u4e5f\u767c\u73fe\u5b83\u6703\u6c27\u5316\uff1a\u6bd4 MEA \u5c11\uff0c\u4f46\u4e0d\u50cf\u5ba3\u50b3\u7684\u90a3\u6a23\u514d\u75ab\u3002\u5b83\u5728\u7a00\u8584\u7684\u71c3\u6c23\u5ee0\u7159\u6c23\u4e0a\u76f8\u5c0d\u8f03\u597d\uff0c\u5438\u6536\u901f\u5ea6\u7d04\u70ba MEA \u7684 1.6 \u500d\u3002" },
+    },
     ampnmp: {
       name: 'AMP\u2013NMP (semi-aqueous)', short: 'AMP-NMP', capture: 0.90, duty: 3.0, capex: 1.45, opex: 6, rate: 0.3,
       unlocked: false, research: { cost: 100, months: 18, exp: 0.9, comp: 0.6 }, color: '#0E9F6E', est: ['duty', 'opex', 'capex'], stage: 'Lab scale',
@@ -198,13 +220,13 @@
         fact: '\u7194\u878d\u78b3\u9178\u9e7d\u71c3\u6599\u96fb\u6c60\u88dd\u5728\u7159\u9053\u4e0a\uff0c\u591a\u71d2\u4e00\u9ede\u5929\u7136\u6c23\u4f86\u767c\u96fb\uff1b\u5b83\u904b\u4f5c\u6642\u5fc5\u9808\u628a\u7159\u6c23\u88e1\u7684 CO\u2082 \u4ee5\u78b3\u9178\u6839\u96e2\u5b50\u7684\u5f62\u5f0f\u642c\u5230\u53e6\u4e00\u5074\uff0c\u6240\u4ee5 CO\u2082 \u5728\u53e6\u4e00\u5074\u8b8a\u5f97\u5f88\u6fc3\uff0c\u5bb9\u6613\u6536\u96c6\u3002\u88dd\u5728\u71c3\u6c23\u5ee0\u4e0a\u53ef\u6e1b\u5c11\u7d04 80 % CO\u2082\uff0c\u6574\u9ad4\u6548\u7387\u5e7e\u4e4e\u4e0d\u8b8a\u3002\u4ee3\u50f9\uff1a650 \u00b0C \u7684\u96fb\u6c60\u5806\u6703\u8001\u5316\uff0c\u6355\u6349\u7387\u4e0a\u9650\u7d04 85\u201390 %\uff0c\u71c3\u7164\u7159\u6c23\u6703\u6bd2\u5316\u5b83\u3002' },
     },
   };
-  const TECH_ORDER = ['mea90', 'afs', 'rpb', 'amp', 'pz', 'ampnmp', 'pe2eg', 'mcfc'];
+  const TECH_ORDER = ['mea90', 'afs', 'rpb', 'amp', 'aas', 'mdeapz', 'pz', 'ampnmp', 'pe2eg', 'mcfc'];
   // Solvent screening: each campaign discovers ONE random solvent you do not have yet (rarer = better/newer).
   const METHODS = {
     exp: { label: 'Lab experiments', zh: '\u5be6\u9a57', cost: 120, months: 18, odds: 0.9 },
     comp: { label: 'Computer screening (QM + MD)', zh: '\u96fb\u8166\u7be9\u9078(QM + MD)', cost: 50, months: 6, odds: 0.5, learn: 0.15 },
   };
-  const DROPS = { amp: { weight: 40, stars: 2 }, pz: { weight: 30, stars: 3 }, ampnmp: { weight: 25, stars: 3 }, pe2eg: { weight: 18, stars: 4 } };
+  const DROPS = { amp: { weight: 40, stars: 2 }, aas: { weight: 35, stars: 2 }, mdeapz: { weight: 30, stars: 3 }, pz: { weight: 28, stars: 3 }, ampnmp: { weight: 22, stars: 3 }, pe2eg: { weight: 16, stars: 4 } };
   const PROJECTS = {};
   const LAB_ORDER = ['screen', 'afs', 'rpb', 'mcfc'];   // one project at a time, more can queue
 
@@ -220,7 +242,8 @@
     const pt = PLANT_TYPES[type || 'coal'];
     const e = { capture: t.capture, duty: t.duty, opex: t.opex, work: t.work || 0, power: t.power || 0 };
     if (deep) { e.capture = DEEP.capture; e.duty *= DEEP.dutyMul; e.opex += DEEP.opexAdd; }
-    if (!t.gasOK) e.duty *= pt.dutyMul;   // PZ + advanced stripper performs the same on dilute gas-plant flue gas
+    if (t.gasDuty && pt.gas) e.duty = t.gasDuty * (deep ? DEEP.dutyMul : 1);   // e.g. an amino-acid salt suits dilute gas flue gas
+    else if (!t.gasOK) e.duty *= pt.dutyMul;   // PZ + advanced stripper performs the same on dilute gas-plant flue gas
     e.opex *= pt.opexMul;
     return e;
   }
@@ -310,10 +333,10 @@
   }
   const methodOf = (id, method) => id !== 'screen' ? 'exp' : (METHODS[method] ? method : 'exp');
   const undiscovered = state => Object.keys(DROPS).filter(k => !state.unlocked[k]);
-  // each solvent already found makes the next screen 50 % dearer: the easy candidates go first
+  // each solvent already found makes the next screen 30 % dearer: the easy candidates go first
   function researchCost(state, id, method) {
     const found = Object.keys(DROPS).length - undiscovered(state).length;
-    const base = id === 'screen' ? METHODS[methodOf(id, method)].cost * (1 + 0.5 * found) : project(id).cost;
+    const base = id === 'screen' ? METHODS[methodOf(id, method)].cost * (1 + 0.3 * found) : project(id).cost;
     return Math.round(base * (state.resCut > 0 ? 1.5 : 1));
   }
   function researchMonths(state, id, method) { return id === 'screen' ? METHODS[methodOf(id, method)].months : project(id).months; }
@@ -917,7 +940,7 @@
         p.name = pName(p);
         addNews(state, 'build', `${p.name}: conversion finished (${p.gross} MW).`, `${pZh(p)}\uff1a\u6539\u5efa\u5b8c\u6210(${p.gross} MW)\u3002`);
       } else {
-        if (p.tech !== b.tech) { p.washed = false; p.stackAge = 0; }
+        if (p.tech !== b.tech) { p.washed = !!TECHS[b.tech].noEmit; p.stackAge = 0; }
         p.tech = b.tech; p.deep = !!b.deep;
         state.techUsed[p.tech] = true;
         addNews(state, 'build', `${p.name}: ${TECHS[p.tech].short}${p.deep ? ' at 99 %' : ''} capture is online.`, `${pZh(p)}\uff1a${TECHS[p.tech].short}${p.deep ? ' 99 %' : ''} \u6355\u6349\u4e0a\u7dda\u3002`);

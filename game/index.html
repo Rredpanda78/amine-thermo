@@ -877,7 +877,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
       + row(L('Running cost', '運轉費'), '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
       + `</div><div class="barkey">${L('Bars run from the best to the worst option for this plant: <b style="color:var(--good)">green</b> longer is better, <b style="color:#E07A5F">orange</b> longer costs you more.', '長條從這座廠最好到最差的選項排列：<b style="color:var(--good)">綠色</b>越長越好，<b style="color:#E07A5F">橘色</b>越長越花錢。')}</div>`;
   }
-  const ICON = { mea90: ['MEA', 'solvent', '溶劑'], afs: ['AS', 'MEA + stripper', 'MEA + 汽提'], rpb: ['RPB', 'rotating bed', '旋轉床'], amp: ['AMP', 'in water', '水溶液'], pz: ['PZ', '+ stripper', '+ 汽提'], ampnmp: ['NMP', 'AMP + NMP', 'AMP + NMP'], pe2eg: ['2PE', '– EG', '– EG'], mcfc: ['MCFC', 'fuel cell', '燃料電池'] };
+  const ICON = { mea90: ['MEA', 'solvent', '溶劑'], afs: ['AS', 'MEA + stripper', 'MEA + 汽提'], rpb: ['RPB', 'rotating bed', '旋轉床'], amp: ['AMP', 'in water', '水溶液'], aas: ['AAS', 'amino salt', '胺基酸鹽'], mdeapz: ['M/PZ', 'MDEA + PZ', 'MDEA + PZ'], pz: ['PZ', '+ stripper', '+ 汽提'], ampnmp: ['NMP', 'AMP + NMP', 'AMP + NMP'], pe2eg: ['2PE', '– EG', '– EG'], mcfc: ['MCFC', 'fuel cell', '燃料電池'] };
   const CV = { gasb: ['→ GB', 'gas boiler', '燃氣鍋爐', '#B9B2E8'], gas: ['→ CC', 'combined cycle', '複循環', '#9CC7F2'], coal: ['→ coal', 'back to coal', '改回燃煤', '#F0A58A'] };
   const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' ? { kind: 'deep' } : k.startsWith('cv_') ? { kind: 'convert', to: k.slice(3) } : null;
   function jobLook(j) {
@@ -972,7 +972,7 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
         : L('A fuel cell needs no regeneration steam: it adds about 15 % power but burns extra gas', '燃料電池不需要再生蒸汽：多發約 15 % 的電，但要多燒天然氣');
       h = `<div class="row"><span class="nm" style="color:${t.color}">${tName(t)}</span><span>${stage}${foak}</span></div>
         <div class="pitch">${tPitch(t)}</div>${bars(vp, k)}
-        <details><summary>${L('Details', '詳細')}</summary><p>${how}${t.rate ? est('duty') : ''}${t.est && t.est.includes('capex') ? L(' · build cost is a game estimate', ' · 設備費是遊戲估計') : ''}${v.type !== 'coal' && t.rate && !t.gasOK ? L(' (gas flue gas is dilute, so more per tonne)', '(燃氣煙氣較稀，每噸較貴)') : ''}. ${tFact(t)}</p><p class="src">${t.src}</p></details>
+        <details><summary>${L('Details', '詳細')}</summary><p>${how}${t.rate ? est('duty') : ''}${t.est && t.est.includes('capex') ? L(' · build cost is a game estimate', ' · 設備費是遊戲估計') : ''}${v.type !== 'coal' && t.rate && !t.gasOK && !t.gasDuty ? L(' (gas flue gas is dilute, so more per tonne)', '(燃氣煙氣較稀，每噸較貴)') : ''}${t.noEmit ? L(' · no amine emissions: these plants are safe from emission protests', ' · 沒有胺排放：這些廠不會被抗議排放') : ''}. ${tFact(t)}</p><p class="src">${t.src}</p></details>
         <div class="row">${chk.ok ? `<button class="btn ${t.star ? 'gold' : ''}" data-go="${k}">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (k === 'deep') {
       const chk = M.canQueue(S, p, { kind: 'deep' });
@@ -1362,6 +1362,8 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
     const u = s.techUsed, deepN = s.plants.filter(p => p.deep).length, coalN = s.plants.filter(p => p.type === 'coal').length;
     if (u.pe2eg) return [L('Solvent pioneer', '溶劑先鋒'), L('You ran the city on 2PE–EG, the water-lean solvent that reacts 4.5× faster than MEA and carries 2.8× more CO₂ per cycle, so it needs less steam.', '你用 2PE–EG 撐起整座城市：這種低水溶劑反應比 MEA 快 4.5 倍、每次循環多帶 2.8 倍 CO₂，所以更省蒸汽。'), '10.1016/j.cej.2026.174224'];
     if (u.ampnmp) return [L('Kinetics chaser', '動力學玩家'), L('You bet on AMP–NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '你押寶 AMP–NMP：NMP 讓高容量的 AMP 反應快 3 倍，代價是胺甲酸鹽可能析出。'), '10.1016/j.cej.2025.160544'];
+    if (u.aas && !u.pz && !u.pe2eg) return [L('Clean-air operator', '無胺排放派'), L('You chose an amino-acid salt: it never evaporates, so no amine reached the town, at the price of more steam per tonne on coal.', '你選了胺基酸鹽：它不會揮發，城市空氣裡沒有胺；代價是燃煤廠每噸要更多蒸汽。'), null];
+    if (u.mdeapz && !u.pz && !u.pe2eg) return [L('Blend engineer', '混合溶劑工程師'), L('You ran MDEA activated with piperazine: high capacity and no freeze-out, with a stripper kept cool so MDEA does not break down.', '你用哌嗪活化的 MDEA：容量高、不會析出，汽提塔維持低溫避免 MDEA 分解。'), null];
     if (u.amp && !u.pz && !u.rpb && !u.afs) return [L('Trade-off taker', '取捨大師'), L('You ran aqueous AMP: twice the CO₂ per kilogram and a little less steam, paid for with taller absorbers and amine that keeps evaporating. Research found something different, not something better.', '你用了 AMP 水溶液：每公斤帶走兩倍 CO₂、蒸汽稍省，代價是更高的吸收塔和不斷揮發的胺。研發找到的是「不一樣」，不是「更好」。'), '10.1016/j.egypro.2011.01.029'];
     if (u.mcfc) return [L('Fuel-cell pioneer', '燃料電池先鋒'), L('You put carbonate fuel cells on your gas plants: capture that makes power instead of eating it, until the stacks wear out.', '你在燃氣廠裝了碳酸鹽燃料電池：捕捉不但不吃電，還能發電，直到電池堆老化。'), '10.1016/j.ijggc.2009.11.007'];
     if (u.rpb) return [L('Process intensifier', '製程強化派'), L('You shrank the absorber ten-fold with rotating packed beds: cheap, fast to build, as long as the rotors keep spinning.', '你用旋轉填充床把吸收器縮小十倍：便宜、蓋得快，只要轉子別壞。'), '10.1021/acs.iecr.4c01614'];
