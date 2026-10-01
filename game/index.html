@@ -402,46 +402,55 @@ html[lang|="zh"] .meter .lab, html[lang|="zh"] .card h2, html[lang|="zh"] .pane-
 
 /* ===== full-screen prototype: the town fills the window, meters are LED billboards on top ===== */
 html, body { height: 100%; overflow: hidden; }
-#stage { position: fixed; inset: 0; background: #7EC8F0; }
-#sceneBox { position: absolute; inset: 0; border: 0; border-radius: 0; }
-#sceneBox canvas { width: 100%; height: 100%; }
-.hud { position: absolute; left: 8px; right: 8px; top: 8px; z-index: 6; display: grid; grid-template-columns: auto minmax(230px, 2.2fr) repeat(3, minmax(108px, 1fr)) auto; gap: 6px; align-items: stretch; pointer-events: none; }
-.hud > * { pointer-events: auto; }
-.led { background: rgba(4, 8, 14, .84); border: 1px solid #22344d; border-radius: 10px; padding: 6px 9px; box-shadow: inset 0 0 14px rgba(46, 196, 182, .10), 0 4px 14px rgba(0, 0, 0, .35); min-width: 0; }
+/* three bands: the numbers that matter on top, the city in the middle, the controls at the bottom */
+html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
+#stage { position: fixed; inset: 0; display: flex; flex-direction: column; background: #0B1422; }
+#sceneBox { position: relative; flex: 1 1 auto; min-height: 0; border: 0; border-radius: 0; overflow: hidden; background: #7EC8F0; }
+#sceneBox canvas { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.topbar { position: relative; z-index: 6; flex: 0 0 auto; display: grid; grid-template-columns: auto minmax(0, 2.4fr) repeat(3, minmax(0, 1fr)) auto; gap: 6px; padding: 6px 8px; background: #0B1422; border-bottom: 1px solid #1B2A40; }
+.led { background: rgba(4, 8, 14, .84); border: 1px solid #22344d; border-radius: 10px; padding: 5px 9px; box-shadow: inset 0 0 14px rgba(46, 196, 182, .10); min-width: 0; }
 .led .val { color: #F4B740; text-shadow: 0 0 8px rgba(244, 183, 64, .5); }
 .led.m-ang .val { color: #FF8A73; text-shadow: 0 0 8px rgba(239, 99, 81, .5); }
 .led#mGrid .val { color: #8FE6DC; text-shadow: 0 0 8px rgba(46, 196, 182, .5); }
 .led#mFund .val { color: #A8F0B4; text-shadow: 0 0 8px rgba(123, 211, 137, .45); }
 .led.meter { background: rgba(4, 8, 14, .84); }
 .led .lab { color: #7F93B0; }
-.clockled { display: grid; gap: 4px; align-content: center; justify-items: start; }
-.clockled .date { color: #F4B740; text-shadow: 0 0 8px rgba(244, 183, 64, .5); text-align: left; min-width: 0; font-size: 18px; }
-.clockled b { font-family: var(--display); font-size: 14px; letter-spacing: .5px; color: #E9EFF7; }
-.ctl { display: grid; gap: 4px; align-content: center; justify-items: end; }
-.ctl .row { display: flex; gap: 4px; }
-.ctl button.mini { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-weight: 700; font-size: 14px; min-height: 34px; }
-.ctl .langbtn { min-height: 34px; padding: 4px 12px; font-size: 15px; min-width: 0; }
-.ctl #labBtn { color: var(--gold); border-color: #6B5B2E; }
-#labBtn .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--co2); margin-left: 5px; vertical-align: 1px; }
-.speed button { padding: 6px 8px; min-width: 32px; }
-/* collapsed billboards: one slim line of numbers */
-.hud.mini .limkey, .hud.mini .cprice, .hud.mini .breach, .hud.mini .sub, .hud.mini .m-gh .lab span:first-child, .hud.mini .m-gh .top-row .sub, .hud.mini .meter .bar, .hud.mini .clockled b, .hud.mini .m-ang .lab span:last-child { display: none; }
-.hud.mini .meter .lab { font-size: 10.5px; letter-spacing: .4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-date { display: grid; align-content: center; gap: 2px; }
+.tb-date .brand { font-family: var(--display); font-size: 12px; letter-spacing: .5px; color: #9DB0CB; white-space: nowrap; }
+.tb-date .date { font-family: var(--mono); font-weight: 600; font-size: 18px; color: #F4B740; text-shadow: 0 0 8px rgba(244, 183, 64, .5); white-space: nowrap; }
+.topbar .meter .lab { font-size: 11px; letter-spacing: .8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .meter .val { font-size: 18px; white-space: nowrap; line-height: 1.2; }
+.topbar .meter .val small { font-size: 12px; }
+.topbar .meter .sub { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .meter .bar { height: 5px; margin-top: 3px; }
 .m-ang .lab .short { display: none; }
-.hud.mini .m-ang .lab span:first-child { display: none; }
-.hud.mini .m-ang .lab .short { display: inline; }
-.hud.mini .m-gh .lab { justify-content: flex-start; }
-.hud.mini .m-gh .top-row { display: inline-flex; }
-.hud.mini .led { padding: 4px 8px; }
-.hud.mini .meter .val { font-size: 16px; white-space: nowrap; }
-.hud.mini .limbar { height: 10px; }
-/* the news ticker along the bottom */
-.ticker { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 6; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; padding: 6px 10px; pointer-events: none; }
-.ticker .status { color: #CFE3F7; font-size: 14px; min-height: 0; white-space: nowrap; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
-.ticker .tickwrap { overflow: hidden; white-space: nowrap; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
-.ticker .tick { display: inline-block; padding-left: 100%; animation: tick 34s linear infinite; font-family: var(--mono); font-size: 14px; color: #F4B740; text-shadow: 0 0 6px rgba(244, 183, 64, .45); }
+.topbar .m-gh { grid-column: auto; }
+.m-gh .ghrow { display: grid; grid-template-columns: auto minmax(60px, 1fr); gap: 8px; align-items: center; }
+.topbar .limbar { height: 12px; margin-top: 0; }
+.topbar .limbar i, .topbar .limbar em { top: 3px; bottom: 3px; }
+.m-gh .ghfoot { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; margin-top: 3px; }
+.topbar .breach { margin-top: 0; font-size: 11.5px; gap: 6px; grid-template-columns: auto 64px auto; }
+.topbar .cprice { margin-top: 0; font-size: 11.5px; }
+.topbar .limkey { margin-top: 0; font-size: 11px; }
+.m-gh .ghfoot .sub { font-size: 11px; }
+.sys { display: flex; gap: 4px; align-items: flex-start; }
+.sys button { width: 32px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+.sys .langbtn { width: auto; min-width: 42px; min-height: 0; padding: 0 8px; font-size: 13px; font-weight: 700; }
+.sys button[aria-pressed="false"] { opacity: .4; text-decoration: line-through; }
+.ctrlbar { position: relative; z-index: 6; flex: 0 0 auto; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "btns news speed"; gap: 10px; align-items: center; padding: 6px 8px; background: #0B1422; border-top: 1px solid #1B2A40; }
+.cb-btns { grid-area: btns; display: flex; gap: 6px; }
+.cbtn { min-height: 38px; padding: 6px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); font-weight: 700; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.cbtn:hover { border-color: var(--amine); }
+.cbtn.gold { color: var(--gold); border-color: #6B5B2E; }
+#labBtn .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--co2); margin-left: 6px; vertical-align: 1px; }
+.cb-news { grid-area: news; min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+.ctrlbar .status { color: #CFE3F7; font-size: 13.5px; white-space: nowrap; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
+.ctrlbar .tickwrap { overflow: hidden; white-space: nowrap; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.ctrlbar .tick { display: inline-block; padding-left: 100%; animation: tick 34s linear infinite; font-family: var(--mono); font-size: 13.5px; color: #F4B740; text-shadow: 0 0 6px rgba(244, 183, 64, .45); }
+.ctrlbar .speed { grid-area: speed; }
+.ctrlbar .speed button { padding: 6px 10px; min-width: 42px; min-height: 38px; }
 @keyframes tick { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-@media (prefers-reduced-motion: reduce) { .ticker .tick { animation: none; padding-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .ctrlbar .tick { animation: none; padding-left: 0; } }
 /* sheets use most of the screen; the lab and the build sheet lay their cards out in columns */
 .sheet { width: min(860px, 96vw); max-height: 94vh; padding: 20px; }
 .overlay { padding: 2vh 2vw; }
@@ -452,61 +461,62 @@ html, body { height: 100%; overflow: hidden; }
 .labsheet .news { max-height: 200px; }
 #ovBuild .opts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
 .paper { width: min(760px, 96vw); max-height: 94vh; }
-.rotate { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); z-index: 7; background: rgba(4, 8, 14, .9); border: 1px solid var(--amine); color: var(--amine); border-radius: 999px; padding: 8px 12px; font-weight: 700; font-size: 13px; display: none; align-items: center; gap: 8px; white-space: nowrap; }
+.rotate { position: absolute; left: 50%; bottom: calc(var(--cbh, 52px) + 8px); transform: translateX(-50%); z-index: 7; background: rgba(4, 8, 14, .9); border: 1px solid var(--amine); color: var(--amine); border-radius: 999px; padding: 8px 12px; font-weight: 700; font-size: 13px; display: none; align-items: center; gap: 8px; white-space: nowrap; }
 .rotate button { background: none; border: 0; color: var(--fg); font-size: 16px; cursor: pointer; }
 @media (orientation: portrait) and (max-width: 700px) { .rotate { display: flex; } .toast { bottom: calc(var(--botb, 60px) + 50px); } }
-/* phones and short windows: two rows of billboards */
-@media (max-width: 900px), (max-height: 520px) {
-  .hud { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .hud .m-gh { grid-column: span 2; }
-  .hud .clockled { grid-column: 1; grid-row: 1; }
-  .hud .ctl { grid-column: 2 / span 2; grid-row: 1; justify-items: end; }
-  .hud .m-gh { grid-row: 2; grid-column: 1 / span 2; }
-  .meter .val { font-size: 18px; }
+/* laptops: drop the small print first */
+@media (max-width: 1500px) { .topbar .limkey, .m-gh .ghfoot .sub { display: none; } }
+/* phones in landscape and short windows: one slim row of numbers, short labels */
+@media (max-width: 900px), (max-height: 560px) {
+  .tb-date .brand, .topbar .cprice, .topbar .meter .sub, .topbar .meter .bar, .m-gh .lab span:first-child, .m-ang .lab span:first-child, .m-ang .lab span:last-child, .topbar .lim .u { display: none; }
+  .m-ang .lab .short { display: inline; }
+  .topbar .meter .val { font-size: 16px; }
+  .tb-date .date { font-size: 16px; }
+  .topbar { gap: 5px; padding: 5px 6px; }
+  .led { padding: 4px 8px; }
+  .ctrlbar { padding: 5px 6px; gap: 8px; }
+  .cbtn, .ctrlbar .speed button { min-height: 34px; }
+  .cbtn { padding: 5px 11px; }
+  .ctrlbar .status { display: none; }
 }
-.hud.mini .lim .u { display: none; }
-@media (max-width: 700px) and (min-height: 521px) {
-  .hud { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .hud .clockled { grid-row: 1; grid-column: 1 / span 3; }
-  .hud .ctl { grid-row: 1; grid-column: 4 / span 3; }
-  .hud .m-gh { grid-row: 2; grid-column: 1 / span 4; }
-  .hud #mAng { grid-row: 2; grid-column: 5 / span 2; }
-  .hud #mFund { grid-row: 3; grid-column: 1 / span 3; }
-  .hud #mGrid { grid-row: 3; grid-column: 4 / span 3; }
-  .ctl button.mini { padding: 6px 8px; }
-  .ctl .langbtn { padding: 4px 8px; }
+/* phones in portrait: the numbers on three short rows, the news above the buttons */
+@media (max-width: 700px) and (min-height: 561px) {
+  .topbar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .tb-date { grid-row: 1; grid-column: 1 / span 3; }
+  .sys { grid-row: 1; grid-column: 4 / span 3; justify-content: flex-end; }
+  .topbar .m-gh { grid-row: 2; grid-column: 1 / span 4; }
+  #mAng { grid-row: 2; grid-column: 5 / span 2; }
+  #mFund { grid-row: 3; grid-column: 1 / span 3; }
+  #mGrid { grid-row: 3; grid-column: 4 / span 3; }
+  .ctrlbar { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "news news news" "btns . speed"; }
+  .ctrlbar .speed button { min-width: 38px; padding: 6px 8px; }
 }
-@media (max-height: 520px) { .hud { grid-template-columns: auto minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto; } .hud .m-gh, .hud .clockled, .hud .ctl { grid-row: auto; grid-column: auto; } }
 </style>
 
 <div id="stage">
-  <div class="scene" id="sceneBox"><canvas id="cv" aria-label="The town and its power plants. Tap a plant, the lab, the price board or the empty lot."></canvas><button class="paused-badge" id="pausedBadge" hidden><span data-i18n="pausedB">❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div></div>
-  <header class="hud" id="hud">
-    <div class="led clockled"><b data-i18n="brand">Capture City 2050</b><div class="date" id="date">Jan 2026</div>
-      <div class="speed" role="group" aria-label="Game speed">
-        <button id="sp0" aria-pressed="false" title="Pause">❚❚</button>
-        <button id="sp1" aria-pressed="true">1×</button>
-        <button id="sp2" aria-pressed="false">2×</button>
-        <button id="sp4" aria-pressed="false">4×</button>
-      </div>
-    </div>
+  <header class="topbar" id="hud">
+    <div class="led tb-date"><b class="brand" data-i18n="brand">Capture City 2050</b><div class="date" id="date">Jan 2026</div></div>
     <div class="led meter m-gh" id="mGh">
       <div class="lab"><span data-i18n="mCO2">CO₂ vs legal limit</span><span class="lim" id="gLim">limit — Mt/yr</span></div>
-      <div class="top-row"><div class="val" id="vGh">—<small> Mt/yr</small></div><div class="sub" id="gNext"></div></div>
-      <div class="limbar" role="img" id="gBar" aria-label="CO2 emissions against the legal limit"><b id="gCap"></b><i id="gFill"></i><em id="gOver"></em><s id="gFut"></s></div>
-      <div class="limkey" data-i18n="limKey"><b></b>green box = this year's limit · <i></i>dashed line = the limit 5 years from now</div>
-      <div class="breach"><span data-i18n="mBreach">Limit breach</span><span class="bar"><i id="bBreach"></i></span><b id="vBreach">0 %</b></div>
-      <div class="cprice" id="cPrice"></div>
+      <div class="ghrow"><div class="val" id="vGh">—<small> Mt/yr</small></div><div class="limbar" role="img" id="gBar" aria-label="CO2 emissions against the legal limit"><b id="gCap"></b><i id="gFill"></i><em id="gOver"></em><s id="gFut"></s></div></div>
+      <div class="ghfoot"><div class="breach"><span data-i18n="mBreach">Limit breach</span><span class="bar"><i id="bBreach"></i></span><b id="vBreach">0 %</b></div><div class="cprice" id="cPrice"></div><div class="limkey" data-i18n="limKey"><b></b>limit now · <i></i>in 5 years</div><span class="sub" id="gNext"></span></div>
     </div>
     <div class="led meter m-ang" id="mAng" role="button" tabindex="0"><div class="lab"><span data-i18n="mAnger">Public anger</span><span class="short" data-i18n="mAngerS">Anger</span><span data-i18n="mWhy">why? ›</span></div><div class="val" id="vAng">10%</div><div class="bar"><i id="bAng"></i></div><div class="sub" id="angWhy"></div></div>
     <div class="led meter" id="mFund"><div class="lab"><span data-i18n="mFunds">Funds</span></div><div class="val" id="vFund">$1,500M</div><div class="sub" id="sFund">± $0M / month</div></div>
     <div class="led meter" id="mGrid"><div class="lab"><span data-i18n="mGrid">Grid</span></div><div class="val" id="vGrid">— MW</div><div class="sub" id="sGrid">demand — MW</div></div>
-    <div class="led ctl">
-      <div class="row"><button class="mini" id="labBtn">LAB<span class="dot" id="labDot" hidden></span></button><button class="langbtn" id="langBtn" title="English / 繁體中文">中文</button><button class="mini" id="hudBtn" title="Collapse / expand">▴</button></div>
-      <div class="speed snd" role="group" aria-label="Sound"><button id="sfxBtn" aria-pressed="true" data-i18n="sfx">SFX</button><button id="musBtn" aria-pressed="false" data-i18n="music">Music</button></div>
-    </div>
+    <div class="sys" role="group" aria-label="Sound and language"><button id="sfxBtn" aria-pressed="true" title="Sound effects" aria-label="Sound effects">🔊</button><button id="musBtn" aria-pressed="false" title="Music" aria-label="Music">♪</button><button class="langbtn" id="langBtn" title="English / 繁體中文">中文</button></div>
   </header>
-  <footer class="led ticker" id="ticker"><div class="status" id="status"></div><div class="tickwrap"><span class="tick" id="tick"></span></div></footer>
+  <div class="scene" id="sceneBox"><canvas id="cv" aria-label="The town and its power plants. Tap a plant, the lab, the price board or the empty lot."></canvas><button class="paused-badge" id="pausedBadge" hidden><span data-i18n="pausedB">❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div></div>
+  <footer class="ctrlbar" id="ticker">
+    <div class="cb-btns"><button class="cbtn gold" id="labBtn"><span data-i18n="labB">LAB</span><span class="dot" id="labDot" hidden></span></button><button class="cbtn" id="buildBtn"><span data-i18n="buildB">+ Build</span></button></div>
+    <div class="cb-news"><div class="status" id="status"></div><div class="tickwrap"><span class="tick" id="tick"></span></div></div>
+    <div class="speed" role="group" aria-label="Game speed">
+      <button id="sp0" aria-pressed="false" title="Pause">❚❚</button>
+      <button id="sp1" aria-pressed="true">1×</button>
+      <button id="sp2" aria-pressed="false">2×</button>
+      <button id="sp4" aria-pressed="false">4×</button>
+    </div>
+  </footer>
   <div class="rotate" id="rotateHint"><span data-i18n="rotate">Turn your phone sideways for the whole city ↻</span><button id="rotateX" aria-label="Close">×</button></div>
   <div hidden><div class="tabs" id="tabs"><button data-tab="city"></button><button data-tab="research"></button></div><div id="main" data-tab="city"></div><div class="chips" id="chips"></div><b id="co2rate"></b></div>
 </div>
@@ -677,6 +687,7 @@ html, body { height: 100%; overflow: hidden; }
     brandSub: ['A CO₂ capture game · Lin Research Group, NTHU', 'CO₂ 捕捉小遊戲 · 清華大學 林育正實驗室'],
     sfx: ['SFX', '音效'], music: ['Music', '音樂'],
     mCO2: ['CO₂ vs legal limit', 'CO₂ 排放 vs 法定限額'], mBreach: ['Limit breach', '超標計量'],
+    labB: ['LAB', '研究所'], buildB: ['+ Build', '+ 蓋廠'],
     mAnger: ['Public anger', '民怨'], mAngerS: ['Anger', '民怨'], mWhy: ['why? ›', '原因 ›'], mFunds: ['Funds', '資金'], mGrid: ['Grid', '電網'],
     tabCity: ['City', '城市'], tabLab: ['Research', '研發'],
     cityT: ['City · tap plants, the lab, the price board or the empty lot', '城市 · 點電廠、研究所、電價看板或空地'],
@@ -1587,7 +1598,8 @@ html, body { height: 100%; overflow: hidden; }
     W = Math.round(box.width);
     H = Math.round(box.height);   // full screen: the canvas is the window
     const hud = document.getElementById('hud').getBoundingClientRect(), tk = document.getElementById('ticker').getBoundingClientRect();
-    TOP = Math.round(hud.bottom) + 4; BOT = Math.round(box.bottom - tk.top) + 4;
+    TOP = Math.max(0, Math.round(hud.bottom - box.top)) + 4; BOT = Math.max(0, Math.round(box.bottom - tk.top)) + 4;   // 4 px when the bars sit outside the city
+    document.documentElement.style.setProperty('--cbh', Math.round(tk.height) + 'px');
     document.documentElement.style.setProperty('--hudb', TOP + 'px');
     document.documentElement.style.setProperty('--botb', (BOT + 6) + 'px');   // toasts sit just above the ticker
     DPR = Math.min(2, window.devicePixelRatio || 1);
@@ -1626,9 +1638,7 @@ html, body { height: 100%; overflow: hidden; }
   $('labX').onclick = () => { $('ovLab').hidden = true; };
   $('ovLab').addEventListener('click', e => { if (e.target === $('ovLab')) $('ovLab').hidden = true; });
   // billboards collapse to one slim line (phones in landscape start collapsed)
-  function setMini(on) { $('hud').classList.toggle('mini', on); $('hudBtn').textContent = on ? '▾' : '▴'; setTimeout(() => { resize(); }, 0); }
-  $('hudBtn').onclick = () => { SND.play('click'); setMini(!$('hud').classList.contains('mini')); };
-  if (innerHeight < 520 || innerWidth < 700) setMini(true);
+  $('buildBtn').onclick = () => { SND.play('click'); openBuild(); };
   $('rotateX').onclick = () => { $('rotateHint').style.display = 'none'; };
   cv.addEventListener('mousemove', e => { hoverId = hitAt(...scenePos(e)); cv.style.cursor = hoverId ? 'pointer' : 'default'; });
   cv.addEventListener('mouseleave', () => { hoverId = null; });
@@ -1660,7 +1670,7 @@ html, body { height: 100%; overflow: hidden; }
     return out;
   }
   // plant tap targets: the nearest plant centre wins, so a raised back-row plant is hit on its upper part
-  let ptargets = [], labTip = null, plotTip = null;
+  let ptargets = [], labTip = null, plotTip = null, boardBox = null;
 
   // name tag on the ground under a plant: id + capture, and the number of queued jobs
   // labels in the scene are queued while drawing, then placed together so none lands on another:
@@ -1679,11 +1689,13 @@ html, body { height: 100%; overflow: hidden; }
         }
         return y;
       };
+      const x = Math.max(2, Math.min(W - b.w - 2, b.x0)), dx = x - b.x0;   // never off the left or right edge
+      b.x0 = x;
       let y = search(b.y0, b.dir);
       if (y < TOP + 2 || y + b.h > H - BOT) y = search(b.y0, -b.dir);   // no room that way: try the other way
       y = Math.max(TOP + 2, Math.min(H - BOT - b.h, y));
       placed.push({ x0: b.x0, x1: b.x0 + b.w, y0: y, y1: y + b.h });
-      b.paint(y - b.y0);
+      b.paint(y - b.y0, dx);
     }
     labelQ = [];
   }
@@ -1695,7 +1707,7 @@ html, body { height: 100%; overflow: hidden; }
     ctx.font = FONT(600, fs.toFixed(1));
     const txt = what ? p.id + ' · ' + what : p.id, tw = ctx.measureText(txt).width + 8, th = fs + 5, y0 = base + 4;
     const q = (p.queue || []).length;
-    queueLabel(cx - tw / 2, y0 - (q ? 7 : 0), tw + (q ? 7 : 0), th + (q ? 7 : 0), back ? -1 : 1, back ? 0.5 : 0, dy => paintTag(p, t, txt, cx, y0 + dy, tw, th, fs, down, q));
+    queueLabel(cx - tw / 2, y0 - (q ? 7 : 0), tw + (q ? 7 : 0), th + (q ? 7 : 0), back ? -1 : 1, back ? 0.5 : 0, (dy, dx) => paintTag(p, t, txt, cx + dx, y0 + dy, tw, th, fs, down, q));
   }
   function paintTag(p, t, txt, cx, y, tw, th, fs, down, q) {
     ctx.font = FONT(600, fs.toFixed(1));
@@ -1711,7 +1723,9 @@ html, body { height: 100%; overflow: hidden; }
 
   // ---- construction site pieces ----
   function drawProgress(cx, y, w, frac, label) {
-    queueLabel(cx - w / 2 - 1, y - 1, w + 2, 19, -1, 1, dy => paintProgress(cx, y + dy, w, frac, label));
+    ctx.font = FONT(700, 11);
+    w = Math.max(w, ctx.measureText(label).width + 12);   // the pill is always as wide as its label
+    queueLabel(cx - w / 2 - 1, y - 1, w + 2, 19, -1, 1, (dy, dx) => paintProgress(cx + dx, y + dy, w, frac, label));
   }
   function paintProgress(cx, y, w, frac, label) {
     const h = 17, x = cx - w / 2;
@@ -1795,6 +1809,7 @@ html, body { height: 100%; overflow: hidden; }
     const bw = Math.min(210, Math.max(150, W * 0.2)), bh = Math.min(74, Math.max(58, H * 0.17));   // full screen: keep the board sign-sized
     const x = Math.max(4, Math.min(W * 0.27, W * 0.48 - bw)), y = Math.max(TOP + 6, horizon - SH * 0.6 - bh);   // tall screens: not up in the sky
     const fair = M.fairPrice(S), d = S.price - fair;
+    boardBox = { x, y, w: bw, h: bh };
     if (polesOnly) { ctx.fillStyle = '#5B4636'; ctx.fillRect(x + bw * 0.2, y + bh, 3, horizon - y - bh); ctx.fillRect(x + bw * 0.8 - 3, y + bh, 3, horizon - y - bh); return; }
     ctx.fillStyle = '#16243A'; ctx.fillRect(x, y, bw, bh);
     ctx.strokeStyle = d > 0 ? '#EF6351' : '#7BD389'; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, bw - 2, bh - 2);
@@ -1835,7 +1850,9 @@ html, body { height: 100%; overflow: hidden; }
     ctx.fillText(label, x, horizon - 30 * k); ctx.textAlign = 'left';
   }
   // ---- first-time arrows ----
+  let arrowOff = {};
   function drawArrow(x, y, dir, text, id, ph, layoutOnly) {
+    if (!layoutOnly) y += arrowOff[id] || 0;
     const b = REDUCED || layoutOnly ? 0 : Math.abs(Math.sin(performance.now() / 260 + ph)) * 6;
     ctx.font = FONT(700, 13);
     const tw = ctx.measureText(text).width + 14, th = 22;
@@ -1856,7 +1873,7 @@ html, body { height: 100%; overflow: hidden; }
     }
     lx = Math.max(4, Math.min(W - tw - 4, lx)); ly = Math.max(TOP + 2, ly);
     if (ly < TOP + 26 && lx + tw > W - 160) lx = Math.max(4, W - 164 - tw);   // stay clear of the CO2-stored label
-    if (layoutOnly) { ctx.restore(); queueLabel(lx - 6, ly - 6, tw + 12, th + 12 + (dir === 'down' ? 28 : 0), -1, -1, () => {}); return; }   // keep pills off the arrow and its label
+    if (layoutOnly) { ctx.restore(); queueLabel(lx - 6, ly - 6, tw + 12, th + 12 + (dir === 'down' ? 28 : 0), -1, -1, dy => { arrowOff[id] = dy; }); return; }   // keep pills off the arrow and its label
     ctx.fill(); ctx.stroke();
     ctx.fillStyle = 'rgba(11,20,34,.92)'; ctx.fillRect(lx, ly, tw, th);
     ctx.strokeStyle = '#F4B740'; ctx.lineWidth = 1; ctx.strokeRect(lx + 0.5, ly + 0.5, tw - 1, th - 1);
@@ -2079,7 +2096,8 @@ html, body { height: 100%; overflow: hidden; }
     }
     if (particles.length > 400) particles.splice(0, particles.length - 400);
     drawCoach(streetY, lay, true);
-    queueLabel(W - 158, TOP + 2, 154, 22, -1, -1, () => {});   // the CO2-stored label (drawn last)
+    queueLabel(W - 158, TOP + 2, 154, 22, -1, -2, () => {});   // the CO2-stored label (drawn last)
+    if (boardBox) queueLabel(boardBox.x - 3, boardBox.y - 3, boardBox.w + 6, boardBox.h + 6, -1, -2, () => {});   // and the price board
     flushLabels();
 
     if (!REDUCED) drawWeather(horizon);
