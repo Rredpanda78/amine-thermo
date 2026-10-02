@@ -1193,6 +1193,27 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   $('plClose').onclick = closePlant;
   $('ovPlant').addEventListener('click', e => { if (e.target === $('ovPlant')) closePlant(); });
   document.addEventListener('pointerdown', e => { lastPtr = e.pointerType || 'mouse'; }, true);
+  // one bar: gain > 1 is better than the reference; `full` is the ratio that fills half the track (log scale)
+  const pct = (a, b) => { const d = Math.round((a / b - 1) * 100); return d === 0 ? '=' : (d > 0 ? '+' : '−') + Math.abs(d) + ' %'; };
+  function barRow(k, gain, full, text, tip, sameText) {
+    const f = Math.min(1, Math.abs(Math.log(gain)) / Math.log(full)), same = Math.abs(gain - 1) < 0.005;
+    const cls = same ? '' : gain > 1 ? 'good' : 'bad';
+    return `<span class="k">${k}</span><span class="tr" title="${esc(tip)}">${same ? '' : `<i class="${cls}" style="width:${(f * 50).toFixed(1)}%"></i>`}</span><span class="v ${cls}">${same ? sameText : text}</span>`;
+  }
+  // upgrade bars: this plant with the upgrade against the same plant without it (MEA stands in if it has no capture yet)
+  function upBars(vp, k) {
+    const tech = vp.tech || 'mea90', deepK = k === 'deep';
+    const off = Object.assign({}, vp, deepK ? {} : { [k]: false }), on = Object.assign({}, vp, deepK ? {} : { [k]: true });
+    const dOff = deepK ? false : k === 'sf' ? true : !!vp.deep, dOn = deepK ? true : dOff;
+    const steam = (x, d) => M.eff(tech, d, x.type, x.ic, x.sf, x.as).duty, lost = (x, d) => M.penalty(x, tech, d) * x.gross;
+    const s0 = steam(off, dOff), s1 = steam(on, dOn), l0 = lost(off, dOff), l1 = lost(on, dOn);
+    const none = L('= no change', '= 沒變');
+    let rows = '';
+    if (deepK) rows += barRow(L('CO₂ escaping', '漏掉的 CO₂'), 10, 10, '−90 %', L('10 % of the CO₂ escapes at 90 %, 1 % at 99 %', '90 % 時漏掉 10 % 的 CO₂,99 % 時只漏 1 %'), none);
+    rows += barRow(L('Steam', '蒸汽'), s0 / s1, 2, pct(s1, s0), `${fmt(s1, 2)} GJ/t · ${L('now', '目前')} ${fmt(s0, 2)}`, none)
+      + barRow(L('Power lost', '少發電'), l0 / l1, 2, pct(l1, l0), `−${fmt(l1)} MW · ${L('now', '目前')} −${fmt(l0)} MW`, none);
+    return `<div class="bars">${rows}</div><div class="barkey">${L(`Against this plant without it${vp.tech ? '' : ' (shown with MEA)'}: <b style="color:var(--good)">green →</b> better, <b style="color:#E07A5F">← red</b> worse; a full half-bar is twice as good or bad.`, `跟這座廠沒加裝時比${vp.tech ? '' : '(以 MEA 示意)'}:<b style="color:var(--good)">綠色往右</b> = 較好,<b style="color:#E07A5F">紅色往左</b> = 較差;半條滿格 = 好(壞)兩倍。`)}</div>`;
+  }
   // compare bars: each solvent against MEA on this same plant (same add-ons, same cost rules). The centre line is MEA;
   // green to the right = better, red to the left = worse; the length is the size of the difference on a log scale
   // (full half-bar = twice as good or bad; absorption speed: ten times)
@@ -1200,13 +1221,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     const t = M.TECHS[id], mea = M.TECHS.mea90;
     const steam = x => M.eff(x, false, p.type, p.ic, p.sf, p.as).duty, lost = x => M.penalty(p, x, false) * p.gross;
     const cost = x => M.installCost(S, p, x), run = x => M.eff(x, false, p.type).opex;
-    const pct = (a, b) => { const d = Math.round((a / b - 1) * 100); return d === 0 ? '=' : (d > 0 ? '+' : '−') + Math.abs(d) + ' %'; };
-    // gain > 1 means better than MEA; full = the ratio that fills half the track
-    const row = (k, gain, full, text, tip) => {
-      const f = Math.min(1, Math.abs(Math.log(gain)) / Math.log(full)), same = Math.abs(gain - 1) < 0.005;
-      const cls = same ? '' : gain > 1 ? 'good' : 'bad';
-      return `<span class="k">${k}</span><span class="tr" title="${esc(tip)}">${same ? '' : `<i class="${cls}" style="width:${(f * 50).toFixed(1)}%"></i>`}</span><span class="v ${cls}">${same ? '= MEA' : text}</span>`;
-    };
+    const row = (k, gain, full, text, tip) => barRow(k, gain, full, text, tip, '= MEA');
     if (id === 'mea90') return `<div class="barkey">${L('MEA is the yardstick: every other solvent is drawn against it.', 'MEA 是比較基準:其他溶劑都拿它來比。')}</div>`;
     const sv = steam(id), sm = steam('mea90'), lv = lost(id), lm = lost('mea90'), cv = cost(id), cm = cost('mea90'), rv = run(id), rm = run('mea90');
     return '<div class="bars">'
@@ -1420,21 +1435,17 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         <div class="row">${chk.ok ? `<button class="btn ${t.star ? 'gold' : ''}" data-go="${k}">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (k === 'deep') {
       const chk = M.canQueue(S, p, { kind: 'deep' });
-      const pen = v.tech ? M.penalty({ type: v.type }, v.tech, true) : 0;
       h = `<div class="row"><span class="nm" style="color:var(--good)">${L('Upgrade to 99 % capture', '升級到 99 % 捕捉')}</span><span class="chip">${L('taller packing', '更高填料')}</span></div>
         <div class="pitch">${L('99 % instead of 90 %: taller columns, a year to build, more steam.', '捕捉率 90 → 99 %:塔更高、要蓋一年、更耗蒸汽。')}</div>
-        ${v.tech ? `<div class="mini"><span>${L('captures', '捕捉')} <b>99 %</b></span><span>${L('output', '出力')} <b>−${Math.round(pen * 100)} %</b></span></div>` : ''}
+        ${upBars(vp, 'deep')}
         <details><summary>${L('Details', '詳細')}</summary><p>${L('A commercial design study (with Prof. Lin as co-author) reached 99.5 % capture with about 50 % more absorber packing, raising the capital cost per tonne by about 6 %. The extra regeneration energy used here (about +9 %) is a game estimate', '一份商業設計研究(林育正教授為共同作者)只要多約 50 % 的吸收塔填料就能達到 99.5 % 捕捉，每噸資本成本約多 6 %。這裡用的再生能耗增量(約 +9 %)是遊戲估計')} <span class="est">est.</span></p><p class="src">Hirata et al., Int. J. Greenh. Gas Control 2020 (doi 10.1016/j.ijggc.2019.102847)</p></details>
         <div class="row">${chk.ok ? `<button class="btn" data-go="deep">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (M.PROCESS[k]) {
       const pr = M.project(k), chk = M.canQueue(S, p, { kind: k });
-      const withIt = Object.assign({}, vp, { [k]: true });
-      const now = v.tech ? Math.round(M.penalty(vp, v.tech, k === 'sf' ? true : undefined) * vp.gross) : 0;
-      const after = v.tech ? Math.round(M.penalty(withIt, v.tech, k === 'sf' ? true : undefined) * vp.gross) : 0;
       h = `<div class="row"><span class="nm" style="color:${PCOL[k]}">${zhOf(pr.name, pr.zh.name)}</span><span class="chip">${L('process', '製程')}</span></div>
         ${fitsHTML(k, v.tech)}
         <div class="pitch">${zhOf(pr.desc, pr.zh.desc)}</div>
-        ${v.tech && !v[k] && (k !== 'sf' || v.deep) ? `<div class="mini"><span>${L('this plant now', '這座廠目前')} <b>−${now} MW</b></span><span>${L('with it', '加裝後')} <b>−${after} MW</b></span></div>` : ''}
+        ${upBars(vp, k)}
         <details><summary>${L('Details', '詳細')}</summary><p>${zhOf(pr.more, pr.zh.more)}</p><p class="src">${pr.src}</p></details>
         <div class="row">${chk.ok ? `<button class="btn" data-go="${k}">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (k.startsWith('cv_')) {
