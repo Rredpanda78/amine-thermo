@@ -12,7 +12,7 @@
  */
 const SHEET = 'games';
 const COLS = ['received', 'v', 'region', 'diff', 'win', 'why', 'endYear', 'month', 'score', 'stars', 'cumCO2', 'captured',
-  'anger', 'funds', 'blackouts', 'fails', 'maxBreach', 'plants', 'fleet', 'techs', 'found', 'price', 'lang', 'device', 'minutes', 'years'];
+  'anger', 'funds', 'blackouts', 'fails', 'maxBreach', 'plants', 'fleet', 'techs', 'found', 'price', 'lang', 'device', 'minutes', 'years', 'steam'];
 const REGIONS = ['taiwan', 'germany', 'texas'];
 const DIFFS = ['easy', 'normal', 'hard', 'hell'];
 

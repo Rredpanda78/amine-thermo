@@ -73,6 +73,8 @@ button, input { font: inherit; color: inherit; }
 .cprice.credit b { color: var(--good); }
 .limbar s { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed #CFE9D5; transition: left .5s; }
 .regions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+.starwhy { margin: -4px 0 8px; font-size: 13px; color: var(--muted); text-align: center; }
+.starwhy b { color: var(--fg); }
 .statsopt { display: flex; gap: 6px; align-items: flex-start; margin-top: 8px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
 .statsopt input { margin-top: 2px; }
 .diffs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: -4px 0 12px; }
@@ -819,6 +821,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="endTitle">
     <h3 id="endTitle">Game over</h3>
     <div class="result-stars" id="endStars"></div>
+    <p class="starwhy" id="endStarWhy"></p>
     <p class="arch" id="endArch"></p>
     <p class="lead" id="endLead"></p>
     <div class="result-grid" id="endGrid"></div>
@@ -1223,7 +1226,9 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     const runId = Object.keys(S.research)[0], lq = S.labQueue || [];
     const found = Object.keys(M.DROPS).filter(k => S.unlocked[k]).length, drops = Object.keys(M.DROPS).length;
     const cp = renderCap();
-    $('mgLead').textContent = `${dateStr(S.m)} · ${money(S.funds)} · ${S.plants.length} ${L('plants', '座電廠')} · ${L('capacity', '容量')} ${fmt(cp.have)}/${fmt(cp.need)} MW`;
+    const stNow = S.last && S.last.steam, [g2, g3] = M.STEAM_STARS;
+    $('mgLead').textContent = `${dateStr(S.m)} · ${money(S.funds)} · ${S.plants.length} ${L('plants', '座電廠')} · ${L('capacity', '容量')} ${fmt(cp.have)}/${fmt(cp.need)} MW`
+      + (stNow ? ` · ${L('steam', '蒸汽')} ${fmt(stNow, 2)} GJ/t (★★ ≤ ${g2}, ★★★ ≤ ${g3})` : '');
     $('mgLab').innerHTML = '<div class="mtiles">' + M.LAB_ORDER.map(id => {
       const pr = M.project(id), run = runId === id, qi = lq.findIndex(x => x.id === id), done = labDone(id);
       const total = run ? Math.max(S.research[id], S.resTotal || S.research[id]) : 1;
@@ -1328,7 +1333,8 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     renderTabs(p);
     const on = M.online(p), pen = p.tech ? M.penalty(p, p.tech) : 0;
     $('plTitle').textContent = plantName(p);
-    $('plLead').textContent = `${p.gross} MW ${typeName(p.type)} · ${plantStatus(p)}${on && pen ? ` → ${fmt(p.gross * (1 - pen))} MW` : ''} · ${money(S.funds)}`;
+    const pe = p.tech ? M.eff(p.tech, p.deep, p.type, p.ic, p.sf, p.as) : null;
+    $('plLead').textContent = `${p.gross} MW ${typeName(p.type)} · ${plantStatus(p)}${on && pen ? ` → ${fmt(p.gross * (1 - pen))} MW` : ''}${pe ? ` · ${L('steam', '蒸汽')} ${fmt(pe.duty, 2)} GJ/t` : ''} · ${money(S.funds)}`;
     const jobs = [];
     if (p.build) jobs.push(Object.assign({ run: true }, p.build));
     (p.queue || []).forEach(j => jobs.push(j));
@@ -1462,10 +1468,11 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       const pt = M.PLANT_TYPES[type], chk = M.canBuildPlant(S, type);
       return `<div class="opt"><div class="row"><span class="nm">${zhOf(pt.label, pt.zh)} · ${pt.size} MW</span><span class="chip ${type}">${pt.intensity} t CO₂/MWh</span></div>
         <div class="pitch">👍 ${pros}</div><div class="pitch">👎 ${cons}</div>
-        <div class="row"><button class="btn" data-build="${type}" ${chk.ok ? '' : 'disabled'}>${L('Build', '興建')} · $${pt.build.cost}M · ${mo(pt.build.months)}</button>${chk.ok ? '' : `<span class="src">${why(chk.why)}</span>`}</div></div>`;
+        <div class="row"><button class="btn" data-build="${type}" ${chk.ok ? '' : 'disabled'}>${L('Build', '興建')} · $${pt.build.cost}M · ${mo(pt.build.months)}</button>${chk.ok ? '' : `<span class="src">${why(chk.why)}${chk.down ? L(` (needs $${chk.down}M down)`, `(頭期要 $${chk.down}M)`) : ''}</span>`}</div>
+        <div class="kv">${L(`$${Math.round(pt.build.cost * M.DOWN_PAYMENT)}M now, the rest month by month while it is built`, `先付 $${Math.round(pt.build.cost * M.DOWN_PAYMENT)}M,其餘在興建期間按月付`)}</div></div>`;
     };
     $('bdOpts').innerHTML =
-      card('coal', L('Cheap, steady fuel that no tanker can cut off; capture is cheaper per tonne.', '燃料便宜穩定,不怕斷氣;每噸捕捉較便宜。'), L('2.6× the CO₂ of gas, smog, slower to build.', 'CO₂ 是燃氣 2.6 倍、有空污、蓋得較久。')) +
+      card('coal', L('Cheap fuel that no tanker can cut off; capture is cheaper per tonne.', '燃料便宜,不怕斷氣;每噸捕捉較便宜。'), L('Dear to build and to capture (2.6× the CO₂ of gas), smog, slow; smog alerts and coal shortages cut every coal plant at once.', '蓋廠與捕捉都貴(CO₂ 是燃氣 2.6 倍)、有空污、工期長;空品警報或缺煤會讓所有燃煤廠一起降載。')) +
       card('gas', L('Cleaner and quicker to build.', '較乾淨、蓋得較快。'), L('Pricey, volatile fuel; a supply cut starves every gas plant at once.', '燃料貴又波動;一斷氣,所有燃氣廠一起停擺。'));
     $('bdOpts').querySelectorAll('[data-build]').forEach(b => b.onclick = () => { const r = M.buildPlant(S, b.dataset.build); SND.play(r.ok ? 'queue' : 'nope'); closeBuild(); renderAll(); });
   }
@@ -1584,12 +1591,16 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   const CAP = {
     heat: ['Air-conditioners strain the grid.', '冷氣讓電網吃緊。'], cold: ['Heaters strain the grid.', '電暖器讓電網吃緊。'], typhoon: ['The storm on satellite.', '衛星雲圖上的颱風。'],
     storage: ['Residents at the injection wells.', '注入井旁的居民。'], nox: ['Residents downwind of the plants.', '電廠下風處的居民。'], gas: ['Gas prices hit a record.', '氣價創新高。'],
-    lng: ['The delayed tanker, days from port.', '延誤的 LNG 船，離港還有幾天。'], winter: ['Frozen pipes at a gas field.', '氣田結冰的管線。'], subsidy: ['The new clean-air package.', '新的空污方案。'],
+    lng: ['The delayed tanker, days from port.', '延誤的 LNG 船，離港還有幾天。'], pipe: ['The closed valve at the border station.', '邊境站關上的閥門。'],
+    coal: ['Coal piles at the port, priced by the tonne.', '港口的煤堆,按噸計價。'], rhine: ['Barges aground on the low Rhine.', '擱淺在低水位萊茵河的駁船。'], winter: ['Frozen pipes at a gas field.', '氣田結冰的管線。'], subsidy: ['The new clean-air package.', '新的空污方案。'],
     health: ['Smog over the city.', '城市上空的霧霾。'], arrears: ['The grant forms, still waiting for a stamp.', '經費單據,還在等蓋章。'], subcut: ['The President signs the order. (Cartoon)', '總統簽下命令。(漫畫)'],
   };
+  ART.pipe = svg(`<rect width="220" height="160" fill="#D6D2C4"/><rect x="0" y="92" width="220" height="22" fill="#7B8B98"/><rect x="0" y="92" width="220" height="4" fill="#9AA9B5"/><rect x="92" y="70" width="36" height="64" rx="4" fill="#5E6B75"/><circle cx="110" cy="56" r="22" fill="none" stroke="#B3261E" stroke-width="6"/><path d="M96 56h28" stroke="#B3261E" stroke-width="6" stroke-linecap="round"/><path d="M110 78v-0" stroke="#2B2B2B"/><text x="110" y="150" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="700" fill="#2B2B2B">CLOSED</text>`);
+  ART.coal = svg(`<rect width="220" height="160" fill="#E2DCCB"/><path d="M10 140l40-56 28 24 30-44 34 40 22-18 46 54z" fill="#2B2B2B"/><path d="M50 84l8 10M108 64l6 12M142 104l6 8" stroke="#555" stroke-width="3"/><path d="M168 18v54" stroke="#B3261E" stroke-width="6" stroke-linecap="round"/><path d="M152 34l16-16 16 16" fill="none" stroke="#B3261E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`);
+  ART.rhine = svg(`<rect width="220" height="160" fill="#D8D0B8"/><path d="M0 120q30-6 60 0t60 0 60 0 40 0V160H0z" fill="#8FA6B0"/><path d="M0 108h220v12H0z" fill="#C2B48F"/><path d="M40 98h120l-10 16H50z" fill="#3B3B3B"/><path d="M60 84h80v14H60z" fill="#2B2B2B"/><path d="M60 84l14-10h52l14 10z" fill="#4A4A4A"/><circle cx="182" cy="34" r="18" fill="#F2B544"/>`);
   let headN = 0;
   function showPaper(h, opts, quiet) {
-    const key = h.id === 'heat' && /cold/i.test(h.title) ? 'cold' : h.id;
+    const key = h.id === 'heat' && /cold/i.test(h.title) ? 'cold' : h.id === 'smog' ? (S.region === 'germany' ? 'rhine' : S.region === 'texas' ? 'heat' : 'health') : h.id;
     const z = h.zh || {};
     $('evDate').textContent = dateStr(S.m);
     $('evKind').textContent = opts ? L('Your decision', '請你決定') : h.tone === 'good' ? L('Good news', '好消息') : L('Extra! Extra!', '號外！號外！');
@@ -1727,7 +1738,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     // carbon price (or the capture credit) and the storage fee — the prices that shape every decision
     const rg = M.REGIONS[S.region] || M.REGIONS.taiwan;
     const cp = $('cPrice');
-    if (rg.credit) { cp.className = 'cprice credit'; cp.innerHTML = L(`45Q <b>+$${rg.credit}/t</b> stored · storage $${rg.ts}/t`, `45Q <b>每噸 +$${rg.credit}</b> · 封存每噸 $${rg.ts}`); }
+    if (rg.credit) { cp.className = 'cprice credit'; cp.innerHTML = L(`45Q <b>+$${M.creditOf(S)}/t</b> stored · storage $${rg.ts}/t`, `45Q <b>每噸 +$${M.creditOf(S)}</b> · 封存每噸 $${rg.ts}`); }
     else {
       const tNow = M.carbonTax(y, S), tNext = M.carbonTax(y + 1, S);
       cp.className = 'cprice';
@@ -1785,7 +1796,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       blackouts: s.blackouts, fails: s.fails, maxBreach: Math.round(s.maxDebt), plants: s.plants.length,
       fleet: s.plants.map(p => p.type[0] + ':' + (p.tech || '-') + (p.deep ? '99' : '') + PROCS.filter(k => p[k]).map(k => '+' + k).join('')).join(','),
       techs: Object.keys(s.techUsed || {}).join(','), found: Object.keys(M.DROPS).filter(k => s.unlocked[k]).join(','),
-      price: s.price, lang, device: innerWidth < 700 ? 'phone' : 'desktop', minutes: Math.round((Date.now() - statT0) / 60000), years: statHist,
+      price: s.price, steam: M.lateSteam(s) == null ? null : +M.lateSteam(s).toFixed(2), lang, device: innerWidth < 700 ? 'phone' : 'desktop', minutes: Math.round((Date.now() - statT0) / 60000), years: statHist,
     };
   }
   function sendStats(s) {
@@ -1812,9 +1823,13 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     const [aName, aText, aDoi] = approach(s);
     $('endArch').innerHTML = `${L('Your approach', '你的路線')}: <b>${aName}</b><br>${aText}` + (aDoi ? ` <a href="https://doi.org/${aDoi}" target="_blank" rel="noopener">${L('Read the paper ↗', '看論文 ↗')}</a>` : '');
     $('endStars').textContent = win ? '★'.repeat(st) + '☆'.repeat(3 - st) : '';
+    const ls = M.lateSteam(s), [s2, s3] = M.STEAM_STARS, bon = (M.DIFFS[s.diff] || M.DIFFS.easy).bonus, [t2, t3] = (M.REGIONS[s.region] || M.REGIONS.taiwan).stars.map(t => Math.round(t * bon / 10) * 10);   // in the same units as the score shown
+    $('endStarWhy').innerHTML = !win ? '' : L(`Steam per tonne captured, 2041–2050: <b>${ls == null ? '—' : fmt(ls, 2) + ' GJ/t'}</b> (MEA alone ≈ 3.5–4). ★★ needs ≤ ${s2} and a score of ${fmt(t2)}; ★★★ needs ≤ ${s3} and ${fmt(t3)}. Better solvents plus the matching process upgrades get there.`,
+      `2041–2050 年每捕捉一噸的蒸汽:<b>${ls == null ? '—' : fmt(ls, 2) + ' GJ/t'}</b>(只用 MEA 約 3.5–4)。★★ 要 ≤ ${s2} 且分數 ${fmt(t2)};★★★ 要 ≤ ${s3} 且 ${fmt(t3)}。要靠更好的溶劑加上對應的製程升級。`);
     $('endLead').textContent = why;
     const cells = [
       [L('CO₂ captured', '捕捉 CO₂'), fmt(s.captured, 1) + ' Mt'],
+      [L('Steam per tonne (2041–50)', '每噸蒸汽(2041–50)'), M.lateSteam(s) == null ? '—' : fmt(M.lateSteam(s), 2) + ' GJ/t'],
       [L('CO₂ emitted', '排放 CO₂'), fmt(s.cumCO2, 1) + ' Mt'],
       [L('Worst breach', '最高超標'), Math.round(s.maxDebt) + ' %'],
       [L('Start-up failures', '開機故障'), String(s.fails)],

@@ -40,32 +40,34 @@
   const DIFFS = {
     easy: { label: 'Easy', zh: '\u7c21\u55ae', tighten: 0, funds: 1500, bonus: 1, hint: 'the gentle version', zhHint: '\u8f15\u9b06\u7248' },
     normal: { label: 'Normal', zh: '\u666e\u901a', tighten: 0.12, funds: 1400, bonus: 1.15, hint: 'tighter CO\u2082 limit, a bit less money', zhHint: 'CO\u2082 \u9650\u984d\u66f4\u7dca\u3001\u8cc7\u91d1\u7565\u5c11' },
-    hell: { label: 'Hell', zh: '\u5730\u7344', tighten: 0.3, funds: 800, bonus: 1.6, events: 1.7, gap: 8, hidden: true,
-      region: { germany: { tighten: 0.3, late: 0.22, funds: 700 }, taiwan: { tighten: 0.34, late: 0.3 }, texas: { tighten: 0.36, late: 0.3 } }, hint: 'you were warned', zhHint: '\u4f60\u88ab\u8b66\u544a\u904e\u4e86' },
-    hard: { label: 'Hard', zh: '\u56f0\u96e3', tighten: 0.18, funds: 1000, bonus: 1.3, hint: 'much tighter limit, \u2153 less money', zhHint: '\u9650\u984d\u7dca\u5f88\u591a\u3001\u8cc7\u91d1\u5c11 \u2153' },
+    hell: { label: 'Hell', zh: '\u5730\u7344', tighten: 0.3, funds: 800, overhead: 3, bonus: 1.6, events: 1.7, gap: 8, hidden: true,
+      region: { germany: { tighten: 0.3, late: 0.22, funds: 700 }, taiwan: { tighten: 0.34, late: 0.3 }, texas: { tighten: 0.36, late: 0.38, creditMul: 0.6 } }, hint: 'you were warned', zhHint: '\u4f60\u88ab\u8b66\u544a\u904e\u4e86' },
+    hard: { label: 'Hard', zh: '\u56f0\u96e3', tighten: 0.25, late: 0.1, funds: 900, overhead: 5.5, events: 1.3, bonus: 1.3, region: { texas: { tighten: 0.38, late: 0.3 } },
+      hint: 'much tighter limit, less money, more trouble', zhHint: '\u9650\u984d\u7dca\u5f88\u591a\u3001\u9322\u66f4\u5c11\u3001\u4e8b\u4ef6\u66f4\u591a' },
   };
   const CAPEX_SCALE = 1.3;            // capture unit \u2248 $1,300 per kW (MEA, coal) before the first-of-a-kind premium
-  const FOAK = [1.2, 1.1, 1.0];      // cost of the 1st, 2nd and later unit of the same technology (learning by doing)
+  const FOAK = [1.2, 1.1, 1.0];
+  const RETROFIT = 0.2;               // a new solvent in an existing capture unit: share of a new unit's cost      // cost of the 1st, 2nd and later unit of the same technology (learning by doing)
 
   // Regions: accepted price, demand, fuel ($/MWh of output), carbon price path [year, $/t], capture credit,
   // transport + storage ($/t), the limit, grid links, hazards
   const REGIONS = {
     taiwan: {
-      label: 'Taiwan', hint: 'standard', stars: [2700, 3200], base: 1150, peak: 'heat', fair: 135, growth: 0.035, gas: 72, coal: 42,
+      label: 'Taiwan', hint: 'standard', stars: [3000, 3650], base: 1150, peak: 'heat', fair: 135, growth: 0.035, gas: 72, coal: 42,
       tax: [[2026, 10], [2029, 10], [2030, 40], [2050, 120]], credit: 0, creditMonths: 0, ts: 15,
       limitMul: 1.0, imports: 0, wholesale: 95, typhoon: true, lng: true, winter: false, heat: 1, surplus: 0.12,
       blurb: 'Island grid, LNG by ship, typhoons. Carbon fee $10/t, jumping to $40 in 2030.',
       zh: { label: '\u53f0\u7063', hint: '\u6a19\u6e96', blurb: '\u5b64\u5cf6\u96fb\u7db2\u3001LNG \u9760\u8239\u904b\u3001\u6709\u98b1\u98a8\u3002\u78b3\u8cbb\u6bcf\u5678 $10,2030 \u5e74\u8df3\u5230 $40\u3002' },
     },
     germany: {
-      label: 'Germany', hint: 'standard', stars: [3000, 3450], base: 1250, peak: 'cold', fair: 145, growth: 0.03, gas: 70, coal: 25,
+      label: 'Germany', hint: 'standard', stars: [3400, 3950], base: 1250, peak: 'cold', fair: 145, growth: 0.03, gas: 70, coal: 25,
       tax: [[2026, 85], [2050, 205]], credit: 0, creditMonths: 0, ts: 35,
-      limitMul: 0.9, imports: 300, wholesale: 90, typhoon: false, lng: false, winter: false, heat: 1,
+      limitMul: 0.9, imports: 300, wholesale: 90, typhoon: false, lng: false, pipe: true, winter: false, heat: 1,
       blurb: 'EU carbon price $85/t (+$5 a year), winter peak, 300 MW of imports, thin margins.',
       zh: { label: '\u5fb7\u570b', hint: '\u6a19\u6e96', blurb: '\u6b50\u76df\u78b3\u50f9\u6bcf\u5678 $85(\u6bcf\u5e74 +5)\u3001\u51ac\u5b63\u5c16\u5cf0\u3001\u53ef\u9032\u53e3 300 MW\u3001\u5229\u6f64\u5f88\u8584\u3002' },
     },
     texas: {
-      label: 'Texas', hint: 'fast growth', stars: [3300, 3560], base: 1300, peak: 'heat', fair: 75, growth: 0.03, gas: 26, coal: 23,
+      label: 'Texas', hint: 'fast growth', stars: [3300, 3800], base: 1300, peak: 'heat', fair: 75, growth: 0.03, gas: 26, coal: 23,
       tax: null, credit: 85, creditMonths: 144, ts: 12,
       limitMul: 1.15, imports: 0, wholesale: 55, typhoon: false, lng: false, winter: true, heat: 2,
       blurb: 'No carbon tax: 45Q pays $85 per tonne stored. Cheap gas, fast growth, heat and storms.',
@@ -88,20 +90,22 @@
   const peakSeason = state => Math.max(...(SEASON[state.region] || SEASON.taiwan));
   // in a gas-supply crisis the whole fleet shares what gas arrives (gross MW it can feed), however many gas plants you own
   const GAS_CRISIS = { lng: 300, freeze: 160 };
+  const COAL_CUT = 0.6;               // coal plants run at 60 % during a curtailment
   const SURPLUS_SHARE = 0.25;         // industrial / wholesale buyers take up to 25 % of demand at the wholesale price
   const BANKRUPT = -500;              // $M
   const MAX_PLANTS = 12;
   const RESERVE_MARGIN = 0.1;
   // demand grows at half the region's rate until 2030, then at the full rate (electric cars, heat pumps, data centres)
   const BOOM_YEAR = 2030;        // the grid wants 10 % more capacity than the year's peak (trips, heat waves)
-  const DEMOLISH_COST = 30;           // $M
+  const DEMOLISH_COST = 30;
+  const DOWN_PAYMENT = 0.3;           // share of a new plant paid when work starts; the rest month by month while it is built           // $M
 
   // Legal CO2 limit (Mt per year). It tightens every year toward net zero in 2050.
   const LIMIT_POINTS = [[2026, 10.5], [2028, 9.8], [2030, 8.5], [2035, 5.5], [2040, 2.5], [2045, 1.1], [2050, 0.6]];
   const LIMIT_SCALE = 12;             // meter full scale (Mt/yr)
   const BREACH = { up: 10, down: 5, maxStep: 8 };    // % per month per 100 % over / under the limit (max +8 %/month)
   const PROVEN_MONTHS = 24;           // months of operation before a new technology stops failing
-  const DEEP = { capture: 0.99, dutyMul: 1.09, opexAdd: 1, costFrac: 0.7, months: 12 };   // a costly, slow last resort
+  const DEEP = { capture: 0.99, dutyMul: 1.09, opexAdd: 1, costFrac: 0.4, months: 12 };   // taller packing: 40 % of a new unit, a year to build
 
   // capexFactor: capture-unit cost per MW relative to coal; dutyMul/opexMul: dilute flue gas costs more per tonne.
   // heatRate: fuel per MWh relative to a combined-cycle plant burning the same gas (a converted boiler is less efficient)
@@ -210,9 +214,9 @@
   const DROPS = { amp: { weight: 40, stars: 2 }, aas: { weight: 35, stars: 2 }, mdeapz: { weight: 30, stars: 3 }, pz: { weight: 28, stars: 3 }, ampnmp: { weight: 22, stars: 3 }, pe2eg: { weight: 16, stars: 4 } };
   // process upgrades: developed in one lab project, then fitted plant by plant
   const PROCESS = {
-    as: { cost: 80, months: 12, fit: 0.15, build: 9, mul: 0.8 },                 // advanced stripper: -20 % steam, any solvent
-    ic: { cost: 50, months: 9, fit: 0.08, build: 6, hiCap: 0.9, other: 0.97 },   // absorber intercooling
-    sf: { cost: 70, months: 12, fit: 0.15, build: 9, deep: 0.88 },              // split-flow + multi-pressure stripper (99 % only)
+    as: { cost: 80, months: 12, fit: 0.08, build: 9, mul: 0.8 },                 // advanced stripper: -20 % steam, any solvent
+    ic: { cost: 50, months: 9, fit: 0.05, build: 6, hiCap: 0.9, other: 0.97 },   // absorber intercooling
+    sf: { cost: 70, months: 12, fit: 0.08, build: 9, deep: 0.88 },              // split-flow + multi-pressure stripper (99 % only)
   };
   const PROJECTS = {
     as: { name: 'Advanced stripper', short: 'AS', cost: PROCESS.as.cost, months: PROCESS.as.months, process: true,
@@ -270,7 +274,7 @@
   function foak(state, techId) { return FOAK[Math.min(FOAK.length - 1, (state.built && state.built[techId]) || 0)]; }
   function installCost(state, plant, techId) {
     const full = capexFull(plant, techId) * foak(state, techId);
-    let c = plant.tech ? 0.35 * full : full;   // an existing capture unit is retrofitted with a new solvent
+    let c = plant.tech ? RETROFIT * full : full;   // an existing capture unit is retrofitted with a new solvent
     if (state.subsidy > 0) c *= 0.7;
     c *= RG(state).capexMul || 1;
     return Math.round(c);
@@ -314,6 +318,8 @@
   }
   function limit(state) { return limitFor(state, START_YEAR + Math.min(state.m, MONTHS - 1) / 12); }
   function fairPrice(state) { return RG(state).fair; }
+  // capture credit per tonne (45Q); harder games can pay less
+  function creditOf(state) { return Math.round((RG(state).credit || 0) * (diffOf(state).creditMul || 1)); }
   function breachStep(ratio) {
     return ratio > 1 ? Math.min(BREACH.maxStep, BREACH.up * (ratio - 1)) : -BREACH.down * (1 - ratio);
   }
@@ -321,7 +327,7 @@
   // fuel cost per MWh of output for a plant type in this region
   function fuelOf(state, type) {
     const pt = PLANT_TYPES[type];
-    return pt.gas ? gasFuel(state) * (pt.heatRate || 1) : RG(state).coal;
+    return pt.gas ? gasFuel(state) * (pt.heatRate || 1) : RG(state).coal * (state.coalMult || 1);
   }
   const isGas = type => !!(PLANT_TYPES[type] && PLANT_TYPES[type].gas);
   // flexible operation: in the two or three peak months capture eases off during the peak hours (75 % on average
@@ -400,7 +406,7 @@
     const four = region !== 'taiwan';
     return {
       seed: seed || Math.floor(Math.random() * 1e9),
-      region, diff, m: 0, funds: dv.funds, price: REGIONS[region].fair, cumCO2: 0, captured: 0, anger: 10,
+      region, diff, m: 0, funds: dv.funds, price: REGIONS[region].fair, cumCO2: 0, captured: 0, steamGJ: 0, steamLate: 0, capLate: 0, anger: 10,
       greenhouse: 0, maxDebt: 0, rate: 0, recent: [], overMonths: 0, wasOver: false,
       over: null, subsidy: 0, resCut: 0, resSlow: 0, opexCut: 0, usCut: false, headline: null, headlineN: 0, labQueue: [], captureOff: 0, captureOffWhy: '', lngCut: 0, shipMonths: 0, gasFreeze: 0,
       warnedYear: 0, sold: 0, soldTotal: 0, imported: 0, creditPaid: 0, taxPaid: 0, tsPaid: 0, built: {},
@@ -409,7 +415,7 @@
         ? [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas'), makePlant('D', 'gas')]
         : [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas')],
       nextId: four ? 4 : 3, unlocked, research: {}, resMethod: {}, tries: {}, exp: {},
-      demandMult: 1, demandMonths: 0, gasMult: 1, gasMonths: 0, gasIndex: 1,
+      demandMult: 1, demandMonths: 0, gasMult: 1, gasMonths: 0, gasIndex: 1, coalMult: 1, coalMonths: 0, coalCut: 0,
       pending: null, flash: null, flashN: 0, seen: {}, fails: 0, blackouts: 0, discovery: null,
       news: [{ m: 0, kind: 'info', text: 'You run the power utility of Capture City. Keep the lights on until 2050 and stay under the CO\u2082 limit.', zh: '\u4f60\u7d93\u71df\u6355\u6349\u57ce\u7684\u96fb\u529b\u516c\u53f8\u3002\u6490\u5230 2050 \u5e74\u4e0d\u505c\u96fb\uff0c\u800c\u4e14\u6392\u653e\u4e0d\u8d85\u904e CO\u2082 \u9650\u984d\u3002' }],
       last: null, techUsed: {},
@@ -472,7 +478,7 @@
     const cost = paid != null ? paid : chk.cost;
     if (paid == null) state.funds -= cost;
     state.built[techId] = (state.built[techId] || 0) + 1;
-    p.build = { kind: 'tech', tech: techId, deep: false, left: chk.months, total: chk.months, paid: cost };
+    p.build = { kind: 'tech', tech: techId, deep: !!p.deep, left: chk.months, total: chk.months, paid: cost };
     addNews(state, 'build', `${p.name}: ${TECHS[techId].short} capture construction started ($${cost}M, ${chk.months} months).`,
       `${pZh(p)}\uff1a\u958b\u59cb\u8208\u5efa ${TECHS[techId].short} \u6355\u6349\u8a2d\u5099($${cost}M\uff0c${chk.months} \u500b\u6708)\u3002`);
     return chk;
@@ -526,7 +532,7 @@
     const v = { type: plant.type, gross: plant.gross, tech: plant.tech, deep: plant.deep, as: !!plant.as, ic: !!plant.ic, sf: !!plant.sf };
     const apply = job => {
       if (!job) return;
-      if (job.kind === 'tech') { v.tech = job.tech; v.deep = false; }
+      if (job.kind === 'tech') v.tech = job.tech;   // a new solvent keeps the plant's columns (and its 99 % packing)
       else if (job.kind === 'deep') v.deep = true;
       else if (job.kind === 'convert') { v.type = job.toType; v.gross = PLANT_TYPES[job.toType].size; }
       else if (PROCESS[job.kind]) v[job.kind] = true;
@@ -679,8 +685,9 @@
     const b = PLANT_TYPES[type] && PLANT_TYPES[type].build;
     if (!b) return { ok: false, why: 'Cannot build this type' };
     if (state.plants.length >= MAX_PLANTS) return { ok: false, why: `Maximum ${MAX_PLANTS} plants` };
-    if (state.funds < b.cost) return { ok: false, why: 'Not enough funds', cost: b.cost };
-    return { ok: true, cost: b.cost, months: b.months };
+    const down = Math.round(b.cost * DOWN_PAYMENT);
+    if (state.funds < down) return { ok: false, why: 'Not enough funds', cost: b.cost, down };
+    return { ok: true, cost: b.cost, down, monthly: Math.round((b.cost - down) / b.months), months: b.months };
   }
   function buildPlant(state, type) {
     const chk = canBuildPlant(state, type);
@@ -688,10 +695,11 @@
     const id = String.fromCharCode(65 + state.nextId);   // D, E, F \u2026
     state.nextId += 1;
     const p = makePlant(id, type);
-    p.build = { kind: 'new', left: chk.months, total: chk.months };
+    p.build = { kind: 'new', left: chk.months, total: chk.months, owe: chk.cost - chk.down };
     state.plants.push(p);
-    state.funds -= chk.cost;
-    addNews(state, 'build', `${p.name} under construction ($${chk.cost}M, ${chk.months} months).`, `${pZh(p)}\u958b\u59cb\u8208\u5efa($${chk.cost}M\uff0c${chk.months} \u500b\u6708)\u3002`);
+    state.funds -= chk.down;
+    addNews(state, 'build', `${p.name} under construction ($${chk.cost}M: $${chk.down}M now, the rest over ${chk.months} months).`,
+      `${pZh(p)}\u958b\u59cb\u8208\u5efa($${chk.cost}M:\u5148\u4ed8 $${chk.down}M,\u5176\u9918 ${chk.months} \u500b\u6708\u5167\u5206\u671f)\u3002`);
     return Object.assign({ id }, chk);
   }
   function canDemolish(state, plant) {
@@ -863,7 +871,11 @@
     const grossAll = state.plants.reduce((a, p) => a + p.gross, 0) || 1;
     const gasShare = state.plants.filter(p => isGas(p.type)).reduce((a, p) => a + p.gross, 0) / grossAll;
     const heavy = gasShare > 0.45 ? 2 : 1;   // relying on gas makes gas trouble likelier
-    for (let i = 0; i < heavy && hasGas; i++) { pool.push('gas'); if (rg.lng) pool.push('lng', 'lng'); if (rg.winter && (mo === 11 || mo <= 1)) pool.push('winter', 'winter', 'winter'); }
+    for (let i = 0; i < heavy && hasGas; i++) { pool.push('gas'); if (rg.lng) pool.push('lng', 'lng'); if (rg.pipe) pool.push('pipe', 'pipe'); if (rg.winter && (mo === 11 || mo <= 1)) pool.push('winter', 'winter', 'winter'); }
+    // and relying on coal makes coal trouble likelier
+    const hasCoal = state.plants.some(p => p.type === 'coal' && online(p));
+    const coalShare = state.plants.filter(p => p.type === 'coal').reduce((a, p) => a + p.gross, 0) / grossAll;
+    for (let i = 0; i < (coalShare > 0.45 ? 2 : 1) && hasCoal; i++) pool.push('coal', 'smog', 'smog');
     if (state.rate > 6) pool.push('health');
     if (!state.usCut && state.m >= 18) pool.push('uscut');
     if (!state.resSlow && Object.keys(state.research).length) pool.push('arrears');   // only bites while the lab is working
@@ -878,6 +890,25 @@
       headline(state, 'lng', 'bad',
         { title: 'LNG tanker stuck at sea', deck: `Gas for only ${GAS_CRISIS.lng} MW for two months`, text: `The next LNG tanker is late: all your gas plants together get gas for ${GAS_CRISIS.lng} MW until it arrives.` },
         { title: 'LNG \u8239\u53d7\u56f0\u6d77\u4e0a', deck: `\u5169\u500b\u6708\u53ea\u6709 ${GAS_CRISIS.lng} MW \u7684\u5929\u7136\u6c23`, text: `\u4e0b\u4e00\u8258 LNG \u8239\u5ef6\u8aa4:\u6240\u6709\u71c3\u6c23\u5ee0\u52a0\u8d77\u4f86\u53ea\u6709 ${GAS_CRISIS.lng} MW \u7684\u6c23\u53ef\u71d2,\u76f4\u5230\u88dc\u7d66\u5230\u6e2f\u3002` });
+    } else if (k === 'pipe') {
+      state.lngCut = 2;
+      headline(state, 'pipe', 'bad',
+        { title: 'Pipeline gas cut off', deck: `Gas for only ${GAS_CRISIS.lng} MW for two months`, text: `A supplier turns off the pipeline: all your gas plants together get gas for ${GAS_CRISIS.lng} MW until other supplies arrive.` },
+        { title: '\u7ba1\u7dda\u5929\u7136\u6c23\u88ab\u5207\u65b7', deck: `\u5169\u500b\u6708\u53ea\u6709 ${GAS_CRISIS.lng} MW \u7684\u5929\u7136\u6c23`, text: `\u4f9b\u61c9\u570b\u95dc\u9589\u7ba1\u7dda:\u6240\u6709\u71c3\u6c23\u5ee0\u52a0\u8d77\u4f86\u53ea\u6709 ${GAS_CRISIS.lng} MW \u7684\u6c23\u53ef\u71d2,\u76f4\u5230\u5176\u4ed6\u6c23\u6e90\u88dc\u4e0a\u3002` });
+    } else if (k === 'coal') {
+      state.coalMult = 1.8; state.coalMonths = 6;
+      headline(state, 'coal', 'bad',
+        { title: 'Coal prices soar', deck: 'Coal costs 80 % more for six months', text: 'Mines and ships cannot keep up: every coal plant pays 80 % more for fuel until the market calms.' },
+        { title: '\u7164\u50f9\u98c6\u6f32', deck: '\u516d\u500b\u6708\u5167\u71c3\u7164\u8cb4 80 %', text: '\u7926\u5834\u548c\u904b\u7164\u8239\u8ddf\u4e0d\u4e0a\u9700\u6c42:\u6bcf\u5ea7\u71c3\u7164\u5ee0\u71c3\u6599\u8cb4 80 %,\u76f4\u5230\u5e02\u5834\u5e73\u975c\u3002' });
+    } else if (k === 'smog') {
+      state.coalCut = 2;
+      const pct = Math.round(COAL_CUT * 100);
+      const why = {
+        taiwan: [['Air-quality alert: coal plants told to cut output', `Smog over the city: the government orders every coal plant down to ${pct} % for two months.`], ['\u7a7a\u54c1\u4e0d\u826f:\u71c3\u7164\u5ee0\u5949\u547d\u964d\u8f09', `\u57ce\u5e02\u88ab\u9727\u973e\u7c60\u7f69:\u653f\u5e9c\u8981\u6c42\u6240\u6709\u71c3\u7164\u5ee0\u964d\u5230 ${pct} % \u51fa\u529b,\u70ba\u671f\u5169\u500b\u6708\u3002`]],
+        germany: [['Low Rhine strands the coal barges', `A dry summer leaves the river too shallow: coal deliveries shrink and every coal plant runs at ${pct} % for two months.`], ['\u840a\u8335\u6cb3\u6c34\u4f4d\u904e\u4f4e,\u904b\u7164\u8239\u505c\u64fa', `\u590f\u5b63\u4e7e\u65f1\u8b93\u6cb3\u9053\u592a\u6dfa:\u904b\u7164\u91cf\u5927\u6e1b,\u6240\u6709\u71c3\u7164\u5ee0\u5169\u500b\u6708\u53ea\u80fd\u8dd1 ${pct} %\u3002`]],
+        texas: [['Drought leaves coal plants short of cooling water', `The lakes that cool the coal plants run low: every coal plant runs at ${pct} % for two months.`], ['\u4e7e\u65f1\u8b93\u71c3\u7164\u5ee0\u7f3a\u51b7\u537b\u6c34', `\u51b7\u537b\u7528\u7684\u6e56\u6cca\u6c34\u4f4d\u592a\u4f4e:\u6240\u6709\u71c3\u7164\u5ee0\u5169\u500b\u6708\u53ea\u80fd\u8dd1 ${pct} %\u3002`]],
+      }[state.region] || [['Coal plants told to cut output', `Every coal plant runs at ${pct} % for two months.`], ['\u71c3\u7164\u5ee0\u88ab\u8981\u6c42\u964d\u8f09', `\u6240\u6709\u71c3\u7164\u5ee0\u5169\u500b\u6708\u53ea\u80fd\u8dd1 ${pct} %\u3002`]];
+      headline(state, 'smog', 'bad', { title: why[0][0], deck: `Coal plants at ${pct} % for two months`, text: why[0][1] }, { title: why[1][0], deck: `\u71c3\u7164\u5ee0\u5169\u500b\u6708\u53ea\u80fd\u8dd1 ${pct} %`, text: why[1][1] });
     } else if (k === 'winter') {
       state.gasFreeze = 1;
       headline(state, 'winter', 'bad',
@@ -926,7 +957,7 @@
     if (state.m % 12 === 0) {
       const t = carbonTax(y, state), next = carbonTax(y + 1, state);
       if (state.m === 0) {
-        if (rgn.credit) addNews(state, 'policy', `No carbon tax here. The 45Q credit pays $${rgn.credit} per tonne stored, for ${rgn.creditMonths / 12} years per plant.`, `\u9019\u88e1\u6c92\u6709\u78b3\u7a05\u300245Q \u62b5\u6e1b\u6bcf\u5c01\u5b58\u4e00\u5678\u4ed8 $${rgn.credit}\uff0c\u6bcf\u5ea7\u5ee0\u7d66 ${rgn.creditMonths / 12} \u5e74\u3002`);
+        if (rgn.credit) addNews(state, 'policy', `No carbon tax here. The 45Q credit pays $${creditOf(state)} per tonne stored, for ${rgn.creditMonths / 12} years per plant.`, `\u9019\u88e1\u6c92\u6709\u78b3\u7a05\u300245Q \u62b5\u6e1b\u6bcf\u5c01\u5b58\u4e00\u5678\u4ed8 $${creditOf(state)}\uff0c\u6bcf\u5ea7\u5ee0\u7d66 ${rgn.creditMonths / 12} \u5e74\u3002`);
         else addNews(state, 'policy', `${y}: carbon price $${t}/t. Storing CO\u2082 costs $${rgn.ts}/t for transport and storage.`, `${y} \u5e74\uff1a\u78b3\u50f9\u6bcf\u5678 $${t}\u3002CO\u2082 \u904b\u8f38\u8207\u5c01\u5b58\u6bcf\u5678 $${rgn.ts}\u3002`);
       } else {
         addNews(state, 'policy', `${y}: carbon price $${t}/t, CO\u2082 limit ${f1(limitFor(state, y))} Mt/yr and falling.`, `${y} \u5e74\uff1a\u78b3\u50f9\u6bcf\u5678 $${t}\uff0cCO\u2082 \u9650\u984d\u6bcf\u5e74 ${f1(limitFor(state, y))} Mt\uff0c\u6301\u7e8c\u4e0b\u964d\u3002`);
@@ -986,6 +1017,10 @@
     // construction progress
     for (const p of state.plants) {
       if (!p.build) continue;
+      if (p.build.kind === 'new' && p.build.owe > 0) {   // construction instalment
+        const pay = Math.min(p.build.owe, p.build.owe / p.build.left);
+        state.funds -= pay; p.build.owe -= pay;
+      }
       p.build.left -= 1;
       if (p.build.left > 0) continue;
       const b = p.build;
@@ -1001,7 +1036,7 @@
         addNews(state, 'build', `${p.name}: ${jobName(b)} is running.`, `${pZh(p)}\uff1a${jobZh(b)}\u555f\u7528\u3002`);
       } else {
         if (p.tech !== b.tech) p.washed = !!TECHS[b.tech].noEmit;
-        p.tech = b.tech; p.deep = !!b.deep;
+        p.tech = b.tech; if (b.kind === 'deep') p.deep = true;
         state.techUsed[p.tech] = true;
         addNews(state, 'build', `${p.name}: ${TECHS[p.tech].short}${p.deep ? ' at 99 %' : ''} capture is online.`, `${pZh(p)}\uff1a${TECHS[p.tech].short}${p.deep ? ' 99 %' : ''} \u6355\u6349\u4e0a\u7dda\u3002`);
       }
@@ -1042,21 +1077,21 @@
       const c = e ? e.capture * (flexNow(state) ? FLEX : 1) : 0;
       const pen = e ? pt.intensity * c * workPerTonne(e) : 0;
       const fuel = fuelOf(state, p.type);
-      const avail = pt.gas ? gasAvail : 1;
-      const credit = rgn.credit && (p.capMonths || 0) < rgn.creditMonths ? rgn.credit : 0;
+      const avail = pt.gas ? gasAvail : p.type === 'coal' && state.coalCut > 0 ? COAL_CUT : 1;
+      const credit = rgn.credit && (p.capMonths || 0) < rgn.creditMonths ? creditOf(state) : 0;
       const perGross = fuel + (e ? (e.opex + ts - credit) * pt.intensity * c : 0) + tax * pt.intensity * (1 - c);
       return { p, pt, e, c, pen, credit, netCap: p.gross * avail * (1 - pen), marginal: perGross / (1 - pen), fuel };
     }).sort((a, b) => a.marginal - b.marginal);
 
     const D = demand(state);
     let left = D, revenue = 0, cost = 0, emitted = 0, captured = 0, served = 0, netCapTotal = 0;
-    let surplus = D * (rgn.surplus || SURPLUS_SHARE), soldMW = 0, taxPaid = 0, creditPaid = 0, tsPaid = 0;
+    let surplus = D * (rgn.surplus || SURPLUS_SHARE), soldMW = 0, taxPaid = 0, creditPaid = 0, tsPaid = 0, steam = 0;
     const burn = (u, mw, price) => {
       const netMWh = mw * HOURS;
       const grossMWh = netMWh / (1 - u.pen);
       const co2 = grossMWh * u.pt.intensity;
       const cap = co2 * u.c, emi = co2 - cap;
-      emitted += emi; captured += cap;
+      emitted += emi; captured += cap; if (u.e) steam += cap * u.e.duty;
       cost += grossMWh * u.fuel + (u.e ? cap * (u.e.opex + ts) : 0) + emi * tax;
       taxPaid += emi * tax; tsPaid += cap * ts; creditPaid += cap * u.credit;
       revenue += netMWh * price;
@@ -1089,7 +1124,7 @@
     }
     state.sold = soldMW; state.soldTotal += soldMW * HOURS / 1000; state.imported = importMW;
     state.creditPaid += creditPaid / 1e6; state.taxPaid += taxPaid / 1e6; state.tsPaid = (state.tsPaid || 0) + tsPaid / 1e6;
-    const overhead = 25e6;
+    const overhead = (25 + (diffOf(state).overhead || 0)) * 1e6;   // harder: higher fixed costs every month
     const profit = (revenue - cost - overhead) / 1e6;
     state.funds += profit;
 
@@ -1109,6 +1144,8 @@
     const monthMt = emitted / 1e6;
     state.cumCO2 += monthMt;
     state.captured += captured / 1e6;
+    state.steamGJ = (state.steamGJ || 0) + steam;
+    if (y >= LATE_YEAR) { state.steamLate = (state.steamLate || 0) + steam; state.capLate = (state.capLate || 0) + captured; }
     state.recent.push(monthMt);
     if (state.recent.length > 3) state.recent.shift();
     state.rate = state.recent.reduce((a, b) => a + b, 0) / state.recent.length * 12;
@@ -1130,7 +1167,7 @@
     // public anger, kept per source so the page can show where it comes from
     const baseRate = trendDemand(state) * HOURS * 0.95;   // smog per unit of the city's size, so growth alone does not anger people
     const smog = emitted / baseRate;
-    const FAIR = rgn.fair;
+    const FAIR = fairPrice(state);
     const parts = {
       price: 7 * Math.max(0, (state.price - FAIR) / FAIR) - (state.price < FAIR ? 0.8 * (FAIR - state.price) / FAIR : 0),
       blackout: 40 * unservedFrac,
@@ -1147,6 +1184,8 @@
     // timers
     if (state.demandMonths > 0 && --state.demandMonths === 0) state.demandMult = 1;
     if (state.gasMonths > 0 && --state.gasMonths === 0) state.gasMult = 1;
+    if (state.coalMonths > 0 && --state.coalMonths === 0) state.coalMult = 1;
+    if (state.coalCut > 0 && --state.coalCut === 0) addNews(state, 'good', 'Coal plants are back to full output.', '\u71c3\u7164\u5ee0\u6062\u5fa9\u6eff\u8f09\u3002');
     if (state.subsidy > 0) state.subsidy -= 1;
     if (state.resCut > 0) state.resCut -= 1;
     if (state.resSlow > 0 && --state.resSlow === 0) addNews(state, 'good', 'The lab grants are paid: research is back to full speed.', '\u7814\u7a76\u7d93\u8cbb\u64a5\u4e0b\u4f86\u4e86:\u7814\u767c\u901f\u5ea6\u6062\u5fa9\u6b63\u5e38\u3002');
@@ -1159,7 +1198,7 @@
 
     state.last = {
       demand: D, netCap: netCapTotal, served: served / HOURS, unservedFrac, emitted, captured, limit: lim,
-      revenue: revenue / 1e6, cost: cost / 1e6 + overhead / 1e6, profit, tax, credit: rgn.credit, gasFuel: gasFuel(state), sold: soldMW, imported: importMW,
+      revenue: revenue / 1e6, cost: cost / 1e6 + overhead / 1e6, profit, tax, credit: creditOf(state), steam: captured > 0 ? steam / captured : null, gasFuel: gasFuel(state), sold: soldMW, imported: importMW,
       units: units.map(u => ({ id: u.p.id, run: u.run, netCap: u.netCap, pen: u.pen, c: u.c })),
     };
 
@@ -1182,16 +1221,23 @@
   }
 
   // ---- score --------------------------------------------------------------------
+  // regeneration steam per tonne captured (GJ/t): what better solvents and processes cut. Stars and the score use the
+  // last ten years (the fleet you end with), so time spent researching is not held against you.
+  const LATE_YEAR = 2041;
+  const STEAM_STARS = [2.55, 2.3];    // GJ/t over 2041-2050 needed for 2 and 3 stars (MEA alone is 3.5, more on gas)
+  function avgSteam(s) { return s.captured > 0.01 ? (s.steamGJ || 0) / (s.captured * 1e6) : null; }
+  function lateSteam(s) { return (s.capLate || 0) > 1e4 ? s.steamLate / s.capLate : avgSteam(s); }
+  const steamPts = s => { const v = lateSteam(s); return v == null ? 0 : Math.max(0, 3.6 - v) * 500; };
   function rawScore(s) {
-    return Math.max(0, 250 - s.cumCO2) * 6 + (100 - s.anger) * 5 + Math.min(3000, Math.max(0, s.funds)) * 0.5 + s.captured * 1.5;
+    return Math.max(0, 250 - s.cumCO2) * 6 + (100 - s.anger) * 5 + Math.min(3000, Math.max(0, s.funds)) * 0.5 + s.captured * 0.5 + steamPts(s);
   }
   // the leaderboard score carries the difficulty bonus; stars are judged on the plain score, so they mean the same everywhere
   function score(s) { return Math.round(rawScore(s) * (DIFFS[s.diff || 'easy'] || DIFFS.easy).bonus); }
   function stars(s) {
     if (!s.over || !s.over.win) return 0;
-    const sc = rawScore(s);
-    const [two, three] = RG(s).stars;
-    return sc >= three ? 3 : sc >= two ? 2 : 1;
+    const sc = rawScore(s), st = lateSteam(s), [two, three] = RG(s).stars;
+    if (st == null) return 1;
+    return sc >= three && st <= STEAM_STARS[1] ? 3 : sc >= two && st <= STEAM_STARS[0] ? 2 : 1;
   }
 
   const api = {
@@ -1203,7 +1249,7 @@
     convert, canConvert, buildPlant, canBuildPlant, demolish, canDemolish,
     startResearch, canResearch, researchCost, researchMonths, researchOdds, project, maturity,
     PROCESS, flexNow, isPeak, setFlex,
-    setPrice, penalty, eff, workPerTonne, carbonTax, taxFor, limit, limitAt, limitFor, fairPrice, gasFuel, demand, peakDemand, seasonOf, year, monthName, score, stars,
+    DOWN_PAYMENT, creditOf, avgSteam, lateSteam, steamPts, STEAM_STARS, LATE_YEAR, RETROFIT, COAL_CUT, rawScore, setPrice, penalty, eff, workPerTonne, carbonTax, taxFor, limit, limitAt, limitFor, fairPrice, gasFuel, demand, peakDemand, seasonOf, year, monthName, score, stars,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CCModel = api;

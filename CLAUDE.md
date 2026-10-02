@@ -50,12 +50,17 @@ python tools/escape.py        # 3. 轉回 ASCII,commit 前必做
 
 ```bash
 node tools/fuzz.js                          # 必須印出 "no invariant violations"
-DIFF=normal REGION=taiwan node tools/sim.js # 平衡:各策略勝率
+DIFF=normal node tools/styles.js            # 平衡:各種玩法的勝率、星等、分數、2041–50 蒸汽(主要用這個)
+DIFF=normal REGION=taiwan node tools/sim.js # 舊的策略比較
 DIFF=hell PX=1 node tools/extreme.js texas  # 極端打法;PX = 電價相對可接受價格的倍數
 ```
 
 - 改數值後,三個地區(taiwan / germany / texas)× 相關難度都跑一次,在 PR 寫出勝率前後變化。
-  目前參考(v32,`sim.js` 的 "screen rush → best + 99",台灣/德國/德州):easy 19/21/19、normal 17/18/17、hard 14/16/13、hell 6/11/4(每格 24 局)。
+  目前參考(v33,`styles.js`,每格 24 局):
+  - normal:只用 MEA、MEA + 製程、只換溶劑、溶劑 + AS 都能贏(20–24/24)但只有 1 星;溶劑 + 全部製程 24/24、2–3 星。
+  - 只燃氣:台灣 15/24、多半 1 星(LNG 斷氣);只燃煤:德國 21/24、德州 18/24,台灣 0/24(新燃煤 + 捕捉 + 99 % 每座約 $1.85B,台灣利潤撐不起)。
+  - hard 一般玩法約 20–40 %(台灣 5–10/24、德國 4–10/24);hell 約 0–9/24。
+  - 設計原則:只做一部分也能贏,但 2–3 星要靠「好溶劑 + 對應製程」。
 - 瀏覽器:在 repo 根目錄 `python -m http.server 8000`,開 `http://localhost:8000/game/?debug`。
   `?debug` 會提供 `window.__cc`:`state`、`run(frames)`、`step(months)`、`plant(id)`、`hits`。
   至少看三種尺寸:桌機 1280×720、手機橫 844×390、手機直 390×760;console 不能有錯誤。
@@ -65,6 +70,10 @@ DIFF=hell PX=1 node tools/extreme.js texas  # 極端打法;PX = 電價相對可�
 - 三段版面:上 `.topbar#hud`(資訊)、中 `#sceneBox` 的 canvas(城市)、下 `.ctrlbar#ticker`(研究所、蓋廠、新聞、倍速)。
 - 用電需求:`M.capacityNeed(state, 年)` = 當年尖峰 × 1.1 備用 − 進口;2030 年前以地區成長率的一半成長,之後全速(`BOOM_YEAR`)。電網計量 `renderCap()` 畫容量條(實心 = 已完工電廠淨出力、斜線 = 興建中、黃線 = 現在需求、虛線 = 3 年後需求),3 年後會不夠時「+ 蓋廠」按鈕會發光。
 - 電廠卡最上面是分頁列 `renderTabs()`(‹ A B C … ›,鍵盤左右鍵也能切換)。
+- 星等(`M.stars`):要贏,且 2041–2050 年每噸捕捉的平均蒸汽(`M.lateSteam`)≤ `STEAM_STARS`(★★ 2.55、★★★ 2.3 GJ/t),分數也要過地區門檻 `REGIONS[r].stars`。只用 MEA(3.5–4)不論製程多完整都拿不到 2 星。分數含蒸汽項 `steamPts`。
+- 風險對稱:燃氣有 LNG 斷氣 / 德國管線斷氣 / 德州凍井 / 氣價;燃煤有空品降載(台)/ 萊茵河低水位(德)/ 乾旱缺冷卻水(德州)/ 煤價。某燃料占比 > 45 % 時該燃料事件機率加倍。
+- 新電廠先付 30 %(`DOWN_PAYMENT`),其餘在工期內按月扣;換溶劑成本 20 %(`RETROFIT`);99 % 升級 40 %(`DEEP.costFrac`)。
+- 難度旋鈕(`DIFFS`):`tighten`、`late`、`funds`、`overhead`(每月額外固定支出 $M)、`events`、`creditMul`(45Q 打折),hell 可依地區覆寫。
 - 「你可以做的事」動畫說明(`guideHTML()`,SVG + CSS 動畫):開場第 2 頁,遊戲中右上角 `?` 也能開。新增可點的功能時,一併補一張說明卡。
 - 總覽頁 `renderManage()`(左:研發方塊+進度條;右:每座電廠一列,含捕捉、目前工程、佇列、一鍵 99%/IC/SF),下方列「☰ 總覽」開啟。場景右上的即時動態列 `renderActivity()`(CO₂ 已封存、研發中、施工中,研究所閒置會閃)。
 - 一步步導覽 `TOUR`(變暗遮罩 + 亮框 + 逐字說明):第一局開始時跑一次(`cc2050-tour`),`?` 視窗可重看。目標用 `domRect(選擇器)` 或 `sceneRect(id)` 指定。
