@@ -17,6 +17,10 @@
  *   QM + MD screening, 28 amines ...... Chien, Wu & Lin, GHGT-18 (2026): reaction \u0394G MAE 3.6 kJ/mol
  *   PZ + advanced stripper 2.45 GJ/t .. Suresh Babu & Rochelle, IJGGC 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016
  *                                       (PZ with a simple stripper = 2.45 / 0.8 \u2248 3.05 GJ/t, est.)
+ * Ultra-supercritical coal ........... about 45 % efficient vs about 37 % for an older subcritical unit, so 15-20 % less
+ *                                       coal and CO2 per MWh (IEA, Technology Roadmap: High-Efficiency, Low-Emissions
+ *                                       Coal-Fired Power Generation, 2012); Taipower's Linkou units are 800 MW USC.
+ *                                       Build cost and time are est.
  * Economics checked against NETL / EIA / IEAGHG (Oct 2026 audit): capture capex \u2248 $1,500/kW (NETL nth-of-a-kind
  * ~$1,700/kW, first units more), CO2 transport + storage per tonne, US 45Q $85/t for 12 years, EU ETS \u2248 $85/t,
  * Taiwan carbon fee NT$300/t (\u2248 $10) from 2026, build times (capture 18 months, coal 4 years, gas ~2 years),
@@ -41,8 +45,9 @@
     easy: { label: 'Easy', zh: '\u7c21\u55ae', tighten: 0, funds: 1500, bonus: 1, hint: 'the gentle version', zhHint: '\u8f15\u9b06\u7248' },
     normal: { label: 'Normal', zh: '\u666e\u901a', tighten: 0.12, funds: 1400, bonus: 1.15, hint: 'tighter CO\u2082 limit, a bit less money', zhHint: 'CO\u2082 \u9650\u984d\u66f4\u7dca\u3001\u8cc7\u91d1\u7565\u5c11' },
     hell: { label: 'Hell', zh: '\u5730\u7344', tighten: 0.3, funds: 800, overhead: 3, bonus: 1.6, events: 1.7, gap: 8, hidden: true,
-      region: { germany: { tighten: 0.3, late: 0.22, funds: 700 }, taiwan: { tighten: 0.34, late: 0.3 }, texas: { tighten: 0.36, late: 0.38, creditMul: 0.6 } }, hint: 'you were warned', zhHint: '\u4f60\u88ab\u8b66\u544a\u904e\u4e86' },
-    hard: { label: 'Hard', zh: '\u56f0\u96e3', tighten: 0.25, late: 0.1, funds: 900, overhead: 5.5, events: 1.3, bonus: 1.3, region: { texas: { tighten: 0.38, late: 0.3 } },
+      region: { germany: { tighten: 0.3, late: 0.22, funds: 700, overhead: 4 }, taiwan: { tighten: 0.34, late: 0.3, overhead: 5 }, texas: { tighten: 0.36, late: 0.38, creditMul: 0.5, overhead: 12 } }, hint: 'you were warned', zhHint: '\u4f60\u88ab\u8b66\u544a\u904e\u4e86' },
+    hard: { label: 'Hard', zh: '\u56f0\u96e3', tighten: 0.25, late: 0.1, funds: 900, overhead: 6, events: 1.3, bonus: 1.3,
+      region: { taiwan: { overhead: 7.5 }, texas: { tighten: 0.38, late: 0.3, creditMul: 0.6, overhead: 8 } },
       hint: 'much tighter limit, less money, more trouble', zhHint: '\u9650\u984d\u7dca\u5f88\u591a\u3001\u9322\u66f4\u5c11\u3001\u4e8b\u4ef6\u66f4\u591a' },
   };
   const CAPEX_SCALE = 1.3;            // capture unit \u2248 $1,300 per kW (MEA, coal) before the first-of-a-kind premium
@@ -108,10 +113,13 @@
   const DEEP = { capture: 0.99, dutyMul: 1.09, opexAdd: 1, costFrac: 0.4, months: 12 };   // taller packing: 40 % of a new unit, a year to build
 
   // capexFactor: capture-unit cost per MW relative to coal; dutyMul/opexMul: dilute flue gas costs more per tonne.
-  // heatRate: fuel per MWh relative to a combined-cycle plant burning the same gas (a converted boiler is less efficient)
+  // heatRate: fuel per MWh relative to the plain plant of the same fuel (a converted boiler burns more, USC less);
+  // smog: how much its uncaptured exhaust counts toward smog anger (a new USC unit has modern pollution control)
   const PLANT_TYPES = {
-    coal: { label: 'Coal', zh: '\u71c3\u7164', intensity: 0.95, fixed: 0.0030, capexFactor: 1.0, dutyMul: 1.0, opexMul: 1.0,
+    coal: { label: 'Coal', zh: '\u71c3\u7164', intensity: 0.95, fixed: 0.0030, capexFactor: 1.0, dutyMul: 1.0, opexMul: 1.0, coal: true,
       size: 600, build: { cost: 760, months: 40 } },
+    usc:  { label: 'USC Coal', lower: 'USC coal', zh: '\u8d85\u8d85\u81e8\u754c\u71c3\u7164', intensity: 0.78, fixed: 0.0030, capexFactor: 0.82, dutyMul: 1.0, opexMul: 1.0, coal: true,
+      heatRate: 0.82, smog: 0.5, size: 800, build: { cost: 1300, months: 48 } },
     gas:  { label: 'Gas', zh: '\u71c3\u6c23', intensity: 0.37, fixed: 0.0020, capexFactor: 0.75, dutyMul: 1.15, opexMul: 1.2, gas: true,
       size: 400, build: { cost: 420, months: 27 } },
     gasb: { label: 'Gas-boiler', zh: '\u71c3\u6c23\u934b\u7210', intensity: 0.55, fixed: 0.0030, capexFactor: 0.9, dutyMul: 1.08, opexMul: 1.1, gas: true, heatRate: 1.45,
@@ -123,6 +131,7 @@
     coal: { gasb: { cost: 60, months: 6 }, gas: { cost: 450, months: 24 } },
     gasb: { gas: { cost: 400, months: 24 }, coal: { cost: 40, months: 6 } },
     gas: {},
+    usc: {},   // a USC unit is not converted: it is the end of the coal line
   };
 
   // capture: fraction captured; duty: regeneration GJ/t; capex: \u00d7 CAPEX_SCALE $M per MW gross (coal basis); opex: $/t
@@ -327,9 +336,10 @@
   // fuel cost per MWh of output for a plant type in this region
   function fuelOf(state, type) {
     const pt = PLANT_TYPES[type];
-    return pt.gas ? gasFuel(state) * (pt.heatRate || 1) : RG(state).coal * (state.coalMult || 1);
+    return pt.gas ? gasFuel(state) * (pt.heatRate || 1) : RG(state).coal * (state.coalMult || 1) * (pt.heatRate || 1);
   }
   const isGas = type => !!(PLANT_TYPES[type] && PLANT_TYPES[type].gas);
+  const isCoal = type => !!(PLANT_TYPES[type] && PLANT_TYPES[type].coal);
   // flexible operation: in the two or three peak months capture eases off during the peak hours (75 % on average
   // over the month). It has to be switched on after the research, so nobody pays the extra CO2 by accident.
   const FLEX = 0.75;
@@ -569,8 +579,10 @@
       if (job.kind === 'sf' && !v.deep) return { ok: false, why: 'Needs the 99 % upgrade first' };
       cost = Math.round(pr.fit * capexFull(v, v.tech) * (state.subsidy > 0 ? 0.7 : 1) * (RG(state).capexMul || 1)); months = pr.build;
     } else return { ok: false, why: 'Unknown job' };
-    if (state.funds < cost) return { ok: false, why: 'Not enough funds', cost, months, to };
-    return { ok: true, cost, months, to };
+    // capture ordered for a plant still being built is financed with the plant: a down payment now, the rest with its instalments
+    const down = job.kind === 'tech' && plant.build && plant.build.kind === 'new' && plant.build.left > 1 ? Math.round(cost * DOWN_PAYMENT) : null;
+    if (state.funds < (down == null ? cost : down)) return { ok: false, why: 'Not enough funds', cost, months, to, down };
+    return { ok: true, cost, months, to, down };
   }
   function jobName(job) {
     return job.kind === 'tech' ? `${TECHS[job.tech].short} capture` : job.kind === 'deep' ? '99 % upgrade' : job.kind === 'ic' ? 'absorber intercooling'
@@ -593,16 +605,24 @@
     if (!p) return { ok: false, why: 'No such plant' };
     const chk = canQueue(state, p, job);
     if (!chk.ok) return chk;
-    state.funds -= chk.cost;
-    const item = { kind: job.kind, tech: job.tech, toType: chk.to, paid: chk.cost, months: chk.months };
+    const now = chk.down == null ? chk.cost : chk.down;
+    state.funds -= now;
+    const item = { kind: job.kind, tech: job.tech, toType: chk.to, paid: now, owe: chk.cost - now, months: chk.months };
     if (!p.build && !qOf(p).length) startJob(state, p, item);
     else {
       qOf(p).push(item);
-      addNews(state, 'build', `${p.name}: ${jobName(item)} queued ($${chk.cost}M paid).`, `${pZh(p)}\uff1a${jobZh(item)}\u5df2\u6392\u5165\u4f47\u5217(\u5df2\u4ed8 $${chk.cost}M)\u3002`);
+      addNews(state, 'build', `${p.name}: ${jobName(item)} queued ($${now}M paid${item.owe ? `, $${item.owe}M with the plant's instalments` : ''}).`,
+        `${pZh(p)}\uff1a${jobZh(item)}\u5df2\u6392\u5165\u4f47\u5217(\u5df2\u4ed8 $${now}M${item.owe ? `,\u5176\u9918 $${item.owe}M \u96a8\u96fb\u5ee0\u5206\u671f` : ''})\u3002`);
     }
     return chk;
   }
   function startJob(state, p, item) {
+    if (item.owe > 0) { state.funds -= item.owe; item.paid += item.owe; item.owe = 0; }   // whatever is still owed falls due
+    if (item.kind === 'tech' && item.pre && !p.build) {   // part of it was built alongside the plant
+      const r = install(state, p.id, item.tech, item.paid);
+      if (r.ok && p.build) p.build.left = Math.max(1, p.build.left - item.pre);
+      if (r.ok) return r;
+    }
     const r = item.kind === 'tech' ? install(state, p.id, item.tech, item.paid)
       : item.kind === 'deep' ? upgrade(state, p.id, item.paid)
       : PROCESS[item.kind] ? addon(state, p, item) : convert(state, p.id, item.toType, item.paid);
@@ -873,8 +893,8 @@
     const heavy = gasShare > 0.45 ? 2 : 1;   // relying on gas makes gas trouble likelier
     for (let i = 0; i < heavy && hasGas; i++) { pool.push('gas'); if (rg.lng) pool.push('lng', 'lng'); if (rg.pipe) pool.push('pipe', 'pipe'); if (rg.winter && (mo === 11 || mo <= 1)) pool.push('winter', 'winter', 'winter'); }
     // and relying on coal makes coal trouble likelier
-    const hasCoal = state.plants.some(p => p.type === 'coal' && online(p));
-    const coalShare = state.plants.filter(p => p.type === 'coal').reduce((a, p) => a + p.gross, 0) / grossAll;
+    const hasCoal = state.plants.some(p => isCoal(p.type) && online(p));
+    const coalShare = state.plants.filter(p => isCoal(p.type)).reduce((a, p) => a + p.gross, 0) / grossAll;
     for (let i = 0; i < (coalShare > 0.45 ? 2 : 1) && hasCoal; i++) pool.push('coal', 'smog', 'smog');
     if (state.rate > 6) pool.push('health');
     if (!state.usCut && state.m >= 18) pool.push('uscut');
@@ -1017,9 +1037,11 @@
     // construction progress
     for (const p of state.plants) {
       if (!p.build) continue;
-      if (p.build.kind === 'new' && p.build.owe > 0) {   // construction instalment
-        const pay = Math.min(p.build.owe, p.build.owe / p.build.left);
-        state.funds -= pay; p.build.owe -= pay;
+      if (p.build.kind === 'new') {   // construction instalments: the plant, and capture financed with it
+        if (p.build.owe > 0) { const pay = p.build.owe / p.build.left; state.funds -= pay; p.build.owe -= pay; }
+        for (const it of qOf(p)) if (it.owe > 0) { const pay = it.owe / p.build.left; state.funds -= pay; it.owe -= pay; it.paid += pay; }
+        const first = qOf(p)[0];
+        if (first && first.kind === 'tech') first.pre = (first.pre || 0) + 1;   // capture is being built alongside
       }
       p.build.left -= 1;
       if (p.build.left > 0) continue;
@@ -1027,6 +1049,14 @@
       p.build = null;
       if (b.kind === 'new') {
         addNews(state, 'build', `${p.name} is online (+${p.gross} MW).`, `${pZh(p)}\u4e0a\u7dda(+${p.gross} MW)\u3002`);
+        const it = qOf(p)[0];
+        if (it && it.kind === 'tech' && (it.pre || 0) >= it.months) {   // ordered early enough: capture starts with the plant
+          qOf(p).shift();
+          if (it.owe > 0) { state.funds -= it.owe; it.owe = 0; }
+          state.built[it.tech] = (state.built[it.tech] || 0) + 1;
+          p.tech = it.tech; p.washed = !!TECHS[it.tech].noEmit; state.techUsed[it.tech] = true;
+          addNews(state, 'build', `${p.name}: ${TECHS[it.tech].short} capture was built alongside and starts with the plant.`, `${pZh(p)}\uff1a${TECHS[it.tech].short} \u6355\u6349\u8207\u96fb\u5ee0\u540c\u6b65\u5b8c\u5de5,\u4e00\u8d77\u4e0a\u7dda\u3002`);
+        }
       } else if (b.kind === 'convert') {
         p.type = b.toType; p.gross = PLANT_TYPES[b.toType].size;
         p.name = pName(p);
@@ -1077,7 +1107,7 @@
       const c = e ? e.capture * (flexNow(state) ? FLEX : 1) : 0;
       const pen = e ? pt.intensity * c * workPerTonne(e) : 0;
       const fuel = fuelOf(state, p.type);
-      const avail = pt.gas ? gasAvail : p.type === 'coal' && state.coalCut > 0 ? COAL_CUT : 1;
+      const avail = pt.gas ? gasAvail : pt.coal && state.coalCut > 0 ? COAL_CUT : 1;
       const credit = rgn.credit && (p.capMonths || 0) < rgn.creditMonths ? creditOf(state) : 0;
       const perGross = fuel + (e ? (e.opex + ts - credit) * pt.intensity * c : 0) + tax * pt.intensity * (1 - c);
       return { p, pt, e, c, pen, credit, netCap: p.gross * avail * (1 - pen), marginal: perGross / (1 - pen), fuel };
@@ -1085,13 +1115,13 @@
 
     const D = demand(state);
     let left = D, revenue = 0, cost = 0, emitted = 0, captured = 0, served = 0, netCapTotal = 0;
-    let surplus = D * (rgn.surplus || SURPLUS_SHARE), soldMW = 0, taxPaid = 0, creditPaid = 0, tsPaid = 0, steam = 0;
+    let surplus = D * (rgn.surplus || SURPLUS_SHARE), soldMW = 0, taxPaid = 0, creditPaid = 0, tsPaid = 0, steam = 0, smogT = 0;
     const burn = (u, mw, price) => {
       const netMWh = mw * HOURS;
       const grossMWh = netMWh / (1 - u.pen);
       const co2 = grossMWh * u.pt.intensity;
       const cap = co2 * u.c, emi = co2 - cap;
-      emitted += emi; captured += cap; if (u.e) steam += cap * u.e.duty;
+      emitted += emi; captured += cap; smogT += emi * (u.pt.smog == null ? 1 : u.pt.smog); if (u.e) steam += cap * u.e.duty;
       cost += grossMWh * u.fuel + (u.e ? cap * (u.e.opex + ts) : 0) + emi * tax;
       taxPaid += emi * tax; tsPaid += cap * ts; creditPaid += cap * u.credit;
       revenue += netMWh * price;
@@ -1166,7 +1196,7 @@
 
     // public anger, kept per source so the page can show where it comes from
     const baseRate = trendDemand(state) * HOURS * 0.95;   // smog per unit of the city's size, so growth alone does not anger people
-    const smog = emitted / baseRate;
+    const smog = smogT / baseRate;
     const FAIR = fairPrice(state);
     const parts = {
       price: 7 * Math.max(0, (state.price - FAIR) / FAIR) - (state.price < FAIR ? 0.8 * (FAIR - state.price) / FAIR : 0),
@@ -1243,7 +1273,7 @@
   const api = {
     HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, RESERVE_MARGIN, BOOM_YEAR, capacityNeed, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE, START_FUNDS, DIFFS, GAS_CRISIS, diffOf, CAPEX_SCALE, FOAK,
     BREACH, breachStep, REGIONS, SEASON, SURPLUS_SHARE, SHIP, METHODS, DROPS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG,
-    newGame, step, choose, offCost, online, isGas, fuelOf, foak, pZh, tZh,
+    newGame, step, choose, offCost, online, isGas, isCoal, fuelOf, foak, pZh, tZh,
     install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost, convertOptions,
     QUEUE_MAX, planned, canQueue, enqueue, cancelJob, canQueueResearch, enqueueResearch, cancelResearch,
     convert, canConvert, buildPlant, canBuildPlant, demolish, canDemolish,

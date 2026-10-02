@@ -38,8 +38,8 @@ const capOf = p => { const v = M.planned(p); return v.gross * (1 - (v.tech ? M.p
 const haveCap = s => s.plants.reduce((a, p) => a + capOf(p), 0);   // with plants still being built
 const capOnline = s => s.plants.reduce((a, p) => a + (p.build && (p.build.kind === 'new' || p.build.kind === 'convert') ? 0 : capOf(p)), 0);
 const now = s => M.START_YEAR + s.m / 12;
-const coalFirst = s => s.plants.slice().sort((a, b) => (a.type === 'coal' ? 0 : 1) - (b.type === 'coal' ? 0 : 1));
-const q = (s, p, job) => { const c = M.canQueue(s, p, job); if (c.ok && buy(s, c.cost)) { M.enqueue(s, p.id, job); return true; } return false; };
+const coalFirst = s => s.plants.slice().sort((a, b) => (M.isCoal(a.type) ? 0 : 1) - (M.isCoal(b.type) ? 0 : 1));
+const q = (s, p, job) => { const c = M.canQueue(s, p, job); if (c.ok && buy(s, c.down == null ? c.cost : c.down)) { M.enqueue(s, p.id, job); return true; } return false; };
 
 // st: lab (research order; 'screen' stops once a wanted solvent is found), want (solvents, best first), first (solvent
 // before that), procs (add-ons to fit), deep (99 % when the limit closes in), build ('gas' | 'coal'), convert (coal -> gas)
@@ -64,7 +64,7 @@ function bot(st) {
     const tight = s.rate >= M.limitFor(s, now(s) + 3) * 0.75;
     if (st.capture !== false) for (const p of coalFirst(s)) {
       const v = M.planned(p);
-      if (v.tech || (p.queue || []).length >= 2 || (v.type !== 'coal' && !tight)) continue;
+      if (v.tech || (p.queue || []).length >= 2 || (!M.isCoal(v.type) && !tight)) continue;
       must(true, () => (main && q(s, p, { kind: 'tech', tech: main })) || (st.first && q(s, p, { kind: 'tech', tech: st.first })) || !(main || st.first));
     }
     // C. 99 % when the limit closes in (coal first)
@@ -110,6 +110,8 @@ const STYLES = [
   ['gas only (full tech)', { first: 'mea90', lab: ['screen', 'as', 'ic', 'sf'], want: BEST, procs: ALLP, deep: true, convert: true }],
   ['coal only (full tech)', { first: 'mea90', lab: ['screen', 'as', 'ic', 'sf'], want: BEST, procs: ALLP, deep: true, build: 'coal' }],
   ['coal only (MEA)', { first: 'mea90', deep: true, build: 'coal' }],
+  ['USC only (full tech)', { first: 'mea90', lab: ['screen', 'as', 'ic', 'sf'], want: BEST, procs: ALLP, deep: true, build: 'usc' }],
+  ['USC only (MEA)', { first: 'mea90', deep: true, build: 'usc' }],
   ['gas only (MEA)', { first: 'mea90', deep: true, convert: true }],
   ['screen rush → best + 99', { lab: ['screen'], want: ['pe2eg', 'pz', 'ampnmp'], deep: true }],
 ];

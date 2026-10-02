@@ -218,6 +218,7 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .chip { font-size: 12.5px; font-family: var(--mono); padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .chip.coal { color: #F0A58A; border-color: #6B3E33; }
 .chip.gas, .chip.gasb { color: #9CC7F2; border-color: #33506F; }
+.chip.usc { color: #D7DEE6; border-color: #56657A; }
 .chip.bad { color: var(--anger); border-color: #6B3E33; }
 .chip.warn { color: var(--co2); border-color: #6B5B2E; }
 .chip.ok { color: var(--good); border-color: #2F5B3A; }
@@ -914,7 +915,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   const tPitch = t => zhOf(t.pitch, t.zh && t.zh.pitch);
   const tFact = t => zhOf(t.fact, t.zh && t.zh.fact);
   const tStage = t => zhOf(t.stage, t.zh && t.zh.stage);
-  const typeName = type => L(M.PLANT_TYPES[type].label.toLowerCase(), M.PLANT_TYPES[type].zh);
+  const typeName = type => L(M.PLANT_TYPES[type].lower || M.PLANT_TYPES[type].label.toLowerCase(), M.PLANT_TYPES[type].zh);
   const plantName = p => L(p.name, M.pZh(p));
   const mo = n => L(`${n} mo`, `${n} 個月`);
   const dateStr = m => { m = Math.min(m, M.MONTHS - 1); const y = M.START_YEAR + Math.floor(m / 12); return L(`${MONTH[m % 12]} ${y}`, `${y} 年 ${m % 12 + 1} 月`); };
@@ -1157,7 +1158,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   }
 
   // ---------- plant chips under the town (same as tapping the plant in the scene) ----------
-  const TYPE_COL = { coal: '#6E3F33', gas: '#5A6E86', gasb: '#6D6A8A' };
+  const TYPE_COL = { coal: '#6E3F33', usc: '#56657A', gas: '#5A6E86', gasb: '#6D6A8A' };
   // process add-ons fitted plant by plant (the keys of M.PROCESS), each with its own colour
   const PROCS = ['as', 'ic', 'sf'];
   const PCOL = { as: '#F28482', ic: '#5FB3B3', sf: '#B39DDB' };
@@ -1348,6 +1349,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     }
     const groups = iconGroups(p).map(([h, ks], i) => `<div class="igrp g${i}"><div class="igh">${h}</div><div class="icons">${ks.map(k => iconHTML(p, k)).join('')}</div></div>`).join('');
     $('plBody').innerHTML = `<div class="qrow">${q}</div>`
+      + (p.build && p.build.kind === 'new' && !p.tech ? `<p class="cmd-hint" style="margin:4px 0 0">${L(`Order capture now: it is built alongside and starts with the plant if ordered ${mo(12)} before it is done (30 % now, the rest with the plant).`, `現在就排捕捉:會跟電廠一起施工,完工前 ${mo(12)} 排好就同步上線(先付 30 %,其餘隨電廠分期)。`)}</p>` : '')
       + `<div class="igrps" id="icons">${groups}</div><div class="info" id="info"></div>`
       + `<p class="cmd-hint">${lastPtr === 'mouse' ? L('Hover to see, click to queue', '滑鼠移上去看,點一下排入') : L('Tap to see, tap again to queue', '點一下看,再點排入')} · ${L('paid when queued · tap a queued job to refund', '排入即付款 · 點佇列可退費')}</p>`;
     $('plBody').querySelectorAll('[data-cx]').forEach(b => b.onclick = () => {
@@ -1389,7 +1391,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     let k = hoverK || sel || (v.tech ? (v.deep ? keys.find(x => x.startsWith('cv_')) || 'demolish' : 'deep') : 'mea90');
     if (!keys.includes(k)) k = 'mea90';
     const idle = !p.build && !(p.queue || []).length;
-    const act = chk => `${idle ? L('Start', '開工') : L('Queue', '排入')} · $${fmt(chk.cost)}M · ${mo(chk.months)}`;
+    const act = chk => `${idle ? L('Start', '開工') : L('Queue', '排入')} · $${fmt(chk.down == null ? chk.cost : chk.down)}M${chk.down == null ? '' : L(' now', ' 頭期')} · ${mo(chk.months)}`;
     const whyHTML = chk => `<span class="src">${why(chk.why)}${chk.cost && chk.why === 'Not enough funds' ? L(` (needs $${fmt(chk.cost)}M)`, `(需要 $${fmt(chk.cost)}M)`) : ''}</span>`;
     let h;
     if (M.TECHS[k]) {
@@ -1467,12 +1469,13 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     const card = (type, pros, cons) => {
       const pt = M.PLANT_TYPES[type], chk = M.canBuildPlant(S, type);
       return `<div class="opt"><div class="row"><span class="nm">${zhOf(pt.label, pt.zh)} · ${pt.size} MW</span><span class="chip ${type}">${pt.intensity} t CO₂/MWh</span></div>
-        <div class="pitch">👍 ${pros}</div><div class="pitch">👎 ${cons}</div>
+        <div class="pitch">👍 ${pros}</div><div class="pitch">👎 ${cons}</div>${type === 'usc' ? `<p class="src">${L('IEA, Technology Roadmap: High-Efficiency, Low-Emissions Coal-Fired Power Generation (2012); Taipower Linkou units are 800 MW USC. Cost and build time: game estimates', 'IEA《高效低排放燃煤發電技術路線圖》(2012);台電林口電廠新機組即為 800 MW 超超臨界。造價與工期為遊戲估計')} <span class="est">est.</span></p>` : ''}
         <div class="row"><button class="btn" data-build="${type}" ${chk.ok ? '' : 'disabled'}>${L('Build', '興建')} · $${pt.build.cost}M · ${mo(pt.build.months)}</button>${chk.ok ? '' : `<span class="src">${why(chk.why)}${chk.down ? L(` (needs $${chk.down}M down)`, `(頭期要 $${chk.down}M)`) : ''}</span>`}</div>
         <div class="kv">${L(`$${Math.round(pt.build.cost * M.DOWN_PAYMENT)}M now, the rest month by month while it is built`, `先付 $${Math.round(pt.build.cost * M.DOWN_PAYMENT)}M,其餘在興建期間按月付`)}</div></div>`;
     };
     $('bdOpts').innerHTML =
-      card('coal', L('Cheap fuel that no tanker can cut off; capture is cheaper per tonne.', '燃料便宜,不怕斷氣;每噸捕捉較便宜。'), L('Dear to build and to capture (2.6× the CO₂ of gas), smog, slow; smog alerts and coal shortages cut every coal plant at once.', '蓋廠與捕捉都貴(CO₂ 是燃氣 2.6 倍)、有空污、工期長;空品警報或缺煤會讓所有燃煤廠一起降載。')) +
+      card('coal', L('The cheapest coal plant; cheap fuel that no tanker can cut off.', '最便宜的燃煤廠;燃料便宜,不怕斷氣。'), L('The dirtiest: big capture bills (2.6× the CO₂ of gas), smog, slow; smog alerts and coal shortages cut every coal plant at once.', '最髒:捕捉帳單大(CO₂ 是燃氣 2.6 倍)、有空污、工期長;空品警報或缺煤會讓所有燃煤廠一起降載。')) +
+      card('usc', L('Ultra-supercritical: about 45 % efficient, so 18 % less coal and CO₂ per MWh, a smaller capture unit, half the smog. 800 MW in one lot.', '超超臨界:效率約 45 %,每度電少 18 % 的煤和 CO₂,捕捉設備較小、空污減半。一塊地就有 800 MW。'), L('The dearest plant and the longest build; one trip or typhoon takes 800 MW off at once; cannot be converted later.', '最貴、工期最長;一跳機或颱風就少 800 MW;之後不能改建。')) +
       card('gas', L('Cleaner and quicker to build.', '較乾淨、蓋得較快。'), L('Pricey, volatile fuel; a supply cut starves every gas plant at once.', '燃料貴又波動;一斷氣,所有燃氣廠一起停擺。'));
     $('bdOpts').querySelectorAll('[data-build]').forEach(b => b.onclick = () => { const r = M.buildPlant(S, b.dataset.build); SND.play(r.ok ? 'queue' : 'nope'); closeBuild(); renderAll(); });
   }
@@ -1876,7 +1879,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
 
   // ending title from the approach the player took (links to the paper behind it)
   function approach(s) {
-    const u = s.techUsed, deepN = s.plants.filter(p => p.deep).length, coalN = s.plants.filter(p => p.type === 'coal').length;
+    const u = s.techUsed, deepN = s.plants.filter(p => p.deep).length, coalN = s.plants.filter(p => M.isCoal(p.type)).length;
     if (u.pe2eg) return [L('Solvent pioneer', '溶劑先鋒'), L('You ran the city on 2PE/EG, the water-lean solvent that reacts 4.5× faster than MEA and carries 2.8× more CO₂ per cycle, so it needs less steam.', '你用 2PE/EG 撐起整座城市：這種低水溶劑反應比 MEA 快 4.5 倍、每次循環多帶 2.8 倍 CO₂，所以更省蒸汽。'), '10.1016/j.cej.2026.174224'];
     if (u.ampnmp) return [L('Kinetics chaser', '動力學玩家'), L('You bet on AMP/NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '你押寶 AMP/NMP：NMP 讓高容量的 AMP 反應快 3 倍，代價是胺甲酸鹽可能析出。'), '10.1016/j.cej.2025.160544'];
     if (u.aas && !u.pz && !u.pe2eg) return [L('Clean-air operator', '無胺排放派'), L('You chose an amino-acid salt: it never evaporates, so no amine reached the town, at the price of more steam per tonne on coal.', '你選了胺基酸鹽：它不會揮發，城市空氣裡沒有胺；代價是燃煤廠每噸要更多蒸汽。'), null];
@@ -2535,7 +2538,8 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       const base = horizon - (s.back ? SH * 0.11 : 0);
       const cx = s.x * W;
       const big = p.type !== 'gas';   // coal and gas-boiler plants keep the big steam-plant building
-      const bw = W * 0.085 * k, bh = SH * (big ? 0.2 : 0.15) * k;
+      const usc = p.type === 'usc';
+      const bw = W * 0.085 * k, bh = SH * (usc ? 0.25 : big ? 0.2 : 0.15) * k;
       const by = base - bh + 6 * k;
       const unitW = Math.max(5, W * 0.014) * k * 2 + 12 * k;
       const tcx = cx + unitW / 2 - bw * 0.1, rx = bw * 0.62 + unitW / 2;
@@ -2544,7 +2548,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       if (hoverId === p.id) outline({ x0: target.cx - target.rx, x1: target.cx + target.rx, y0: target.cy - target.ry, y1: target.cy + target.ry });
       const tag = down => drawTag(p, cx, s.back ? base - SH * 0.36 * k - 16 : base, k, down, s.back);
       const frac = p.build ? 1 - p.build.left / p.build.total : 0;
-      const bodyCol = { coal: '#6E3F33', gas: '#5A6E86', gasb: '#6D6A8A' }[p.type];
+      const bodyCol = { coal: '#6E3F33', usc: '#AEB9C6', gas: '#5A6E86', gasb: '#6D6A8A' }[p.type];
       if (p.build && p.build.kind === 'new') {
         ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeRect(cx - bw / 2, by, bw, bh); ctx.setLineDash([]);
         const rise = Math.max(3, bh * frac);
@@ -2557,13 +2561,21 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         return;
       }
       const down = !M.online(p);
+      if (usc) {   // hyperbolic cooling tower on the left, with a wisp of steam
+        const tw = bw * 0.55, th = bh * 0.85, tx = cx - bw / 2 - tw * 0.55;
+        ctx.fillStyle = down ? '#5A5A5A' : '#D5DBE2';
+        ctx.beginPath(); ctx.moveTo(tx - tw / 2, base); ctx.quadraticCurveTo(tx - tw * 0.18, base - th * 0.55, tx - tw * 0.32, base - th);
+        ctx.lineTo(tx + tw * 0.32, base - th); ctx.quadraticCurveTo(tx + tw * 0.18, base - th * 0.55, tx + tw / 2, base); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.fillRect(tx - tw * 0.32, base - th, tw * 0.64, 3 * k);
+      }
       ctx.fillStyle = down ? '#4A4A4A' : bodyCol;
       ctx.fillRect(cx - bw / 2, by, bw, bh);
       ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(cx - bw / 2, by, bw, 3);
-      const chimneys = big ? [cx - bw * 0.22, cx + bw * 0.15] : [cx + bw * 0.1];
-      const chH = (big ? SH * 0.28 : SH * 0.18) * k;
+      if (usc && !down) { ctx.fillStyle = 'rgba(46,62,84,.35)'; for (let r = 0; r < 3; r++) ctx.fillRect(cx - bw / 2 + 3 * k, by + bh * (0.2 + r * 0.25), bw - 6 * k, 2 * k); }   // glazed bands
+      const chimneys = usc ? [cx + bw * 0.05] : big ? [cx - bw * 0.22, cx + bw * 0.15] : [cx + bw * 0.1];
+      const chH = (usc ? SH * 0.34 : big ? SH * 0.28 : SH * 0.18) * k;
       chimneys.forEach(chx => {
-        ctx.fillStyle = p.type === 'coal' ? '#8C8C8C' : '#9EAAB8';
+        ctx.fillStyle = p.type === 'coal' ? '#8C8C8C' : usc ? '#E4E8EC' : '#9EAAB8';
         ctx.fillRect(chx - 4 * k, base - chH, 8 * k, chH);
         ctx.fillStyle = '#C0392B'; ctx.fillRect(chx - 4 * k, base - chH + 6 * k, 8 * k, 3 * k);
       });
@@ -2610,7 +2622,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       const u = Ls && Ls.units.find(x => x.id === p.id);
       const load = u ? u.run / Math.max(1, u.netCap) : 1;
       const cap = u ? u.c : 0;
-      const intensity = p.type === 'coal' ? 1 : p.type === 'gasb' ? 0.6 : 0.45;
+      const intensity = p.type === 'coal' ? 1 : usc ? 0.7 : p.type === 'gasb' ? 0.6 : 0.45;
       const puff = (playing && speed > 0 && !paused() ? 1 : 0.35) * load * (REDUCED ? 0.3 : 1) * k;
       chimneys.forEach(chx => {
         if (cap > 0) {

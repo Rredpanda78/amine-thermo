@@ -41,7 +41,7 @@ for (let g = 0; g < N && bad.length < 20; g++) {
         if (a === 0 && p) M.install(s, p.id, pick(M.TECH_ORDER));
         else if (a === 1 && p) M.upgrade(s, p.id);
         else if (a === 2 && p && rnd() < 0.2) M.convert(s, p.id, pick(['gas', 'gasb', 'coal', undefined]));
-        else if (a === 3 && rnd() < 0.15) M.buildPlant(s, pick(['coal', 'gas']));
+        else if (a === 3 && rnd() < 0.15) M.buildPlant(s, pick(['coal', 'gas', 'usc']));
         else if (a === 4 && p && rnd() < 0.05) M.demolish(s, p.id);
         else if (a === 5) M.startResearch(s, pick(M.LAB_ORDER));
         else if (a === 6) M.setPrice(s, 60 + rnd() * 120);
