@@ -41,6 +41,15 @@ const now = s => M.START_YEAR + s.m / 12;
 const coalFirst = s => s.plants.slice().sort((a, b) => (M.isCoal(a.type) ? 0 : 1) - (M.isCoal(b.type) ? 0 : 1));
 const q = (s, p, job) => { const c = M.canQueue(s, p, job); if (c.ok && buy(s, c.down == null ? c.cost : c.down)) { M.enqueue(s, p.id, job); return true; } return false; };
 
+// mixed fleets: which plant to build next
+const builtNew = (s, t) => s.plants.filter(p => p.type === t && p.id > 'D').length;
+const MIX = {
+  alternate: s => builtNew(s, 'usc') <= builtNew(s, 'gas') ? 'usc' : 'gas',
+  bigGap: s => M.capacityNeed(s, now(s) + 4.5) - haveCap(s) >= 500 ? 'usc' : 'gas',   // a big gap 4.5 years out: one 800 MW unit
+  uscFirst: s => now(s) < 2035 ? 'usc' : 'gas',
+  gasFirst: s => now(s) < 2035 ? 'gas' : 'usc',
+  half: s => { const g = s.plants.filter(p => M.isGas(p.type)).reduce((a, p) => a + p.gross, 0), c = s.plants.filter(p => M.isCoal(p.type)).reduce((a, p) => a + p.gross, 0); return c < g ? 'usc' : 'gas'; },   // keep coal and gas about even
+};
 // st: lab (research order; 'screen' stops once a wanted solvent is found), want (solvents, best first), first (solvent
 // before that), procs (add-ons to fit), deep (99 % when the limit closes in), build ('gas' | 'coal'), convert (coal -> gas)
 function bot(st) {
@@ -52,7 +61,7 @@ function bot(st) {
     price(s);
     const want = st.want || [];
     const main = want.find(id => s.unlocked[id]) || st.first;
-    const type = st.build || 'gas';
+    const type = typeof st.build === 'function' ? st.build(s) : st.build || 'gas';   // a rule can pick the type each time
     let saving = false;
     const must = (needed, tryIt) => { if (saving || !needed) return; if (!tryIt()) saving = true; };
     const build = () => { const c = M.canBuildPlant(s, type); if (c.ok && s.funds - c.down > 100) { M.buildPlant(s, type); return true; } return c.ok || c.why !== 'Not enough funds'; };
@@ -113,6 +122,11 @@ const STYLES = [
   ['USC only (full tech)', { first: 'mea90', lab: ['screen', 'as', 'ic', 'sf'], want: BEST, procs: ALLP, deep: true, build: 'usc' }],
   ['USC only (MEA)', { first: 'mea90', deep: true, build: 'usc' }],
   ['gas only (MEA)', { first: 'mea90', deep: true, convert: true }],
+  ['mix: alternate gas/USC', { first: 'mea90', lab: ['screen', 'as', 'ic', 'sf'], want: BEST, procs: ALLP, deep: true, build: MIX.alternate }],
+  ['mix: USC for big gaps', { first: 'mea90', lab: ['screen', 'as', 'ic', 'sf'], want: BEST, procs: ALLP, deep: true, build: MIX.bigGap }],
+  ['mix: USC first, gas >2035', { first: 'mea90', lab: ['screen', 'as', 'ic', 'sf'], want: BEST, procs: ALLP, deep: true, build: MIX.uscFirst }],
+  ['mix: gas first, USC >2035', { first: 'mea90', lab: ['screen', 'as', 'ic', 'sf'], want: BEST, procs: ALLP, deep: true, build: MIX.gasFirst }],
+  ['mix: coal ≈ gas (USC)', { first: 'mea90', lab: ['screen', 'as', 'ic', 'sf'], want: BEST, procs: ALLP, deep: true, build: MIX.half }],
   ['screen rush → best + 99', { lab: ['screen'], want: ['pe2eg', 'pz', 'ampnmp'], deep: true }],
 ];
 const CUTS = { lng: 1, winter: 1, pipe: 1, smog: 1, coal: 1, gas: 1 };
@@ -139,7 +153,7 @@ function run(region, [name, st]) {
   console.log(`  ${name.padEnd(26)} win ${String(win.length).padStart(2)}/${res.length}  ★ ${st3.slice(1).join('/').padEnd(8)} raw ${raw.toFixed(0).padStart(5)}` +
     `  steam ${isNaN(steam) ? '  — ' : steam.toFixed(2)}  CO2 ${avg(res, s => s.cumCO2).toFixed(0).padStart(3)}  blk ${avg(res, s => s.blackouts).toFixed(1).padStart(4)}` +
     (process.env.PARTS ? `  [co2 ${avg(win, s => Math.max(0, 250 - s.cumCO2) * 6).toFixed(0)} ang ${avg(win, s => (100 - s.anger) * 5).toFixed(0)} $ ${avg(win, s => Math.min(3000, Math.max(0, s.funds)) * 0.5).toFixed(0)} cap ${avg(win, s => s.captured * 1.5).toFixed(0)} stm ${avg(win, M.steamPts).toFixed(0)}]` : '') +
-    `  cuts ${avg(res, s => s._cuts).toFixed(1)}  $${avg(res, s => s.funds).toFixed(0).padStart(5)}M  plants ${avg(res, s => s.plants.length).toFixed(1)}  ${Object.keys(why).length ? JSON.stringify(why) : ''}`);
+    `  cuts ${avg(res, s => s._cuts).toFixed(1)}  $${avg(res, s => s.funds).toFixed(0).padStart(5)}M  plants ${avg(res, s => s.plants.length).toFixed(1)} (c/u/g ${['coal', 'usc'].map(t => avg(res, s => s.plants.filter(p => p.type === t).length).toFixed(1)).join('/')}/${avg(res, s => s.plants.filter(p => M.isGas(p.type)).length).toFixed(1)})  ${Object.keys(why).length ? JSON.stringify(why) : ''}`);
 }
 for (const region of process.env.REGION ? [process.env.REGION] : ['taiwan', 'germany', 'texas']) {
   console.log(`== ${region} ${process.env.DIFF || 'normal'}`);
