@@ -308,9 +308,13 @@ details.more summary { font-size: 12.5px; }
 .opt .pitch { font-size: 15px; }
 .bars { display: grid; grid-template-columns: 7.2em 1fr 5.6em; gap: 3px 8px; align-items: center; font-size: 13.5px; }
 .bars .k { color: var(--muted); white-space: nowrap; }
-.bars .tr { height: 8px; background: #0F1B2D; border-radius: 4px; overflow: hidden; min-width: 40px; }
-.bars .tr i { display: block; height: 100%; border-radius: 4px; background: #E07A5F; }
-.bars .tr i.go { background: var(--good); }
+.bars .tr { position: relative; height: 10px; background: #0F1B2D; border-radius: 5px; overflow: hidden; min-width: 60px; }
+.bars .tr::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #8FA3BF; z-index: 1; }
+.bars .tr i { position: absolute; top: 1px; bottom: 1px; }
+.bars .tr i.good { left: 50%; background: var(--good); border-radius: 0 4px 4px 0; }
+.bars .tr i.bad { right: 50%; background: #E07A5F; border-radius: 4px 0 0 4px; }
+.bars .v { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.bars .v.good { color: var(--good); } .bars .v.bad { color: #E07A5F; }
 .bars .v { font-family: var(--mono); text-align: right; white-space: nowrap; }
 .barkey { font-size: 13.5px; color: var(--muted); }
 .mini { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1189,21 +1193,29 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   $('plClose').onclick = closePlant;
   $('ovPlant').addEventListener('click', e => { if (e.target === $('ovPlant')) closePlant(); });
   document.addEventListener('pointerdown', e => { lastPtr = e.pointerType || 'mouse'; }, true);
-  // compare bars: every technology that fits this plant on the same scale (speed: log 0.1x to 10x)
+  // compare bars: each solvent against MEA on this same plant (same add-ons, same cost rules). The centre line is MEA;
+  // green to the right = better, red to the left = worse; the length is the size of the difference on a log scale
+  // (full half-bar = twice as good or bad; absorption speed: ten times)
   function bars(p, id) {
-    const t = M.TECHS[id], e = M.eff(id, false, p.type);
-    const pool = M.TECH_ORDER;
-    const lost = x => M.penalty(p, x, false) * p.gross, cost = x => M.installCost(S, p, x), run = x => M.eff(x, false, p.type).opex;
-    const rel = (f, x) => { const a = pool.map(f), lo = Math.min(...a), hi = Math.max(...a); return 0.12 + 0.88 * (f(x) - lo) / ((hi - lo) || 1); };
-    const w = v => Math.max(4, Math.min(100, v * 100)).toFixed(0);
-    const row = (k, v, frac, go) => `<span class="k">${k}</span><span class="tr"><i class="${go ? 'go' : ''}" style="width:${w(frac)}%"></i></span><span class="v">${v}</span>`;
-    const lv = lost(id);
+    const t = M.TECHS[id], mea = M.TECHS.mea90;
+    const steam = x => M.eff(x, false, p.type, p.ic, p.sf, p.as).duty, lost = x => M.penalty(p, x, false) * p.gross;
+    const cost = x => M.installCost(S, p, x), run = x => M.eff(x, false, p.type).opex;
+    const pct = (a, b) => { const d = Math.round((a / b - 1) * 100); return d === 0 ? '=' : (d > 0 ? '+' : '−') + Math.abs(d) + ' %'; };
+    // gain > 1 means better than MEA; full = the ratio that fills half the track
+    const row = (k, gain, full, text, tip) => {
+      const f = Math.min(1, Math.abs(Math.log(gain)) / Math.log(full)), same = Math.abs(gain - 1) < 0.005;
+      const cls = same ? '' : gain > 1 ? 'good' : 'bad';
+      return `<span class="k">${k}</span><span class="tr" title="${esc(tip)}">${same ? '' : `<i class="${cls}" style="width:${(f * 50).toFixed(1)}%"></i>`}</span><span class="v ${cls}">${same ? '= MEA' : text}</span>`;
+    };
+    if (id === 'mea90') return `<div class="barkey">${L('MEA is the yardstick: every other solvent is drawn against it.', 'MEA 是比較基準:其他溶劑都拿它來比。')}</div>`;
+    const sv = steam(id), sm = steam('mea90'), lv = lost(id), lm = lost('mea90'), cv = cost(id), cm = cost('mea90'), rv = run(id), rm = run('mea90');
     return '<div class="bars">'
-      + row(L('Absorbs CO₂', '吸收速度'), t.rate + '× MEA', (Math.log10(t.rate) + 1) / 2, true)
-      + row(L('Power lost', '少發電'), '−' + fmt(lv) + ' MW', rel(lost, id), false)
-      + row(L('Build cost', '設備費'), '$' + fmt(cost(id)) + 'M', rel(cost, id), false)
-      + row(L('Running cost', '運轉費'), '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
-      + `</div><div class="barkey">${L('Longer bar: <b style="color:var(--good)">green</b> = better, <b style="color:#E07A5F">orange</b> = costlier', '長條越長:<b style="color:var(--good)">綠</b> = 越好,<b style="color:#E07A5F">橘</b> = 越貴')}</div>`;
+      + row(L('Absorbs CO₂', '吸收速度'), t.rate / mea.rate, 10, `${t.rate}×`, L(`${t.rate}× as fast as MEA`, `吸收速度是 MEA 的 ${t.rate} 倍`))
+      + row(L('Steam', '蒸汽'), sm / sv, 2, pct(sv, sm), `${fmt(sv, 2)} GJ/t · MEA ${fmt(sm, 2)}`)
+      + row(L('Power lost', '少發電'), lm / lv, 2, pct(lv, lm), `−${fmt(lv)} MW · MEA −${fmt(lm)} MW`)
+      + row(L('Build cost', '設備費'), cm / cv, 2, pct(cv, cm), `$${fmt(cv)}M · MEA $${fmt(cm)}M`)
+      + row(L('Running cost', '運轉費'), rm / rv, 2, pct(rv, rm), `$${fmt(rv, 1)}/t · MEA $${fmt(rm, 1)}/t`)
+      + `</div><div class="barkey">${L('Against MEA on this plant: <b style="color:var(--good)">green →</b> better, <b style="color:#E07A5F">← red</b> worse; a full half-bar is twice as good or bad (speed: 10×).', '跟這座廠用 MEA 比:<b style="color:var(--good)">綠色往右</b> = 較好,<b style="color:#E07A5F">紅色往左</b> = 較差;半條滿格 = 好(壞)兩倍(吸收速度:10 倍)。')}</div>`;
   }
   // one naming rule everywhere: blends A/B (MDEA/PZ), process add-ons as acronyms (AS, IC, SF) shown as +AS after the solvent
   const ICON = k => M.TECHS[k].short;
