@@ -173,6 +173,18 @@ input[type=range] { flex: 1; min-width: 0; accent-color: var(--amine); height: 3
 .why .v.up { color: var(--anger); } .why .v.dn { color: var(--good); }
 .advice { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14.5px; }
 
+/* plant tabs: every plant one tap away, ‹ › (or the arrow keys) step through them */
+.ptabs { display: flex; align-items: center; gap: 4px; margin: 0 0 8px; }
+.ptrack { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 3px 2px; min-width: 0; }
+.ptrack::-webkit-scrollbar { display: none; }
+.ptab { position: relative; flex: 0 0 auto; min-width: 36px; height: 34px; padding: 0 6px; border-radius: 8px; border: 2px solid var(--c); background: #0F1B2D; color: var(--fg); font: 700 15px var(--mono); cursor: pointer; overflow: hidden; }
+.ptab.on { background: var(--c); color: #FFF; box-shadow: 0 0 0 2px var(--fg); }
+.ptab.bld { border-style: dashed; }
+.ptab.dn { opacity: .55; }
+.ptab i { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; }
+.ptab .q { position: absolute; top: 1px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--co2); }
+.pnav { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); font: 700 20px/1 var(--body); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.pnav:hover, .ptab:hover { filter: brightness(1.15); }
 /* plant command card: icon grid (hover / tap for the info box), work queue on top */
 .cmd { width: min(560px, 100%); }
 .cmd-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -521,6 +533,22 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
 .led .val { color: #F4B740; text-shadow: 0 0 8px rgba(244, 183, 64, .5); }
 .led.m-ang .val { color: #FF8A73; text-shadow: 0 0 8px rgba(239, 99, 81, .5); }
 .led#mGrid .val { color: #8FE6DC; text-shadow: 0 0 8px rgba(46, 196, 182, .5); }
+.led#mGrid.short .val { color: #F4B740; text-shadow: 0 0 8px rgba(244, 183, 64, .5); }
+.led#mGrid.danger .val { color: #FF8A73; text-shadow: 0 0 8px rgba(239, 99, 81, .5); }
+/* capacity bar: solid = your plants' net output, hatched = plants being built, amber line = what the grid needs now
+   (the year's peak + 10 % reserve), dashed = what it will need in 3 years */
+#mGrid .need { font-family: var(--mono); color: #F4B740; letter-spacing: 0; text-transform: none; }
+#mGrid .need.ok { color: #7BD389; }
+#mGrid .need.bad { color: #FF8A73; }
+.capbar { position: relative; height: 8px; border-radius: 4px; background: #0B1422; margin-top: 4px; overflow: hidden; }
+.capbar i, .capbar u { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; transition: width .4s; }
+.capbar i { background: linear-gradient(90deg, #2EC4B6, #8FE6DC); }
+.capbar u { background: repeating-linear-gradient(135deg, rgba(143, 230, 220, .55) 0 3px, transparent 3px 6px); }
+.capbar b { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: #F4B740; transition: left .4s; }
+.capbar s { position: absolute; top: 0; bottom: 0; width: 0; margin-left: -1px; border-left: 2px dotted #F4B740; transition: left .4s; }
+.cbtn.nudge { animation: nudge 1.4s ease-in-out infinite; }
+@keyframes nudge { 0%, 100% { box-shadow: 0 0 0 0 rgba(244, 183, 64, 0); } 50% { box-shadow: 0 0 0 3px rgba(244, 183, 64, .8); } }
+@media (prefers-reduced-motion: reduce) { .cbtn.nudge { animation: none; box-shadow: 0 0 0 2px #F4B740; } .capbar i, .capbar u, .capbar b, .capbar s { transition: none; } }
 .led#mFund .val { color: #A8F0B4; text-shadow: 0 0 8px rgba(123, 211, 137, .45); }
 .led.meter { background: rgba(4, 8, 14, .84); }
 .led .lab { color: #7F93B0; }
@@ -612,7 +640,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     </div>
     <div class="led meter m-ang" id="mAng" role="button" tabindex="0"><div class="lab"><span data-i18n="mAnger">Public anger</span><span class="short" data-i18n="mAngerS">Anger</span><span data-i18n="mWhy">why? ›</span></div><div class="val" id="vAng">10%</div><div class="bar"><i id="bAng"></i></div><div class="sub" id="angWhy"></div></div>
     <div class="led meter" id="mFund"><div class="lab"><span data-i18n="mFunds">Funds</span></div><div class="val" id="vFund">$1,500M</div><div class="sub" id="sFund">± $0M / month</div></div>
-    <div class="led meter" id="mGrid"><div class="lab"><span data-i18n="mGrid">Grid</span></div><div class="val" id="vGrid">— MW</div><div class="sub" id="sGrid">demand — MW</div></div>
+    <div class="led meter" id="mGrid" role="button" tabindex="0"><div class="lab"><span data-i18n="mGrid">Grid</span><span class="need" id="gNeed"></span></div><div class="val" id="vGrid">— MW</div><div class="capbar" id="capBar" role="img"><u id="capB"></u><i id="capF"></i><b id="capN"></b><s id="capFut"></s></div><div class="sub" id="sGrid">demand — MW</div></div>
     <div class="sys" role="group" aria-label="Sound and language"><button id="sfxBtn" aria-pressed="true" title="Sound effects" aria-label="Sound effects">🔊</button><button id="musBtn" aria-pressed="false" title="Music" aria-label="Music">♪</button><button class="langbtn" id="langBtn" title="English / 繁體中文">中文</button><button id="helpBtn" title="What you can do" aria-label="What you can do">?</button></div>
   </header>
   <div class="scene" id="sceneBox"><canvas id="cv" aria-label="The town and its power plants. Tap a plant, the lab, the price board or the empty lot."></canvas><button class="paused-badge" id="pausedBadge" hidden><span data-i18n="pausedB">❚❚ Paused · tap to play</span></button><div class="toast" id="toast" role="status" hidden></div><div class="activity" id="activity"></div></div>
@@ -682,6 +710,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
 <div class="overlay" id="ovPlant" hidden>
   <div class="sheet cmd" role="dialog" aria-modal="true" aria-labelledby="plTitle">
     <button class="xclose" id="plClose" aria-label="Close">×</button>
+    <div class="ptabs" id="plTabs"></div>
     <h3 id="plTitle">Plant</h3>
     <p class="lead" id="plLead"></p>
     <div id="plBody"></div>
@@ -869,9 +898,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     'Unknown technology': '未知技術', 'Find it by solvent screening': '要靠溶劑篩選找到', 'Develop it in the lab first': '要先在研究所研發', 'Already queued': '已在佇列中',
     'Unknown job': '未知工程', 'Nothing to cancel': '沒有可取消的工程', 'Every solvent found': '溶劑全部找到了', 'Nothing to research': '沒有可研發的項目',
     'Already done': '已完成', 'Lab busy: one project at a time': '研究所忙碌中', 'Enough screens queued': '排的篩選已經夠了', 'Already done or queued': '已完成或已排隊',
-    'Gas (combined-cycle) plants only': '只能裝在燃氣(複循環)廠', 'Fuel cells cannot reach 99 %': '燃料電池無法到 99 %', 'No conversion for this plant': '這座廠不能改建',
-    'Remove the fuel cell first': '要先移除燃料電池', 'Cannot build this type': '不能蓋這種廠',
-    'Not for fuel cells': '燃料電池不適用', 'Needs the 99 % upgrade first': '要先升級到 99 %',
+    'No conversion for this plant': '這座廠不能改建', 'Cannot build this type': '不能蓋這種廠', 'Needs the 99 % upgrade first': '要先升級到 99 %',
   };
   const why = w => {
     if (lang !== 'zh' || !w) return w;
@@ -1128,12 +1155,16 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
 
   // ---------- plant chips under the town (same as tapping the plant in the scene) ----------
   const TYPE_COL = { coal: '#6E3F33', gas: '#5A6E86', gasb: '#6D6A8A' };
+  // process add-ons fitted plant by plant (the keys of M.PROCESS), each with its own colour
+  const PROCS = ['as', 'ic', 'sf'];
+  const PCOL = { as: '#F28482', ic: '#5FB3B3', sf: '#B39DDB' };
+  const procTags = p => PROCS.filter(k => p[k]).map(k => ' +' + k.toUpperCase()).join('');
   function plantStatus(p) {
     if (p.build && p.build.kind === 'new') return L('being built', '興建中');
     if (p.build && p.build.kind === 'convert') return '→ ' + typeName(p.build.toType);
     if (p.down > 0) return p.downWhy === 'tripped' ? L('tripped', '跳機') : L('under repair', '維修中');
     const t = p.tech ? M.TECHS[p.tech] : null;
-    let s = t ? t.short + (p.deep ? ' 99 %' : '') + (p.ic ? ' +IC' : '') + (p.sf ? ' +SF' : '') : L('no capture', '無捕捉');
+    let s = t ? t.short + (p.deep ? ' 99 %' : '') + procTags(p) : L('no capture', '無捕捉');
     if (p.tech && (p.outage > 0 || S.captureOff > 0)) s += L(' (off)', '(停)');
     return s;
   }
@@ -1150,49 +1181,49 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   // ---------- plant command card: work queue, icon grid, info box (hover on desktop, tap on phones) ----------
   let curPlant = null, sel = null, hoverK = null, lastPtr = 'mouse', armed = false;
   function openPlant(id) { coachDone('plant'); curPlant = id; sel = null; hoverK = null; armed = false; renderPlant(); $('ovPlant').hidden = false; }
-  function closePlant() { $('ovPlant').hidden = true; curPlant = null; }
+  function closePlant() { $('ovPlant').hidden = true; curPlant = null; tabShown = null; }
   $('plClose').onclick = closePlant;
   $('ovPlant').addEventListener('click', e => { if (e.target === $('ovPlant')) closePlant(); });
   document.addEventListener('pointerdown', e => { lastPtr = e.pointerType || 'mouse'; }, true);
   // compare bars: every technology that fits this plant on the same scale (speed: log 0.1x to 10x)
   function bars(p, id) {
     const t = M.TECHS[id], e = M.eff(id, false, p.type);
-    const pool = M.TECH_ORDER.filter(x => !M.TECHS[x].gasOnly || p.type === 'gas');
+    const pool = M.TECH_ORDER;
     const lost = x => M.penalty(p, x, false) * p.gross, cost = x => M.installCost(S, p, x), run = x => M.eff(x, false, p.type).opex;
     const rel = (f, x) => { const a = pool.map(f), lo = Math.min(...a), hi = Math.max(...a); return 0.12 + 0.88 * (f(x) - lo) / ((hi - lo) || 1); };
     const w = v => Math.max(4, Math.min(100, v * 100)).toFixed(0);
     const row = (k, v, frac, go) => `<span class="k">${k}</span><span class="tr"><i class="${go ? 'go' : ''}" style="width:${w(frac)}%"></i></span><span class="v">${v}</span>`;
     const lv = lost(id);
     return '<div class="bars">'
-      + (t.rate ? row(L('Absorbs CO₂', '吸收速度'), t.rate + '× MEA', (Math.log10(t.rate) + 1) / 2, true) : row(L('Absorbs CO₂', '吸收速度'), L('fuel cell', '燃料電池'), 0.04, true))
-      + row(lv < 0 ? L('Power gained', '多發電') : L('Power lost', '少發電'), (lv < 0 ? '+' : '−') + fmt(Math.abs(lv)) + ' MW', rel(lost, id), false)
+      + row(L('Absorbs CO₂', '吸收速度'), t.rate + '× MEA', (Math.log10(t.rate) + 1) / 2, true)
+      + row(L('Power lost', '少發電'), '−' + fmt(lv) + ' MW', rel(lost, id), false)
       + row(L('Build cost', '設備費'), '$' + fmt(cost(id)) + 'M', rel(cost, id), false)
       + row(L('Running cost', '運轉費'), '$' + fmt(e.opex, 1) + '/t', rel(run, id), false)
       + `</div><div class="barkey">${L('Longer bar: <b style="color:var(--good)">green</b> = better, <b style="color:#E07A5F">orange</b> = costlier', '長條越長:<b style="color:var(--good)">綠</b> = 越好,<b style="color:#E07A5F">橘</b> = 越貴')}</div>`;
   }
-  // one naming rule everywhere: blends A/B (MDEA/PZ), solvent + process A+B (MEA+AS), processes as acronyms (RPB, IC)
+  // one naming rule everywhere: blends A/B (MDEA/PZ), process add-ons as acronyms (AS, IC, SF) shown as +AS after the solvent
   const ICON = k => M.TECHS[k].short;
   const icon2 = lab => lab.replace(/([^/+])([/+])/, '$1<br>$2');   // two lines in a small square: MDEA / /PZ
-  const PROC_SUB = { afs: ['stripper', '進階汽提'], rpb: ['rotor', '旋轉床'], mcfc: ['fuel cell', '燃料電池'], deep: ['deeper', '深度捕捉'], ic: ['cooling', '中間冷卻'], sf: ['split flow', '分流汽提'] };
+  const PROC_SUB = { as: ['stripper', '進階汽提'], deep: ['deeper', '深度捕捉'], ic: ['cooling', '中間冷卻'], sf: ['split flow', '分流汽提'] };
   const CV = { gasb: ['→GB', 'gas boiler', '燃氣鍋爐', '#B9B2E8'], gas: ['→CC', 'comb. cycle', '複循環', '#9CC7F2'], coal: ['→COAL', 'back to coal', '改回燃煤', '#F0A58A'] };
-  const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' || k === 'ic' || k === 'sf' ? { kind: k } : k.startsWith('cv_') ? { kind: 'convert', to: k.slice(3) } : null;
+  const jobFor = k => M.TECHS[k] ? { kind: 'tech', tech: k } : k === 'deep' || M.PROCESS[k] ? { kind: k } : k.startsWith('cv_') ? { kind: 'convert', to: k.slice(3) } : null;
   function jobLook(j) {
     if (j.kind === 'tech') return { c: M.TECHS[j.tech].color, l: icon2(ICON(j.tech)) };
     if (j.kind === 'deep') return { c: '#7BD389', l: '99%' };
-    if (j.kind === 'ic') return { c: '#5FB3B3', l: 'IC' };
-    if (j.kind === 'sf') return { c: '#B39DDB', l: 'SF' };
+    if (M.PROCESS[j.kind]) return { c: PCOL[j.kind], l: j.kind.toUpperCase() };
     if (j.kind === 'convert') return { c: CV[j.toType][3], l: CV[j.toType][0] };
     return { c: '#E2A93B', l: L('new', '新廠') };
   }
   // ---- overview (one place to see and steer everything) and the activity strip on the scene ----
-  const jobText = j => j.kind === 'tech' ? M.TECHS[j.tech].short : j.kind === 'deep' ? '99%' : j.kind === 'ic' || j.kind === 'sf' ? j.kind.toUpperCase() : j.kind === 'convert' ? CV[j.toType][0] : L('BUILD', '施工');
+  const jobText = j => j.kind === 'tech' ? M.TECHS[j.tech].short : j.kind === 'deep' ? '99%' : M.PROCESS[j.kind] ? j.kind.toUpperCase() : j.kind === 'convert' ? CV[j.toType][0] : L('BUILD', '施工');
   const jobFrac = j => j.total ? Math.max(0, Math.min(1, 1 - j.left / j.total)) : 0;
   const labDone = id => id === 'screen' ? M.canResearch(S, 'screen', 'exp').why === 'Every solvent found' : !!S.unlocked[id];
   function renderManage() {
     if ($('ovManage').hidden) return;
     const runId = Object.keys(S.research)[0], lq = S.labQueue || [];
     const found = Object.keys(M.DROPS).filter(k => S.unlocked[k]).length, drops = Object.keys(M.DROPS).length;
-    $('mgLead').textContent = `${dateStr(S.m)} · ${money(S.funds)} · ${S.plants.length} ${L('plants', '座電廠')}`;
+    const cp = renderCap();
+    $('mgLead').textContent = `${dateStr(S.m)} · ${money(S.funds)} · ${S.plants.length} ${L('plants', '座電廠')} · ${L('capacity', '容量')} ${fmt(cp.have)}/${fmt(cp.need)} MW`;
     $('mgLab').innerHTML = '<div class="mtiles">' + M.LAB_ORDER.map(id => {
       const pr = M.project(id), run = runId === id, qi = lq.findIndex(x => x.id === id), done = labDone(id);
       const total = run ? Math.max(S.research[id], S.resTotal || S.research[id]) : 1;
@@ -1201,10 +1232,10 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     }).join('') + '</div>' + `<p class="mnote">${runId ? '' : L('The lab is idle.', '研究所閒置中。')} ${L('Tap a tile to open the lab.', '點方塊打開研究所。')}</p>`;
     $('mgPlants').innerHTML = S.plants.map(p => {
       const t = p.tech ? M.TECHS[p.tech] : null, b = p.build;
-      const capTxt = t ? t.short + (p.deep ? ' 99%' : '') + (p.ic ? ' +IC' : '') + (p.sf ? ' +SF' : '') : L('no capture', '無捕捉');
+      const capTxt = t ? t.short + (p.deep ? ' 99%' : '') + procTags(p) : L('no capture', '無捕捉');
       const job = b ? `<span>${jobText(b)} · ${mo(b.left)}</span><span class="mbar"><i style="width:${Math.round(100 * jobFrac(b))}%"></i></span>` : `<span style="color:var(--muted)">${p.down > 0 ? plantStatus(p) : L('idle', '閒置')}</span>`;
       const q = (p.queue || []).map(j => `<span style="background:${jobLook(j).c}">${jobText(j)}</span>`).join('');
-      const acts = ['deep', 'ic', 'sf'].map(k => { const c = M.canQueue(S, p, { kind: k }); return c.ok ? `<button data-mq="${p.id}" data-k="${k}">${k === 'deep' ? '99%' : k.toUpperCase()}<small>$${fmt(c.cost)}M</small></button>` : ''; }).join('');
+      const acts = ['as', 'ic', 'deep', 'sf'].map(k => { const c = M.canQueue(S, p, { kind: k }); return c.ok ? `<button data-mq="${p.id}" data-k="${k}">${k === 'deep' ? '99%' : k.toUpperCase()}<small>$${fmt(c.cost)}M</small></button>` : ''; }).join('');
       return `<div class="prow"><button class="pid" data-mp="${p.id}" style="background:${TYPE_COL[p.type]}">${p.id}</button>
         <div class="pn"><b>${typeName(p.type)}</b> · ${p.gross} MW<br><span class="pc ${t ? '' : 'none'}" style="${t ? `background:${t.color}` : ''}">${capTxt}</span></div>
         <div class="pj">${job}${q ? `<div class="pq">${q}</div>` : ''}</div>
@@ -1236,7 +1267,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     const v = M.planned(p);
     return [
       [L('Solvent', '溶劑'), M.TECH_ORDER.filter(isSolvent)],
-      [L('Process', '製程'), [...M.TECH_ORDER.filter(k => !isSolvent(k)), 'deep', 'ic', 'sf']],
+      [L('Process', '製程'), ['as', 'ic', 'deep', 'sf']],
       [L('Plant', '電廠'), [...M.convertOptions(v.type).map(t => 'cv_' + t), 'demolish']],
     ];
   }
@@ -1249,14 +1280,13 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       bg = t.color; label = icon2(ICON(k)); sub = PROC_SUB[k] ? L(...PROC_SUB[k]) : ''; name = tName(t);
       locked = !S.unlocked[k]; done = v.tech === k;
       if (locked) sub = M.DROPS[k] ? '★'.repeat(M.DROPS[k].stars) : L('R&D', '先研發');
-      else if (t.gasOnly && v.type !== 'gas') { locked = true; sub = L('gas only', '限燃氣'); }
-    } else if (k === 'ic' || k === 'sf') {
-      bg = k === 'ic' ? '#5FB3B3' : '#B39DDB'; label = k.toUpperCase(); sub = L(...PROC_SUB[k]);
+    } else if (M.PROCESS[k]) {
+      bg = PCOL[k]; label = k.toUpperCase(); sub = L(...PROC_SUB[k]);
       done = !!v[k]; name = zhOf(M.project(k).name, M.project(k).zh.name);
-      locked = !S.unlocked[k] || !v.tech || !!M.TECHS[v.tech].power || (k === 'sf' && !v.deep);
+      locked = !S.unlocked[k] || !v.tech || (k === 'sf' && !v.deep);
       if (!S.unlocked[k]) sub = L('R&D', '先研發');
     } else if (k === 'deep') {
-      bg = '#7BD389'; label = '99%'; sub = L(...PROC_SUB.deep); done = !!v.deep; locked = !v.tech || !!M.TECHS[v.tech].noDeep; name = L('Upgrade to 99 % capture', '升級到 99 % 捕捉');
+      bg = '#7BD389'; label = '99%'; sub = L(...PROC_SUB.deep); done = !!v.deep; locked = !v.tech; name = L('Upgrade to 99 % capture', '升級到 99 % 捕捉');
     } else if (k.startsWith('cv_')) {
       const c = CV[k.slice(3)]; bg = c[3]; label = c[0]; sub = L(c[1], c[2]); name = L('Convert: ', '改建：') + L(c[1], c[2]);
     } else { bg = '#EF6351'; label = '✕'; sub = L('demolish', '拆除'); name = L('Demolish', '拆除'); }
@@ -1265,9 +1295,37 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
   function markSel() {
     document.querySelectorAll('#icons .ic').forEach(x => x.classList.toggle('sel', x.dataset.k === (hoverK || sel)));
   }
+  // ‹ A B C D … › across the top of the card: jump to any plant, or step with the arrows / arrow keys
+  let tabShown = null;
+  function plGo(id) { if (id === curPlant) return; curPlant = id; sel = null; hoverK = null; armed = false; SND.play('click'); renderPlant(); }
+  function plStep(d) { const n = S.plants.length, i = S.plants.findIndex(x => x.id === curPlant); if (n > 1) plGo(S.plants[(i + d + n) % n].id); }
+  function renderTabs(p) {
+    const many = S.plants.length > 1;
+    const tab = x => {
+      const t = x.tech ? M.TECHS[x.tech] : null, busy = (x.build && x.build.kind !== 'new') || (x.queue || []).length;
+      return `<button class="ptab ${x.id === p.id ? 'on' : ''} ${x.build && x.build.kind === 'new' ? 'bld' : ''} ${x.down > 0 ? 'dn' : ''}" role="tab" aria-selected="${x.id === p.id}" data-pt="${x.id}" style="--c:${TYPE_COL[x.type]}" title="${esc(plantName(x) + ' · ' + plantStatus(x))}">${x.id}${t ? `<i style="background:${t.color}"></i>` : ''}${busy ? '<span class="q"></span>' : ''}</button>`;
+    };
+    $('plTabs').innerHTML = (many ? `<button class="pnav" data-nav="-1" aria-label="${L('Previous plant', '上一座電廠')}">‹</button>` : '')
+      + `<div class="ptrack" role="tablist" aria-label="${L('Plants', '電廠')}">${S.plants.map(tab).join('')}</div>`
+      + (many ? `<button class="pnav" data-nav="1" aria-label="${L('Next plant', '下一座電廠')}">›</button>` : '');
+    $('plTabs').querySelectorAll('[data-pt]').forEach(b => b.onclick = () => plGo(b.dataset.pt));
+    $('plTabs').querySelectorAll('[data-nav]').forEach(b => b.onclick = () => plStep(+b.dataset.nav));
+    if (tabShown !== p.id) {   // keep the chosen tab in view when the row scrolls (only when the plant changes)
+      tabShown = p.id;
+      requestAnimationFrame(() => {   // after the card is shown, so the row has its width
+        const on = $('plTabs').querySelector('.ptab.on'), tr = $('plTabs').querySelector('.ptrack');
+        if (on && tr) tr.scrollLeft = Math.max(0, on.getBoundingClientRect().left - tr.getBoundingClientRect().left + tr.scrollLeft - (tr.clientWidth - on.offsetWidth) / 2);
+      });
+    }
+  }
+  document.addEventListener('keydown', e => {
+    if ($('ovPlant').hidden || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); plStep(e.key === 'ArrowLeft' ? -1 : 1); }
+  });
   function renderPlant() {
     const p = S.plants.find(x => x.id === curPlant);
     if (!p) { closePlant(); return; }
+    renderTabs(p);
     const on = M.online(p), pen = p.tech ? M.penalty(p, p.tech) : 0;
     $('plTitle').textContent = plantName(p);
     $('plLead').textContent = `${p.gross} MW ${typeName(p.type)} · ${plantStatus(p)}${on && pen ? ` → ${fmt(p.gross * (1 - pen))} MW` : ''} · ${money(S.funds)}`;
@@ -1304,12 +1362,13 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     if ($('icons')) $('icons').onmouseleave = () => { hoverK = null; markSel(); renderInfo(p); };
     renderInfo(p);
   }
-  const LIN = { afs: 1, ampnmp: 1, pe2eg: 1, mea90: 1 };
+  const LIN = { ampnmp: 1, pe2eg: 1, mea90: 1 };
   // the "best with" line for a process: every solvent in green (big gain) or grey (small gain); the plant's own one is ringed
   function fitsHTML(kind, cur) {
     if (kind === 'flex') return `<div class="fits"><span class="lbl">${L('Works with:', '適用：')}</span><span class="s good">${L('every solvent', '所有溶劑')}</span><span class="s meh">${L('more CO₂ in peak months', '尖峰月份多排 CO₂')}</span></div>`;
-    if (kind === 'sf') return `<div class="fits"><span class="lbl">${L('Works on:', '適用：')}</span><span class="s good">${L('plants at 99 % capture', '已升級 99 % 的電廠')}</span><span class="s meh">${L('no effect at 90 %', '90 % 時沒有效果')}</span><span class="s meh">${L('not fuel cells', '燃料電池不適用')}</span></div>`;
-    const sol = M.TECH_ORDER.filter(id => !M.TECHS[id].power);
+    if (kind === 'sf') return `<div class="fits"><span class="lbl">${L('Works on:', '適用：')}</span><span class="s good">${L('plants at 99 % capture', '已升級 99 % 的電廠')}</span><span class="s meh">${L('no effect at 90 %', '90 % 時沒有效果')}</span></div>`;
+    if (kind === 'as') return `<div class="fits"><span class="lbl">${L('Works with:', '適用：')}</span><span class="s good">${L('every solvent, −20 % steam', '所有溶劑,蒸汽 −20 %')}</span><span class="s good">${L('90 % and 99 %', '90 % 與 99 %')}</span></div>`;
+    const sol = M.TECH_ORDER;
     const good = sol.filter(id => M.TECHS[id].hiCap), meh = sol.filter(id => !M.TECHS[id].hiCap);
     const chip = (id, cls) => `<span class="s ${cls} ${id === cur ? 'now' : ''}">${M.TECHS[id].short}</span>`;
     return `<div class="fits"><span class="lbl">${L('Best with (−10 % steam):', '最適合(蒸汽 −10 %)：')}</span>${good.map(id => chip(id, 'good')).join('')}</div>`
@@ -1321,7 +1380,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     const v = M.planned(p);
     const vp = Object.assign({}, p, v);   // the plant as it will be when this job starts
     const keys = iconKeys(p);
-    let k = hoverK || sel || (v.tech ? (v.deep || M.TECHS[v.tech].noDeep ? keys.find(x => x.startsWith('cv_')) || 'demolish' : 'deep') : 'mea90');
+    let k = hoverK || sel || (v.tech ? (v.deep ? keys.find(x => x.startsWith('cv_')) || 'demolish' : 'deep') : 'mea90');
     if (!keys.includes(k)) k = 'mea90';
     const idle = !p.build && !(p.queue || []).length;
     const act = chk => `${idle ? L('Start', '開工') : L('Queue', '排入')} · $${fmt(chk.cost)}M · ${mo(chk.months)}`;
@@ -1334,11 +1393,10 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         : mt.proven ? `<span class="chip ok">${L('proven ✓', '已成熟 ✓')}</span>`
         : `<span class="chip warn" title="${L('Monthly odds of a start-up failure until 24 months of operation', '運轉滿 24 個月前每月的開機故障機率')}">${L('new', '新')} · ${fmt(mt.risk * 100, 1)} %/${L('mo', '月')}</span>`;
       const foak = M.foak(S, k) > 1 ? ` <span class="chip warn">${L(`first-of-a-kind +${Math.round((M.foak(S, k) - 1) * 100)} %`, `首座溢價 +${Math.round((M.foak(S, k) - 1) * 100)} %`)}</span>` : '';
-      const how = t.rate ? L(`Absorbs ${t.rate}× as fast as MEA; a slower solvent needs a taller absorber, so it costs more to build. Regeneration ${fmt(e.duty, 1)} GJ/t`, `吸收速度是 MEA 的 ${t.rate} 倍；溶劑越慢，吸收塔越高、越貴。再生能耗 ${fmt(e.duty, 1)} GJ/t`)
-        : L('A fuel cell needs no regeneration steam: it adds about 15 % power but burns extra gas', '燃料電池不需要再生蒸汽：多發約 15 % 的電，但要多燒天然氣');
+      const how = L(`Absorbs ${t.rate}× as fast as MEA; a slower solvent needs a taller absorber, so it costs more to build. Regeneration ${fmt(e.duty, 1)} GJ/t`, `吸收速度是 MEA 的 ${t.rate} 倍；溶劑越慢，吸收塔越高、越貴。再生能耗 ${fmt(e.duty, 1)} GJ/t`);
       h = `<div class="row"><span class="nm" style="color:${t.color}">${tName(t)}</span><span>${stage}${foak}</span></div>
         <div class="pitch">${tPitch(t)}</div>${bars(vp, k)}
-        <details><summary>${L('Details', '詳細')}</summary><p>${how}${t.rate ? est('duty') : ''}${t.est && t.est.includes('capex') ? L(' · build cost is a game estimate', ' · 設備費是遊戲估計') : ''}${v.type !== 'coal' && t.rate && !t.gasOK && !t.gasDuty ? L(' (gas flue gas is dilute, so more per tonne)', '(燃氣煙氣較稀，每噸較貴)') : ''}${t.noEmit ? L(' · no amine emissions: these plants are safe from emission protests', ' · 沒有胺排放：這些廠不會被抗議排放') : ''}. ${tFact(t)}</p><p class="src">${t.src}</p></details>
+        <details><summary>${L('Details', '詳細')}</summary><p>${how}${est('duty')}${t.est && t.est.includes('capex') ? L(' · build cost is a game estimate', ' · 設備費是遊戲估計') : ''}${v.type !== 'coal' && t.rate && !t.gasOK && !t.gasDuty ? L(' (gas flue gas is dilute, so more per tonne)', '(燃氣煙氣較稀，每噸較貴)') : ''}${t.noEmit ? L(' · no amine emissions: these plants are safe from emission protests', ' · 沒有胺排放：這些廠不會被抗議排放') : ''}. ${tFact(t)}</p><p class="src">${t.src}</p></details>
         <div class="row">${chk.ok ? `<button class="btn ${t.star ? 'gold' : ''}" data-go="${k}">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (k === 'deep') {
       const chk = M.canQueue(S, p, { kind: 'deep' });
@@ -1348,22 +1406,22 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         ${v.tech ? `<div class="mini"><span>${L('captures', '捕捉')} <b>99 %</b></span><span>${L('output', '出力')} <b>−${Math.round(pen * 100)} %</b></span></div>` : ''}
         <details><summary>${L('Details', '詳細')}</summary><p>${L('A commercial design study (with Prof. Lin as co-author) reached 99.5 % capture with about 50 % more absorber packing, raising the capital cost per tonne by about 6 %. The extra regeneration energy used here (about +9 %) is a game estimate', '一份商業設計研究(林育正教授為共同作者)只要多約 50 % 的吸收塔填料就能達到 99.5 % 捕捉，每噸資本成本約多 6 %。這裡用的再生能耗增量(約 +9 %)是遊戲估計')} <span class="est">est.</span></p><p class="src">Hirata et al., Int. J. Greenh. Gas Control 2020 (doi 10.1016/j.ijggc.2019.102847)</p></details>
         <div class="row">${chk.ok ? `<button class="btn" data-go="deep">${act(chk)}</button>` : whyHTML(chk)}</div>`;
-    } else if (k === 'ic' || k === 'sf') {
+    } else if (M.PROCESS[k]) {
       const pr = M.project(k), chk = M.canQueue(S, p, { kind: k });
       const withIt = Object.assign({}, vp, { [k]: true });
       const now = v.tech ? Math.round(M.penalty(vp, v.tech, k === 'sf' ? true : undefined) * vp.gross) : 0;
       const after = v.tech ? Math.round(M.penalty(withIt, v.tech, k === 'sf' ? true : undefined) * vp.gross) : 0;
-      h = `<div class="row"><span class="nm" style="color:${k === 'ic' ? '#5FB3B3' : '#B39DDB'}">${zhOf(pr.name, pr.zh.name)}</span><span class="chip">${L('process', '製程')}</span></div>
+      h = `<div class="row"><span class="nm" style="color:${PCOL[k]}">${zhOf(pr.name, pr.zh.name)}</span><span class="chip">${L('process', '製程')}</span></div>
         ${fitsHTML(k, v.tech)}
         <div class="pitch">${zhOf(pr.desc, pr.zh.desc)}</div>
-        ${v.tech && (k !== 'sf' || v.deep) ? `<div class="mini"><span>${L('this plant now', '這座廠目前')} <b>−${now} MW</b></span><span>${L('with it', '加裝後')} <b>−${after} MW</b></span></div>` : ''}
+        ${v.tech && !v[k] && (k !== 'sf' || v.deep) ? `<div class="mini"><span>${L('this plant now', '這座廠目前')} <b>−${now} MW</b></span><span>${L('with it', '加裝後')} <b>−${after} MW</b></span></div>` : ''}
         <details><summary>${L('Details', '詳細')}</summary><p>${zhOf(pr.more, pr.zh.more)}</p><p class="src">${pr.src}</p></details>
         <div class="row">${chk.ok ? `<button class="btn" data-go="${k}">${act(chk)}</button>` : whyHTML(chk)}</div>`;
     } else if (k.startsWith('cv_')) {
       const to = k.slice(3), chk = M.canQueue(S, p, jobFor(k)), pt = M.PLANT_TYPES[to];
       const text = to === 'gasb'
         ? L('Burn gas in the coal boiler: quick and cheap, CO₂ −42 %.', '燃煤鍋爐改燒天然氣:快又便宜,CO₂ −42 %。')
-        : to === 'gas' ? L('Rebuild as a combined cycle: 2 years, CO₂ −61 %. Fuel cells fit only here.', '改建為複循環:兩年,CO₂ −61 %。燃料電池只能裝在這種廠。')
+        : to === 'gas' ? L('Rebuild as a combined cycle: 2 years, CO₂ −61 %.', '改建為複循環:兩年,CO₂ −61 %。')
         : L('Back to coal: cheap fuel, CO₂ back up.', '改回燒煤:燃料便宜,CO₂ 又變高。');
       h = `<div class="row"><span class="nm">${L('Convert to ', '改建為')}${zhOf(pt.label, pt.zh)}</span><span class="chip ${to}">${pt.size} MW · ${pt.intensity} t/MWh</span></div>
         <div class="pitch">${text} ${L('Offline while converting; capture stays.', '改建期間停機,捕捉設備保留。')}</div>
@@ -1391,12 +1449,15 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
 
   // ---------- build sheet ----------
   function openBuild() { coachDone('build'); renderBuild(); $('ovBuild').hidden = false; }
+  $('mGrid').onclick = () => { SND.play('click'); openBuild(); };
+  $('mGrid').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBuild(); } };
   function closeBuild() { $('ovBuild').hidden = true; }
   $('bdClose').onclick = closeBuild;
   $('ovBuild').addEventListener('click', e => { if (e.target === $('ovBuild')) closeBuild(); });
   function renderBuild() {
-    $('bdLead').textContent = L(`${S.plants.length}/${M.MAX_PLANTS} plants · ${money(S.funds)} · a spare plant covers peaks and trips`,
-      `${S.plants.length}/${M.MAX_PLANTS} 座 · ${money(S.funds)} · 多一座廠可應付尖峰與跳機`);
+    const c = renderCap();
+    $('bdLead').innerHTML = L(`${S.plants.length}/${M.MAX_PLANTS} plants · ${money(S.funds)}<br>Grid need: <b>${fmt(c.need)} MW</b> now, <b>${fmt(c.fut)} MW</b> in ${c.futY}. You have ${fmt(c.have)} MW${c.bld ? ` + ${fmt(c.bld)} being built` : ''}.`,
+      `${S.plants.length}/${M.MAX_PLANTS} 座 · ${money(S.funds)}<br>電網需求:現在 <b>${fmt(c.need)} MW</b>,${c.futY} 年 <b>${fmt(c.fut)} MW</b>。你有 ${fmt(c.have)} MW${c.bld ? ` + ${fmt(c.bld)} 興建中` : ''}。`);
     const card = (type, pros, cons) => {
       const pt = M.PLANT_TYPES[type], chk = M.canBuildPlant(S, type);
       return `<div class="opt"><div class="row"><span class="nm">${zhOf(pt.label, pt.zh)} · ${pt.size} MW</span><span class="chip ${type}">${pt.intensity} t CO₂/MWh</span></div>
@@ -1405,7 +1466,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     };
     $('bdOpts').innerHTML =
       card('coal', L('Cheap, steady fuel that no tanker can cut off; capture is cheaper per tonne.', '燃料便宜穩定,不怕斷氣;每噸捕捉較便宜。'), L('2.6× the CO₂ of gas, smog, slower to build.', 'CO₂ 是燃氣 2.6 倍、有空污、蓋得較久。')) +
-      card('gas', L('Cleaner, quick to build, fuel cells fit.', '較乾淨、蓋得快、可裝燃料電池。'), L('Pricey, volatile fuel; a supply cut starves every gas plant at once.', '燃料貴又波動;一斷氣,所有燃氣廠一起停擺。'));
+      card('gas', L('Cleaner and quicker to build.', '較乾淨、蓋得較快。'), L('Pricey, volatile fuel; a supply cut starves every gas plant at once.', '燃料貴又波動;一斷氣,所有燃氣廠一起停擺。'));
     $('bdOpts').querySelectorAll('[data-build]').forEach(b => b.onclick = () => { const r = M.buildPlant(S, b.dataset.build); SND.play(r.ok ? 'queue' : 'nope'); closeBuild(); renderAll(); });
   }
 
@@ -1443,7 +1504,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       }
       const name = zhOf(pr.name, pr.zh && pr.zh.name), desc = zhOf(pr.desc, pr.zh && pr.zh.desc), more = pr.more ? zhOf(pr.more, pr.zh && pr.zh.more) : '';
       return `<div class="proj ${pilot ? 'pilot' : ''} ${pr.star ? 'star' : ''}">
-        <div><div class="t">${name}</div><div class="d">${desc}${tries ? L(` · ${tries} empty screen${tries > 1 ? 's' : ''} so far`, ` · 已落空 ${tries} 次`) : ''}</div>${['ic', 'sf', 'flex'].includes(id) ? fitsHTML(id) : ''}${more ? `<details class="more"><summary>${L('More', '更多')}</summary><p>${more}</p>${pr.src ? `<p class="src">${pr.src}</p>` : ''}</details>` : ''}${id === 'screen'
+        <div><div class="t">${name}</div><div class="d">${desc}${tries ? L(` · ${tries} empty screen${tries > 1 ? 's' : ''} so far`, ` · 已落空 ${tries} 次`) : ''}</div>${['as', 'ic', 'sf', 'flex'].includes(id) ? fitsHTML(id) : ''}${more ? `<details class="more"><summary>${L('More', '更多')}</summary><p>${more}</p>${pr.src ? `<p class="src">${pr.src}</p>` : ''}</details>` : ''}${id === 'screen'
           ? '<div class="drops">' + Object.keys(M.DROPS).map(k => `<span class="${S.unlocked[k] ? 'got' : ''}">${S.unlocked[k] ? '✓ ' : ''}${M.TECHS[k].short} ${'★'.repeat(M.DROPS[k].stars)}</span>`).join('') + '</div>' : ''}${status}</div>
         ${acts}</div>`;
     }).join('');
@@ -1587,6 +1648,36 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     $('tick').textContent = S.news.slice(0, 4).map(n => `${dateStr(n.m)} · ${zhOf(n.text, n.zh)}`).join('   ◆   ');
     $('news').innerHTML = S.news.slice(0, 12).map(n => `<li class="${n.kind}"><time>${dateStr(n.m)}</time>${zhOf(n.text, n.zh)}</li>`).join('');
   }
+  // net MW of finished plants (after capture) and of plants still being built or converted
+  function capNow() {
+    let have = 0, bld = 0;
+    for (const p of S.plants) {
+      if (p.build && p.build.kind === 'new') bld += M.PLANT_TYPES[p.type].size;
+      else if (p.build && p.build.kind === 'convert') bld += M.PLANT_TYPES[p.build.toType].size;
+      else have += p.gross * (1 - (p.tech ? M.penalty(p, p.tech) : 0));
+    }
+    return { have, bld };
+  }
+  const CAP_AHEAD = 3;   // years: about how long a new plant takes
+  const tNow = () => M.START_YEAR + Math.min(S.m, M.MONTHS - 1) / 12;
+  function renderCap() {
+    const { have, bld } = capNow(), need = M.capacityNeed(S, tNow()), fut = M.capacityNeed(S, Math.min(M.END_YEAR + 1, tNow() + CAP_AHEAD));
+    const futY = Math.min(M.END_YEAR, Math.floor(tNow() + CAP_AHEAD));
+    const top = Math.max(fut, have + bld, need) * 1.08, pc = v => (100 * v / top).toFixed(1) + '%';
+    $('capF').style.width = pc(have); $('capB').style.width = pc(have + bld);
+    $('capN').style.left = pc(need); $('capFut').style.left = pc(fut);
+    const peak = need / (1 + M.RESERVE_MARGIN);
+    $('gNeed').textContent = L('need ', '需 ') + fmt(need);
+    $('gNeed').className = 'need ' + (have >= need ? 'ok' : have < peak ? 'bad' : '');
+    $('vGrid').textContent = fmt(have) + ' MW';
+    $('mGrid').classList.toggle('short', have < need);
+    const msg = L(`Your plants: ${fmt(have)} MW net${bld ? ` (+${fmt(bld)} being built)` : ''}. The grid needs ${fmt(need)} MW now (the year's peak + 10 % reserve) and ${fmt(fut)} MW in ${futY}.`,
+      `你的電廠:淨 ${fmt(have)} MW${bld ? `(另有 ${fmt(bld)} 興建中)` : ''}。電網現在需要 ${fmt(need)} MW(當年尖峰 + 10 % 備用),${futY} 年需要 ${fmt(fut)} MW。`);
+    $('capBar').setAttribute('aria-label', msg); $('mGrid').title = msg;
+    // the + Build button glows while the plants (built and building) will fall short in 3 years
+    $('buildBtn').classList.toggle('nudge', !S.over && have + bld < fut && S.plants.length < M.MAX_PLANTS);
+    return { have, bld, need, fut, futY };
+  }
   // square-root scale keeps a small late-game limit visible on a phone
   const wOf = v => Math.sqrt(Math.max(0, Math.min(v, M.LIMIT_SCALE)) / M.LIMIT_SCALE) * 100;
   function renderMeters() {
@@ -1622,10 +1713,10 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     $('angWhy').className = 'sub ' + (net >= 0.05 ? 'up' : net <= -0.05 ? 'down' : '');
     $('vFund').textContent = money(S.funds);
     $('mFund').classList.toggle('danger', S.funds < 0);
+    renderCap();
     const Ls = S.last;
     if (Ls) {
       $('sFund').textContent = (Ls.profit >= 0 ? '+' : '−') + '$' + fmt(Math.abs(Ls.profit), 1) + L('M/mo', 'M/月');
-      $('vGrid').textContent = fmt(Ls.netCap) + ' MW';
       const sf = M.SEASON[S.region][(S.m + 11) % 12];   // Ls is last month's dispatch
       const cold = M.REGIONS[S.region].peak === 'cold';
       const tag = sf >= 1.08 ? (cold ? L(' · winter peak', ' · 冬季尖峰') : L(' · summer peak', ' · 夏季尖峰')) : sf <= 0.9 ? L(' · low season', ' · 淡季') : '';
@@ -1692,7 +1783,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       endYear: M.START_YEAR + Math.floor(Math.max(0, s.m - 1) / 12), month: s.m, score: M.score(s), stars: M.stars(s),
       cumCO2: +s.cumCO2.toFixed(1), captured: +s.captured.toFixed(1), anger: Math.round(s.anger), funds: Math.round(s.funds),
       blackouts: s.blackouts, fails: s.fails, maxBreach: Math.round(s.maxDebt), plants: s.plants.length,
-      fleet: s.plants.map(p => p.type[0] + ':' + (p.tech || '-') + (p.deep ? '99' : '') + (p.ic ? '+ic' : '') + (p.sf ? '+sf' : '')).join(','),
+      fleet: s.plants.map(p => p.type[0] + ':' + (p.tech || '-') + (p.deep ? '99' : '') + PROCS.filter(k => p[k]).map(k => '+' + k).join('')).join(','),
       techs: Object.keys(s.techUsed || {}).join(','), found: Object.keys(M.DROPS).filter(k => s.unlocked[k]).join(','),
       price: s.price, lang, device: innerWidth < 700 ? 'phone' : 'desktop', minutes: Math.round((Date.now() - statT0) / 60000), years: statHist,
     };
@@ -1775,11 +1866,10 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     if (u.ampnmp) return [L('Kinetics chaser', '動力學玩家'), L('You bet on AMP/NMP: NMP makes the high-capacity amine AMP react 3× faster, at the risk of carbamate precipitation.', '你押寶 AMP/NMP：NMP 讓高容量的 AMP 反應快 3 倍，代價是胺甲酸鹽可能析出。'), '10.1016/j.cej.2025.160544'];
     if (u.aas && !u.pz && !u.pe2eg) return [L('Clean-air operator', '無胺排放派'), L('You chose an amino-acid salt: it never evaporates, so no amine reached the town, at the price of more steam per tonne on coal.', '你選了胺基酸鹽：它不會揮發，城市空氣裡沒有胺；代價是燃煤廠每噸要更多蒸汽。'), null];
     if (u.mdeapz && !u.pz && !u.pe2eg) return [L('Blend engineer', '混合溶劑工程師'), L('You ran MDEA activated with piperazine: high capacity and no freeze-out, with a stripper kept cool so MDEA does not break down.', '你用哌嗪活化的 MDEA：容量高、不會析出，汽提塔維持低溫避免 MDEA 分解。'), null];
-    if (u.amp && !u.pz && !u.rpb && !u.afs) return [L('Trade-off taker', '取捨大師'), L('You ran aqueous AMP: twice the CO₂ per kilogram and a little less steam, paid for with taller absorbers and amine that keeps evaporating. Research found something different, not something better.', '你用了 AMP 水溶液：每公斤帶走兩倍 CO₂、蒸汽稍省，代價是更高的吸收塔和不斷揮發的胺。研發找到的是「不一樣」，不是「更好」。'), '10.1016/j.egypro.2011.01.029'];
-    if (u.mcfc) return [L('Fuel-cell pioneer', '燃料電池先鋒'), L('You put carbonate fuel cells on your gas plants: capture that makes power instead of eating it, until the stacks wear out.', '你在燃氣廠裝了碳酸鹽燃料電池：捕捉不但不吃電，還能發電，直到電池堆老化。'), '10.1016/j.ijggc.2009.11.007'];
-    if (u.rpb) return [L('Process intensifier', '製程強化派'), L('You shrank the absorber ten-fold with rotating packed beds: cheap, fast to build, as long as the rotors keep spinning.', '你用旋轉填充床把吸收器縮小十倍：便宜、蓋得快，只要轉子別壞。'), '10.1021/acs.iecr.4c01614'];
-    if (u.afs) return [L('Process optimizer', '製程優化派'), L('You kept MEA but recovered its heat with an advanced stripper, cutting the steam bill from 3.5 to 2.8 GJ per tonne.', '你保留 MEA，但用進階汽提回收熱量，把每噸蒸汽從 3.5 降到 2.8 GJ。'), '10.1021/acs.iecr.5c03760'];
-    if (u.pz) return [L('Piperazine pro', '哌嗪高手'), L('You ran the city on piperazine with the advanced stripper: the least steam measured in pilot plants, the same on coal and gas flue gas.', '你用哌嗪搭配進階汽提：前導廠實測最省蒸汽，燃煤燃氣煙氣都一樣好。'), null];
+    if (u.amp && !u.pz && !u.as) return [L('Trade-off taker', '取捨大師'), L('You ran aqueous AMP: twice the CO₂ per kilogram and a little less steam, paid for with taller absorbers and amine that keeps evaporating. Research found something different, not something better.', '你用了 AMP 水溶液：每公斤帶走兩倍 CO₂、蒸汽稍省，代價是更高的吸收塔和不斷揮發的胺。研發找到的是「不一樣」，不是「更好」。'), '10.1016/j.egypro.2011.01.029'];
+    if (u.pz && u.as) return [L('Piperazine pro', '哌嗪高手'), L('You ran the city on piperazine with the advanced stripper: the least steam measured in pilot plants, the same on coal and gas flue gas.', '你用哌嗪搭配進階汽提：前導廠實測最省蒸汽，燃煤燃氣煙氣都一樣好。'), null];
+    if (u.as) return [L('Process optimizer', '製程優化派'), L('You recovered the stripper\'s waste heat with the advanced stripper: our group measured MEA dropping from 3.5 to 2.8 GJ per tonne.', '你用進階汽提回收汽提塔廢熱：我們實驗室量到 MEA 每噸蒸汽從 3.5 降到 2.8 GJ。'), '10.1021/acs.iecr.5c03760'];
+    if (u.pz) return [L('Piperazine pro', '哌嗪高手'), L('You ran the city on piperazine: fast, thermally stable and high-capacity, the same on coal and gas flue gas.', '你用哌嗪撐起城市：快、熱穩定、容量高，燃煤燃氣煙氣都一樣好。'), null];
     if (deepN >= 2) return [L('99 % engineer', '99 % 工程師'), L('You pushed amine capture to 99 % with taller columns: costly, slow to build, and it works.', '你用更高的塔把胺捕捉推到 99 %：貴、蓋得慢，但有效。'), '10.1016/j.ijggc.2019.102847'];
     if (coalN === 0) return [L('Fuel switcher', '燃料轉換派'), L('You left coal for gas: far less CO₂ per MWh, but pricier fuel and supply scares.', '你從燃煤轉向燃氣：每 MWh 的 CO₂ 少很多，但燃料較貴、供應也不穩。'), null];
     if (u.mea90) return [L('MEA workhorse', 'MEA 老黃牛'), L('You relied on the industry-standard solvent. It works, but it eats the most steam, which is what better solvents fix.', '你靠業界標準溶劑撐過來。它有效，但最耗蒸汽，這正是更好的溶劑要解決的問題。'), '10.1016/j.cej.2026.174224'];
@@ -1858,7 +1948,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     { at: () => [sceneRect('plant')],
       t: () => L('Cut CO₂ by adding capture: tap a plant to install it. Coal Plant A emits the most, so start there.', '加裝碳捕捉來減少排放:點電廠就能安裝。燃煤電廠 A 排最多,從它開始。') },
     { at: () => [domRect('#mGrid'), sceneRect('__add')],
-      t: () => L('Capture eats part of a plant\'s power. Watch the grid, and build a spare plant on the empty lot before demand peaks.', '捕捉會吃掉一部分電力。注意電網,在用電尖峰前到空地多蓋一座電廠。') },
+      t: () => L('Demand grows every year, and capture eats part of each plant\'s power. The amber line on the grid bar is what the city needs; build on the empty lot before your plants fall short.', '用電每年成長，捕捉又會吃掉部分電力。電網條上的黃線是城市需要的容量；不夠之前就到空地蓋電廠。') },
     { at: () => [domRect('#mFund'), sceneRect('board')],
       t: () => L('Your income comes from the power price. Raise it and you earn more, but people get angry.', '收入來自電價。調高可以多賺,但民眾會不滿。') },
     { at: () => [domRect('#mAng')],
@@ -2464,7 +2554,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
       });
       // capture unit (grows while it is being built; the 99 % upgrade makes the columns taller)
       const t = p.tech ? M.TECHS[p.tech] : null;
-      const job = p.build && ['tech', 'deep', 'ic', 'sf'].includes(p.build.kind) ? p.build : null;
+      const job = p.build && (p.build.kind === 'tech' || p.build.kind === 'deep' || M.PROCESS[p.build.kind]) ? p.build : null;
       const ax = cx + bw / 2 + 3 * k, aw = Math.max(5, W * 0.014) * k;
       if (t || job) {
         const nt = job && job.kind === 'tech' ? M.TECHS[job.tech] : t;
@@ -2475,15 +2565,10 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         else if (job && !t) ah = Math.max(4, h90 * frac);
         if (job) { ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.strokeRect(ax, base - (job.kind === 'deep' ? h99 : h90), aw * 2 + 2 * k, (job.kind === 'deep' ? h99 : h90)); ctx.setLineDash([]); }
         ctx.fillStyle = shown.color;
-        if (shown.power) {   // a fuel cell: low stacked boxes instead of a column
-          for (let j = 0; j < 3; j++) ctx.fillRect(ax, base - (j + 1) * ah * 0.22, aw * 2.2, ah * 0.18);
-        } else if (shown.fast) {   // a rotating packed bed: a short drum
-          ctx.beginPath(); ctx.arc(ax + aw, base - ah * 0.35, aw * 1.1, 0, 7); ctx.fill(); ctx.fillRect(ax, base - ah * 0.35, aw * 2, ah * 0.35);
-        } else {
-          ctx.fillRect(ax, base - ah, aw, ah);
-          ctx.fillRect(ax + aw + 2 * k, base - ah * 0.7, aw * 0.8, ah * 0.7);
-          ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(ax + 1, base - ah, 2, ah);
-        }
+        ctx.fillRect(ax, base - ah, aw, ah);
+        ctx.fillRect(ax + aw + 2 * k, base - ah * 0.7, aw * 0.8, ah * 0.7);
+        ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(ax + 1, base - ah, 2, ah);
+        if (p.as) { ctx.fillStyle = PCOL.as; ctx.beginPath(); ctx.arc(ax + aw * 1.4 + 2 * k, base - ah * 0.7 - aw * 0.45, aw * 0.5, 0, 7); ctx.fill(); }   // advanced stripper: a flash drum on the stripper
         if (t && !job && p.outage <= 0 && !down && S.captureOff <= 0 && !s.back) {
           ctx.strokeStyle = 'rgba(46,196,182,.7)'; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(ax + aw / 2, base); ctx.lineTo(ax + aw / 2, H - 8); ctx.stroke();
@@ -2496,7 +2581,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         const top = base - SH * 0.36 * k;
         drawCrane(ax + aw * 2 + 8 * k, base, top, aw * 3.2, k * 0.8, i);
         drawWorkers(ax - 2, ax + aw * 2 + 4 * k, base + 2, k, 1);
-        const lab = job.kind === 'deep' ? '99%' : job.kind === 'ic' || job.kind === 'sf' ? job.kind.toUpperCase() : ICON(job.tech);
+        const lab = job.kind === 'deep' ? '99%' : M.PROCESS[job.kind] ? job.kind.toUpperCase() : ICON(job.tech);
         drawProgress(ax + aw, top - 18 - (i % 2) * 16, Math.max(52, aw * 5), frac, `${lab} ${Math.round(frac * 100)}%`);
       } else if (p.build && p.build.kind === 'convert') {
         drawScaffold(cx - bw / 2 - 2, by - 4, bw + 4, bh);

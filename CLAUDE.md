@@ -44,7 +44,7 @@ python tools/escape.py        # 3. 轉回 ASCII,commit 前必做
 
 - 介面字串:`index.html` 用 `L('English', '中文')`;靜態文字用 `data-i18n` 鍵 + `I18N` 字典。`model.js` 的字串放 `zh` 欄位;新聞頭版用 `headline(state, id, tone, en, zh)`。
 - **字少**:玩家看到的說明以一句話為原則;較長的說明與文獻放進「詳細 / 更多」(`<details>`)。不用跳出式提示視窗。
-- 命名:混合溶劑寫 `A/B`(MDEA/PZ、AMP/NMP、2PE/EG),溶劑加製程寫 `A+B`(MEA+AS、PZ+AS),製程用縮寫(RPB、MCFC、IC、SF)。圖示文字一律取 `TECHS[k].short`。
+- 命名:混合溶劑寫 `A/B`(MDEA/PZ、AMP/NMP、2PE/EG)。製程是一座一座加裝的附加項(`M.PROCESS` 的 key:as 進階汽提、ic 中間冷卻、sf 分流汽提),圖示寫大寫縮寫,電廠狀態寫成 `MEA 99% +AS +IC`。溶劑圖示文字一律取 `TECHS[k].short`。
 
 ## 測試(改完都要跑)
 
@@ -55,7 +55,7 @@ DIFF=hell PX=1 node tools/extreme.js texas  # 極端打法;PX = 電價相對可�
 ```
 
 - 改數值後,三個地區(taiwan / germany / texas)× 相關難度都跑一次,在 PR 寫出勝率前後變化。
-  目前參考(v26,`sim.js` 的 "screen rush → best + 99"):easy 約 70 %、normal 約 60 %、hard 約 28 %;hell 台灣 4/24、德國 1/24、德州 4/24。
+  目前參考(v32,`sim.js` 的 "screen rush → best + 99",台灣/德國/德州):easy 19/21/19、normal 17/18/17、hard 14/16/13、hell 6/11/4(每格 24 局)。
 - 瀏覽器:在 repo 根目錄 `python -m http.server 8000`,開 `http://localhost:8000/game/?debug`。
   `?debug` 會提供 `window.__cc`:`state`、`run(frames)`、`step(months)`、`plant(id)`、`hits`。
   至少看三種尺寸:桌機 1280×720、手機橫 844×390、手機直 390×760;console 不能有錯誤。
@@ -63,6 +63,8 @@ DIFF=hell PX=1 node tools/extreme.js texas  # 極端打法;PX = 電價相對可�
 ## 介面架構重點
 
 - 三段版面:上 `.topbar#hud`(資訊)、中 `#sceneBox` 的 canvas(城市)、下 `.ctrlbar#ticker`(研究所、蓋廠、新聞、倍速)。
+- 用電需求:`M.capacityNeed(state, 年)` = 當年尖峰 × 1.1 備用 − 進口;2030 年前以地區成長率的一半成長,之後全速(`BOOM_YEAR`)。電網計量 `renderCap()` 畫容量條(實心 = 已完工電廠淨出力、斜線 = 興建中、黃線 = 現在需求、虛線 = 3 年後需求),3 年後會不夠時「+ 蓋廠」按鈕會發光。
+- 電廠卡最上面是分頁列 `renderTabs()`(‹ A B C … ›,鍵盤左右鍵也能切換)。
 - 「你可以做的事」動畫說明(`guideHTML()`,SVG + CSS 動畫):開場第 2 頁,遊戲中右上角 `?` 也能開。新增可點的功能時,一併補一張說明卡。
 - 總覽頁 `renderManage()`(左:研發方塊+進度條;右:每座電廠一列,含捕捉、目前工程、佇列、一鍵 99%/IC/SF),下方列「☰ 總覽」開啟。場景右上的即時動態列 `renderActivity()`(CO₂ 已封存、研發中、施工中,研究所閒置會閃)。
 - 一步步導覽 `TOUR`(變暗遮罩 + 亮框 + 逐字說明):第一局開始時跑一次(`cc2050-tour`),`?` 視窗可重看。目標用 `domRect(選擇器)` 或 `sceneRect(id)` 指定。

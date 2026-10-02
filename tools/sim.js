@@ -32,11 +32,14 @@ function install(s, p, tech) {
   return false;
 }
 function research(s, id) { const mt = process.env.METHOD || 'exp'; const c = M.canResearch(s, id, mt); if (c.ok && buy(s, c.cost)) M.startResearch(s, id, mt); }
-// keep 20 % spare capacity: build gas plants (fast and cheap) when short
+// read the grid meter like a player: if plants online + under construction fall short of the need when a new gas
+// plant would be finished, build one (one at a time)
+const netOf = p => p.gross * (1 - (p.tech ? M.penalty(p, p.tech) : 0));
 function capacity(s, type = 'gas') {
-  const L = s.last;
-  const building = s.plants.some(p => p.build && p.build.kind === 'new');
-  if (L && !building && L.netCap < M.peakDemand(s) * 1.15) { const c = M.canBuildPlant(s, type); if (c.ok && s.funds - c.cost > 30) M.buildPlant(s, type); }
+  if (s.plants.some(p => p.build && p.build.kind === 'new')) return;
+  const have = s.plants.reduce((a, p) => a + (p.build && p.build.kind === 'new' ? M.PLANT_TYPES[p.type].size * 0.8 : netOf(p)), 0);
+  const ahead = M.START_YEAR + s.m / 12 + M.PLANT_TYPES[type].build.months / 12 + (+(process.env.AHEAD || 0.5));
+  if (have < M.capacityNeed(s, ahead)) { const c = M.canBuildPlant(s, type); if (c.ok && s.funds - c.cost > 30) M.buildPlant(s, type); }
 }
 // late game: when emissions approach the limit 2.5 years out, go 99 % (coal first) or convert coal to gas
 function lateGame(s, how) {
@@ -44,21 +47,22 @@ function lateGame(s, how) {
   if (s.rate < soon * 0.8 || s.plants.some(p => !p.tech && !p.build)) return;
   const order = s.plants.slice().sort((a, b) => (a.type === 'coal' ? 0 : 1) - (b.type === 'coal' ? 0 : 1));
   for (const p of order) {
-    if (p.build) continue;
+    if (p.build && p.build.kind === 'new') continue;
     const L = s.last, u = L && L.units.find(x => x.id === p.id);
     const spare = L && L.netCap - (u ? u.netCap : 0) > L.demand * 1.1;
     if (how !== 'deep' && p.type === 'coal' && spare) { const c = M.canConvert(s, p, 'gas'); if (c.ok && buy(s, c.cost)) { M.convert(s, p.id, 'gas'); return; } }
     if (how === 'gasOnly') continue;
-    const c = M.canUpgrade(s, p);
-    if (c.ok && buy(s, c.cost)) M.upgrade(s, p.id);   // a player upgrades every plant they can afford
+    const c = M.canQueue(s, p, { kind: 'deep' });
+    if (c.ok && buy(s, c.cost)) M.enqueue(s, p.id, { kind: 'deep' });   // a player queues 99 % on every plant they can afford
   }
 }
 function plan(o) {
   // o.first: tech to install right away; o.lab: research order; o.main: tech once unlocked; o.late: 'deep' | 'convert'
   return s => {
     price(s);
-    for (const r of o.lab) { if (r === 'screen' ? M.canResearch(s, 'screen', 'exp').why !== 'Every solvent found' : !s.unlocked[r]) { research(s, r); break; } }
     const mains = [].concat(o.main || []);
+    // a player stops screening once one of the solvents they want is found
+    for (const r of o.lab) { if (r === 'screen' ? !mains.some(id => s.unlocked[id]) && M.canResearch(s, 'screen', 'exp').why !== 'Every solvent found' : !s.unlocked[r]) { research(s, r); break; } }
     const main = mains.find(id => s.unlocked[id]) || o.first;
     if (main) {
       const gm = o.gasMain && s.unlocked[o.gasMain] ? o.gasMain : null;
@@ -74,6 +78,11 @@ function plan(o) {
         if (gm) { const g = s.plants.find(p => !p.build && p.type === 'gas' && p.tech && p.tech !== gm); if (g) install(s, g, gm); }
         const sw = s.plants.find(p => !p.build && p.tech && p.tech !== main && p.tech !== gm && !p.deep); if (sw) install(s, sw, main);
       }
+    }
+    // process add-ons on plants that already capture, once developed
+    for (const k of o.procs || []) for (const q of s.plants) {
+      if (!q.tech || q[k] || (q.queue || []).length) continue;
+      const c = M.canQueue(s, q, { kind: k }); if (c.ok && buy(s, c.cost)) M.enqueue(s, q.id, { kind: k });
     }
     capacity(s);
     if (o.late) lateGame(s, o.late);
@@ -107,10 +116,9 @@ run('nothing', s => { price(s); capacity(s); });
 run('MEA only, no 99', plan({ first: 'mea90', lab: [] }));
 run('MEA + 99 when needed', plan({ first: 'mea90', lab: [], late: 'deep' }));
 run('MEA + coal→gas + 99', plan({ first: 'mea90', lab: [], late: 'convert' }));
-run('MEA, RPB + 99', plan({ first: 'mea90', lab: ['rpb'], main: 'rpb', late: 'deep' }));
-run('MEA, MCFC on gas + 99', plan({ first: 'mea90', lab: ['mcfc'], gasMain: 'mcfc', late: 'deep' }));
-run('MEA, AS + 99', plan({ first: 'mea90', lab: ['afs'], main: 'afs', late: 'deep' }));
-run('MEA, screen → best + 99', plan({ first: 'mea90', lab: ['screen'], main: ['pz', 'pe2eg', 'ampnmp', 'afs'], late: 'deep' }));
-run('screen+RPB+MCFC + 99', plan({ first: 'mea90', lab: ['screen', 'rpb', 'mcfc'], main: ['pz', 'pe2eg', 'rpb', 'ampnmp'], gasMain: 'mcfc', late: 'deep' }));
-run('screen rush → best + 99', plan({ first: null, lab: ['screen'], main: ['pz', 'pe2eg', 'ampnmp', 'afs'], late: 'deep' }));
-run('screen → best, no 99', plan({ first: 'mea90', lab: ['screen'], main: ['pz', 'pe2eg', 'ampnmp', 'afs'] }));
+run('MEA, AS + 99', plan({ first: 'mea90', lab: ['as'], procs: ['as'], late: 'deep' }));
+run('MEA, AS+IC + 99', plan({ first: 'mea90', lab: ['as', 'ic'], procs: ['as', 'ic'], late: 'deep' }));
+run('MEA, screen → best + 99', plan({ first: 'mea90', lab: ['screen'], main: ['pz', 'pe2eg', 'ampnmp'], late: 'deep' }));
+run('screen → best + AS + 99', plan({ first: 'mea90', lab: ['screen', 'as'], main: ['pz', 'pe2eg', 'ampnmp'], procs: ['as'], late: 'deep' }));
+run('screen rush → best + 99', plan({ first: null, lab: ['screen'], main: ['pz', 'pe2eg', 'ampnmp'], late: 'deep' }));
+run('screen → best, no 99', plan({ first: 'mea90', lab: ['screen'], main: ['pz', 'pe2eg', 'ampnmp'] }));

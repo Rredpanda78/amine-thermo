@@ -4,7 +4,7 @@ const REGION = process.argv[2] || process.env.REGION || 'taiwan';
 const SEEDS = Array.from({ length: 24 }, (_, i) => i + 101);
 const fair = () => M.REGIONS[REGION].fair;
 const PX = +(process.env.PX || 1.05);   // price as a multiple of what people accept
-const cheapest = s => ['pe2eg', 'pz', 'rpb', 'ampnmp', 'afs', 'mea90'].find(id => s.unlocked[id]);
+const cheapest = s => ['pe2eg', 'pz', 'ampnmp', 'mea90'].find(id => s.unlocked[id]);
 const queueCapture = (s, pick, reserve = 60) => {
   // bare plants first (coal before gas), solvent swaps only once every plant has capture
   const bare = s.plants.filter(p => !M.planned(p).tech).sort((a, b) => (a.type === 'coal' ? 0 : 1) - (b.type === 'coal' ? 0 : 1));
@@ -48,7 +48,7 @@ const STRATS = {
   labRush: s => {    // queue every lab project on day one, then roll the best out everywhere
     M.setPrice(s, Math.round(fair() * PX));
     for (let i = 0; i < 3; i++) M.enqueueResearch(s, 'screen', 'comp');
-    ['afs', 'rpb', 'mcfc'].forEach(id => M.enqueueResearch(s, id));
+    ['as', 'ic', 'sf'].forEach(id => M.enqueueResearch(s, id));
     queueCapture(s, cheapest);
     capacity(s);
     upgradeAll(s, (s, soon) => s.rate > soon * 0.8);

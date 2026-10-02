@@ -5,7 +5,8 @@
  * Technology numbers come from Lin Research Group papers where the paper reports them;
  * everything marked `est` is a game estimate (the paper does not give that number).
  *   MEA regeneration 3.5 GJ/t ......... Chen, Wu & Lin, Chem. Eng. J. 2026 (155 kJ/mol CO2)
- *   Advanced MEA stripper 2.8 GJ/t .... Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (122 kJ/mol)
+ *   Advanced stripper (process) ....... MEA 3.5 -> 2.8 GJ/t: Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (122 kJ/mol);
+ *                                       the same 20 % cut is applied to every amine solvent (est.)
  *   AMP/NMP 3\u00d7 faster, ~2\u00d7 capacity ... Cheng, Chen & Lin, Chem. Eng. J. 2025 (duty not reported -> est. 3.0)
  *   Aqueous AMP (trade-off find) ...... Chen, Closmann & Rochelle, Energy Procedia 2011: rate 0.56\u00d7 MEA, capacity 2\u00d7,
  *                                       73 vs 82 kJ/mol, 1.8\u00d7 packing; Le Li 2015 dissertation: 3.5\u00d7 more volatile;
@@ -15,16 +16,13 @@
  *                                       packing reaches 99.5 %, CAPEX per tonne +6 % (+9 % duty is est.)
  *   QM + MD screening, 28 amines ...... Chien, Wu & Lin, GHGT-18 (2026): reaction \u0394G MAE 3.6 kJ/mol
  *   PZ + advanced stripper 2.45 GJ/t .. Suresh Babu & Rochelle, IJGGC 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016
- *   Rotating packed bed ............... Ind. Eng. Chem. Res. 2025 (10.1021/acs.iecr.4c01614): 10\u201320\u00d7 smaller absorber,
- *                                       70 wt% MEA; Carbon Clean CycloneCC 10 t/d pilot (Ruwais 2024). Cost cut is est.
- *   Carbonate fuel cell (MCFC) ........ Campanari et al., IJGGC 2010 (~80 % CO2 cut on a gas plant, efficiency about
- *                                       unchanged, MCFC \u2248 17 % of output); ExxonMobil/FuelCell Energy Rotterdam demo 2026
+ *                                       (PZ with a simple stripper = 2.45 / 0.8 \u2248 3.05 GJ/t, est.)
  * Economics checked against NETL / EIA / IEAGHG (Oct 2026 audit): capture capex \u2248 $1,500/kW (NETL nth-of-a-kind
  * ~$1,700/kW, first units more), CO2 transport + storage per tonne, US 45Q $85/t for 12 years, EU ETS \u2248 $85/t,
  * Taiwan carbon fee NT$300/t (\u2248 $10) from 2026, build times (capture 18 months, coal 4 years, gas ~2 years),
  * coal-to-gas: boiler fuel switch (0.55 t/MWh) vs repowering to combined cycle (0.37 t/MWh).
  *
- * Game rules that are NOT from papers: plant sizes, the CO2 limit path, event odds, start-up failure odds,
+ * Game rules that are NOT from papers: plant sizes, demand growth, the CO2 limit path, event odds, start-up failure odds,
  * research costs and times, and the three regions (simplified settings inspired by Taiwan, Germany and Texas).
  */
 (function (root) {
@@ -43,7 +41,7 @@
     easy: { label: 'Easy', zh: '\u7c21\u55ae', tighten: 0, funds: 1500, bonus: 1, hint: 'the gentle version', zhHint: '\u8f15\u9b06\u7248' },
     normal: { label: 'Normal', zh: '\u666e\u901a', tighten: 0.12, funds: 1400, bonus: 1.15, hint: 'tighter CO\u2082 limit, a bit less money', zhHint: 'CO\u2082 \u9650\u984d\u66f4\u7dca\u3001\u8cc7\u91d1\u7565\u5c11' },
     hell: { label: 'Hell', zh: '\u5730\u7344', tighten: 0.3, funds: 800, bonus: 1.6, events: 1.7, gap: 8, hidden: true,
-      region: { germany: { tighten: 0.22, funds: 950 }, taiwan: { tighten: 0.34, late: 0.3 }, texas: { tighten: 0.36, late: 0.3 } }, hint: 'you were warned', zhHint: '\u4f60\u88ab\u8b66\u544a\u904e\u4e86' },
+      region: { germany: { tighten: 0.3, late: 0.22, funds: 700 }, taiwan: { tighten: 0.34, late: 0.3 }, texas: { tighten: 0.36, late: 0.3 } }, hint: 'you were warned', zhHint: '\u4f60\u88ab\u8b66\u544a\u904e\u4e86' },
     hard: { label: 'Hard', zh: '\u56f0\u96e3', tighten: 0.18, funds: 1000, bonus: 1.3, hint: 'much tighter limit, \u2153 less money', zhHint: '\u9650\u984d\u7dca\u5f88\u591a\u3001\u8cc7\u91d1\u5c11 \u2153' },
   };
   const CAPEX_SCALE = 1.3;            // capture unit \u2248 $1,300 per kW (MEA, coal) before the first-of-a-kind premium
@@ -53,21 +51,21 @@
   // transport + storage ($/t), the limit, grid links, hazards
   const REGIONS = {
     taiwan: {
-      label: 'Taiwan', hint: 'standard', stars: [2700, 3200], base: 1150, peak: 'heat', fair: 135, growth: 0.02, gas: 72, coal: 42,
+      label: 'Taiwan', hint: 'standard', stars: [2700, 3200], base: 1150, peak: 'heat', fair: 135, growth: 0.035, gas: 72, coal: 42,
       tax: [[2026, 10], [2029, 10], [2030, 40], [2050, 120]], credit: 0, creditMonths: 0, ts: 15,
       limitMul: 1.0, imports: 0, wholesale: 95, typhoon: true, lng: true, winter: false, heat: 1, surplus: 0.12,
       blurb: 'Island grid, LNG by ship, typhoons. Carbon fee $10/t, jumping to $40 in 2030.',
       zh: { label: '\u53f0\u7063', hint: '\u6a19\u6e96', blurb: '\u5b64\u5cf6\u96fb\u7db2\u3001LNG \u9760\u8239\u904b\u3001\u6709\u98b1\u98a8\u3002\u78b3\u8cbb\u6bcf\u5678 $10,2030 \u5e74\u8df3\u5230 $40\u3002' },
     },
     germany: {
-      label: 'Germany', hint: 'standard', stars: [3000, 3450], base: 1250, peak: 'cold', fair: 145, growth: 0.012, gas: 70, coal: 25,
+      label: 'Germany', hint: 'standard', stars: [3000, 3450], base: 1250, peak: 'cold', fair: 145, growth: 0.03, gas: 70, coal: 25,
       tax: [[2026, 85], [2050, 205]], credit: 0, creditMonths: 0, ts: 35,
       limitMul: 0.9, imports: 300, wholesale: 90, typhoon: false, lng: false, winter: false, heat: 1,
       blurb: 'EU carbon price $85/t (+$5 a year), winter peak, 300 MW of imports, thin margins.',
       zh: { label: '\u5fb7\u570b', hint: '\u6a19\u6e96', blurb: '\u6b50\u76df\u78b3\u50f9\u6bcf\u5678 $85(\u6bcf\u5e74 +5)\u3001\u51ac\u5b63\u5c16\u5cf0\u3001\u53ef\u9032\u53e3 300 MW\u3001\u5229\u6f64\u5f88\u8584\u3002' },
     },
     texas: {
-      label: 'Texas', hint: 'fast growth', stars: [3300, 3560], base: 1300, peak: 'heat', fair: 75, growth: 0.025, gas: 26, coal: 23,
+      label: 'Texas', hint: 'fast growth', stars: [3300, 3560], base: 1300, peak: 'heat', fair: 75, growth: 0.03, gas: 26, coal: 23,
       tax: null, credit: 85, creditMonths: 144, ts: 12,
       limitMul: 1.15, imports: 0, wholesale: 55, typhoon: false, lng: false, winter: true, heat: 2,
       blurb: 'No carbon tax: 45Q pays $85 per tonne stored. Cheap gas, fast growth, heat and storms.',
@@ -92,7 +90,10 @@
   const GAS_CRISIS = { lng: 300, freeze: 160 };
   const SURPLUS_SHARE = 0.25;         // industrial / wholesale buyers take up to 25 % of demand at the wholesale price
   const BANKRUPT = -500;              // $M
-  const MAX_PLANTS = 10;
+  const MAX_PLANTS = 12;
+  const RESERVE_MARGIN = 0.1;
+  // demand grows at half the region's rate until 2030, then at the full rate (electric cars, heat pumps, data centres)
+  const BOOM_YEAR = 2030;        // the grid wants 10 % more capacity than the year's peak (trips, heat waves)
   const DEMOLISH_COST = 30;           // $M
 
   // Legal CO2 limit (Mt per year). It tightens every year toward net zero in 2050.
@@ -122,7 +123,7 @@
 
   // capture: fraction captured; duty: regeneration GJ/t; capex: \u00d7 CAPEX_SCALE $M per MW gross (coal basis); opex: $/t
   // rate: CO2 absorption speed relative to MEA. Build cost = half absorber + half the rest; packed height goes
-  // roughly as 1/sqrt(rate), floored at 0.5. The rest: advanced stripper 1.3, viscous 2PE/EG 1.1, else 1.0.
+  // roughly as 1/sqrt(rate), floored at 0.5. The rest: viscous 2PE/EG 1.1, else 1.0.
   // stage: how far it has been scaled up; startup: monthly failure odds until proven; risk: forever (riskText says why)
   const TECHS = {
     mea90: {
@@ -132,26 +133,6 @@
       fact: '30 wt% MEA, the industry benchmark. Regeneration \u2248 3.5 GJ per tonne CO\u2082.',
       src: 'Chen, Wu & Lin, Chem. Eng. J. 2026',
       zh: { name: 'MEA', stage: '\u5546\u8f49', pitch: '\u6210\u719f\u3001\u73fe\u5728\u5c31\u80fd\u7528\uff0c\u4f46\u6700\u8017\u84b8\u6c7d\u3002', fact: '30 wt% MEA \u662f\u696d\u754c\u57fa\u6e96\u3002\u518d\u751f\u80fd\u8017\u7d04\u6bcf\u5678 CO\u2082 3.5 GJ\u3002' },
-    },
-    afs: {
-      name: 'MEA + advanced stripper', short: 'MEA+AS', capture: 0.90, duty: 2.8, capex: 1.15, opex: 10, rate: 1,
-      unlocked: false, research: { cost: 80, months: 12, process: true }, color: '#2BB3C0', stage: 'Pilot-tested', startup: 0.012,
-      fail: 'the new stripper would not hold steady',
-      pitch: 'Same MEA, smarter heat recovery: less steam, pricier to build.',
-      fact: 'A heat-integrated stripper cuts MEA regeneration to \u2248 2.8 GJ/t.',
-      src: 'Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025',
-      zh: { name: 'MEA + \u9032\u968e\u6c7d\u63d0', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u65b0\u6c7d\u63d0\u5854\u4e00\u76f4\u7a69\u4e0d\u4e0b\u4f86', pitch: '\u540c\u6a23\u662f MEA,\u71b1\u56de\u6536\u66f4\u597d:\u7701\u84b8\u6c7d,\u4f46\u6bd4\u8f03\u8cb4\u3002', fact: '\u71b1\u6574\u5408\u6c7d\u63d0\u5854\u628a MEA \u518d\u751f\u80fd\u8017\u964d\u5230\u7d04 2.8 GJ/t\u3002' },
-    },
-    rpb: {
-      name: 'Rotating packed bed (70 wt% MEA)', short: 'RPB', capture: 0.90, duty: 3.0, capex: 0.65, opex: 12, rate: 10, work: 0.02, fast: true,
-      unlocked: false, research: { cost: 90, months: 12, process: true }, color: '#F28482', est: ['capex', 'duty'], stage: 'Pilot (TRL 7)',
-      startup: 0.02, risk: 0.004, fail: 'the rotor vibrated out of balance', riskText: 'a rotor bearing failed',
-      pitch: 'A spinning absorber the size of a container: cheap, builds twice as fast, rotors need care.',
-      fact: 'The solvent is flung outward through a ring of packing spinning at about 50\u00d7 gravity. Thin, constantly renewed films absorb CO\u2082 so fast that the absorber is 10\u201320\u00d7 smaller, and it can run concentrated 70 wt% MEA. Catch: rotating machinery breaks down, each unit tops out near 0.1 Mt CO\u2082 a year so big plants need many, and the rotors use power.',
-      src: 'Ind. Eng. Chem. Res. 2025 (doi 10.1021/acs.iecr.4c01614); Carbon Clean CycloneCC pilot, Ruwais 2024',
-      zh: { name: '\u65cb\u8f49\u586b\u5145\u5e8a(70 wt% MEA)', stage: '\u524d\u5c0e(TRL 7)', fail: '\u8f49\u5b50\u5931\u8861\u5287\u70c8\u632f\u52d5', riskText: '\u8f49\u5b50\u8ef8\u627f\u6545\u969c',
-        pitch: '\u8ca8\u6ac3\u5927\u5c0f\u7684\u65cb\u8f49\u5438\u6536\u5668:\u4fbf\u5b9c\u3001\u5de5\u671f\u5feb\u4e00\u500d,\u8f49\u5b50\u8981\u4fdd\u990a\u3002',
-        fact: '\u6eb6\u5291\u88ab\u7529\u904e\u4ee5\u7d04 50 \u500d\u91cd\u529b\u9ad8\u901f\u65cb\u8f49\u7684\u586b\u6599\u74b0\uff0c\u6db2\u819c\u53c8\u8584\u53c8\u4e0d\u65b7\u66f4\u65b0\uff0c\u5438\u6536\u5feb\u5230\u5438\u6536\u5668\u53ea\u8981\u50b3\u7d71\u5854\u7684 1/10\u20131/20\uff0c\u9084\u80fd\u7528 70 wt% \u7684\u6fc3 MEA\u3002\u4ee3\u50f9\uff1a\u65cb\u8f49\u6a5f\u68b0\u6703\u6545\u969c\uff1b\u6bcf\u53f0\u4e0a\u9650\u7d04\u6bcf\u5e74 0.1 Mt CO\u2082\uff0c\u5927\u96fb\u5ee0\u8981\u5f88\u591a\u53f0\uff1b\u8f49\u5b50\u4e5f\u8981\u8017\u96fb\u3002' },
     },
     amp: {
       name: 'Aqueous AMP (30 wt%)', short: 'AMP', capture: 0.90, hiCap: true, duty: 3.25, capex: 1.4, opex: 12, rate: 0.56,
@@ -209,30 +190,18 @@
         fact: '\u4e59\u4e8c\u9187\u6703\u53c3\u8207\u53cd\u61c9\uff1a\u628a\u80fa\u7532\u9178\u9e7d\u8f49\u6210\u70f7\u57fa\u78b3\u9178\u9e7d\u3001\u628a\u80fa\u91cb\u653e\u51fa\u4f86\uff0c\u6240\u4ee5 2-\u54cc\u5576\u4e59\u9187\u6bd4 MEA \u53cd\u61c9\u5feb 4.5 \u500d\u3001\u5faa\u74b0\u5bb9\u91cf 2.8 \u500d\uff1b\u518d\u751f 128 kJ/mol(\u7d04 2.9 GJ/t)\u3002\u4ee3\u50f9\uff1a\u9ecf\u5ea6\u662f MEA \u7684 15 \u500d\u3002' },
     },
     pz: {
-      name: 'Piperazine (PZ) + advanced stripper', short: 'PZ+AS', capture: 0.90, hiCap: true, duty: 2.45, capex: 0.90, opex: 11, rate: 9.5,
-      unlocked: false, research: { cost: 90, months: 18, exp: 0.95, comp: 0.7 }, color: '#8E7CC3', est: ['capex', 'opex'],
+      name: 'Piperazine (PZ)', short: 'PZ', capture: 0.90, hiCap: true, duty: 3.05, capex: 0.80, opex: 11, rate: 9.5,
+      unlocked: false, research: { cost: 90, months: 18, exp: 0.95, comp: 0.7 }, color: '#8E7CC3', est: ['duty', 'capex', 'opex'],
       stage: 'Pilot-tested', startup: 0.015, risk: 0.003, gasOK: true, solvent: true, fail: 'solid piperazine froze out in a cold line', riskText: 'solid piperazine froze out',
-      pitch: 'Least steam in pilot plants and fast, on coal or gas; costly, and it can freeze out.',
-      fact: 'Piperazine is the second-generation benchmark: fast, thermally stable, high capacity. With the advanced stripper, pilot plants measured a net 2.45 GJ per tonne CO\u2082 at 90 % capture, the same at 4 % (gas) and 12 % (coal) CO\u2082. Prof. Yu-Jeng Lin pilot-tested this stripper during his PhD. Catch: solid PZ can precipitate if the solvent gets too cold.',
+      pitch: 'Fast and high-capacity on coal or gas; with the advanced stripper the least steam of all, but it can freeze out.',
+      fact: 'Piperazine is the second-generation benchmark: fast, thermally stable, high capacity, and it performs the same on 4 % (gas) and 12 % (coal) CO\u2082. Add the advanced stripper (a lab process upgrade) and pilot plants measured a net 2.45 GJ per tonne CO\u2082 at 90 % capture. Catch: solid PZ can precipitate if the solvent gets too cold.',
       src: 'Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021; Lin, Chen & Rochelle, Faraday Discuss. 2016',
-      zh: { name: '\u54cc\u55ea(PZ)+ \u9032\u968e\u6c7d\u63d0', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u56fa\u614b\u54cc\u55ea\u5728\u51b7\u7ba1\u7dda\u6790\u51fa', riskText: '\u56fa\u614b\u54cc\u55ea\u6790\u51fa',
-        pitch: '\u524d\u5c0e\u5ee0\u5be6\u6e2c\u6700\u7701\u84b8\u6c7d\u3001\u53cd\u61c9\u5feb,\u71c3\u7164\u71c3\u6c23\u90fd\u9069\u7528;\u4f46\u5f88\u8cb4,\u51b7\u4e86\u6703\u6790\u51fa\u3002',
-        fact: '\u54cc\u55ea\u662f\u7b2c\u4e8c\u4ee3\u57fa\u6e96\u6eb6\u5291\uff1a\u5feb\u3001\u71b1\u7a69\u5b9a\u3001\u5bb9\u91cf\u9ad8\u3002\u642d\u914d\u9032\u968e\u6c7d\u63d0\uff0c\u524d\u5c0e\u5ee0\u5728 90 % \u6355\u6349\u7387\u4e0b\u5be6\u6e2c\u6de8\u80fd\u8017\u6bcf\u5678 CO\u2082 2.45 GJ\uff0c\u7159\u6c23 CO\u2082 4 %(\u71c3\u6c23)\u548c 12 %(\u71c3\u7164)\u90fd\u4e00\u6a23\u3002\u6797\u80b2\u6b63\u6559\u6388\u535a\u58eb\u73ed\u6642\u5c31\u5728\u524d\u5c0e\u5ee0\u6e2c\u8a66\u904e\u9019\u500b\u6c7d\u63d0\u5854\u3002\u4ee3\u50f9\uff1a\u6eb6\u5291\u592a\u51b7\u6642\u56fa\u614b PZ \u6703\u6790\u51fa\u3002' },
-    },
-    mcfc: {
-      name: 'Carbonate fuel cell (MCFC)', short: 'MCFC', capture: 0.85, duty: 0, capex: 1.6, opex: 14, rate: null, power: 0.15,
-      gasOnly: true, noDeep: true, stack: 84,
-      unlocked: false, research: { cost: 120, months: 18, process: true }, color: '#E76F51', est: ['capex', 'opex'], stage: 'Demo (2026)',
-      startup: 0.03, fail: 'a fuel-cell stack overheated',
-      pitch: 'Captures CO\u2082 while making more power; gas plants only, 85 % at most, stacks wear out.',
-      fact: 'A molten-carbonate fuel cell sits in the flue gas and burns a little extra natural gas to make electricity. To run, it must pull CO\u2082 out of the flue gas and carry it across as carbonate ions, so the CO\u2082 comes out concentrated on the other side. On a gas plant it cuts CO\u2082 about 80 % while overall efficiency stays about the same. Catch: 650 \u00b0C stacks wear out, capture tops out near 85\u201390 %, and coal flue gas would poison it.',
-      src: 'Campanari et al., Int. J. Greenh. Gas Control 2010; ExxonMobil & FuelCell Energy Rotterdam demonstration 2026',
-      zh: { name: '\u78b3\u9178\u9e7d\u71c3\u6599\u96fb\u6c60(MCFC)', stage: '\u793a\u7bc4(2026)', fail: '\u71c3\u6599\u96fb\u6c60\u5806\u904e\u71b1',
-        pitch: '\u908a\u6355\u6349\u908a\u591a\u767c\u96fb;\u53ea\u9650\u71c3\u6c23\u5ee0\u3001\u6700\u591a 85 %,\u96fb\u6c60\u5806\u6703\u8001\u5316\u3002',
-        fact: '\u7194\u878d\u78b3\u9178\u9e7d\u71c3\u6599\u96fb\u6c60\u88dd\u5728\u7159\u9053\u4e0a\uff0c\u591a\u71d2\u4e00\u9ede\u5929\u7136\u6c23\u4f86\u767c\u96fb\uff1b\u5b83\u904b\u4f5c\u6642\u5fc5\u9808\u628a\u7159\u6c23\u88e1\u7684 CO\u2082 \u4ee5\u78b3\u9178\u6839\u96e2\u5b50\u7684\u5f62\u5f0f\u642c\u5230\u53e6\u4e00\u5074\uff0c\u6240\u4ee5 CO\u2082 \u5728\u53e6\u4e00\u5074\u8b8a\u5f97\u5f88\u6fc3\uff0c\u5bb9\u6613\u6536\u96c6\u3002\u88dd\u5728\u71c3\u6c23\u5ee0\u4e0a\u53ef\u6e1b\u5c11\u7d04 80 % CO\u2082\uff0c\u6574\u9ad4\u6548\u7387\u5e7e\u4e4e\u4e0d\u8b8a\u3002\u4ee3\u50f9\uff1a650 \u00b0C \u7684\u96fb\u6c60\u5806\u6703\u8001\u5316\uff0c\u6355\u6349\u7387\u4e0a\u9650\u7d04 85\u201390 %\uff0c\u71c3\u7164\u7159\u6c23\u6703\u6bd2\u5316\u5b83\u3002' },
+      zh: { name: '\u54cc\u55ea(PZ)', stage: '\u5df2\u524d\u5c0e\u6e2c\u8a66', fail: '\u56fa\u614b\u54cc\u55ea\u5728\u51b7\u7ba1\u7dda\u6790\u51fa', riskText: '\u56fa\u614b\u54cc\u55ea\u6790\u51fa',
+        pitch: '\u53cd\u61c9\u5feb\u3001\u5bb9\u91cf\u9ad8,\u71c3\u7164\u71c3\u6c23\u90fd\u9069\u7528;\u52a0\u88dd\u9032\u968e\u6c7d\u63d0\u6700\u7701\u84b8\u6c7d,\u4f46\u51b7\u4e86\u6703\u6790\u51fa\u3002',
+        fact: '\u54cc\u55ea\u662f\u7b2c\u4e8c\u4ee3\u57fa\u6e96\u6eb6\u5291\uff1a\u5feb\u3001\u71b1\u7a69\u5b9a\u3001\u5bb9\u91cf\u9ad8\uff0c\u7159\u6c23 CO\u2082 4 %(\u71c3\u6c23)\u548c 12 %(\u71c3\u7164)\u8868\u73fe\u90fd\u4e00\u6a23\u3002\u518d\u52a0\u88dd\u9032\u968e\u6c7d\u63d0(\u7814\u7a76\u6240\u7684\u88fd\u7a0b\u5347\u7d1a)\uff0c\u524d\u5c0e\u5ee0\u5728 90 % \u6355\u6349\u7387\u4e0b\u5be6\u6e2c\u6de8\u80fd\u8017\u6bcf\u5678 CO\u2082 2.45 GJ\u3002\u4ee3\u50f9\uff1a\u6eb6\u5291\u592a\u51b7\u6642\u56fa\u614b PZ \u6703\u6790\u51fa\u3002' },
     },
   };
-  const TECH_ORDER = ['mea90', 'afs', 'rpb', 'amp', 'aas', 'mdeapz', 'pz', 'ampnmp', 'pe2eg', 'mcfc'];
+  const TECH_ORDER = ['mea90', 'amp', 'aas', 'mdeapz', 'pz', 'ampnmp', 'pe2eg'];
   // Solvent screening: each campaign discovers ONE random solvent you do not have yet (rarer = better/newer).
   const METHODS = {
     exp: { label: 'Lab experiments', zh: '\u5be6\u9a57', cost: 150, months: 12, odds: 0.9 },
@@ -241,10 +210,15 @@
   const DROPS = { amp: { weight: 40, stars: 2 }, aas: { weight: 35, stars: 2 }, mdeapz: { weight: 30, stars: 3 }, pz: { weight: 28, stars: 3 }, ampnmp: { weight: 22, stars: 3 }, pe2eg: { weight: 16, stars: 4 } };
   // process upgrades: developed in one lab project, then fitted plant by plant
   const PROCESS = {
+    as: { cost: 80, months: 12, fit: 0.15, build: 9, mul: 0.8 },                 // advanced stripper: -20 % steam, any solvent
     ic: { cost: 50, months: 9, fit: 0.08, build: 6, hiCap: 0.9, other: 0.97 },   // absorber intercooling
     sf: { cost: 70, months: 12, fit: 0.15, build: 9, deep: 0.88 },              // split-flow + multi-pressure stripper (99 % only)
   };
   const PROJECTS = {
+    as: { name: 'Advanced stripper', short: 'AS', cost: PROCESS.as.cost, months: PROCESS.as.months, process: true,
+      desc: 'Recover the stripper\'s waste heat: about 20 % less steam with any solvent.', more: 'Heat that a simple stripper throws away is put back to work: part of the cold rich solvent cools the hot vapour at the top, part is preheated by it, and a flash vessel lets the hottest solvent release CO\u2082 before the column. Our group measured MEA dropping from 3.5 to 2.8 GJ per tonne; with piperazine, pilot plants reached 2.45 GJ/t. Prof. Yu-Jeng Lin pilot-tested this stripper during his PhD. Here it cuts the steam of every solvent by about 20 %, fitted plant by plant.',
+      src: 'Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (MEA: 3.5 \u2192 2.8 GJ/t); Lin, Chen & Rochelle, Faraday Discuss. 2016; Suresh Babu & Rochelle, Int. J. Greenh. Gas Control 2021 (PZ: 2.45 GJ/t)',
+      zh: { name: '\u9032\u968e\u6c7d\u63d0', desc: '\u56de\u6536\u6c7d\u63d0\u5854\u5ee2\u71b1:\u4efb\u4f55\u6eb6\u5291\u90fd\u7701\u7d04 20 % \u84b8\u6c7d\u3002', more: '\u628a\u7c21\u55ae\u6c7d\u63d0\u5854\u4e1f\u6389\u7684\u71b1\u62ff\u56de\u4f86\u7528\uff1a\u4e00\u90e8\u5206\u51b7\u5bcc\u6db2\u53bb\u51b7\u537b\u5854\u9802\u7684\u71b1\u84b8\u6c23\uff0c\u4e00\u90e8\u5206\u88ab\u5b83\u9810\u71b1\uff0c\u518d\u7528\u9583\u84b8\u69fd\u8b93\u6700\u71b1\u7684\u6eb6\u5291\u5728\u9032\u5854\u524d\u5148\u91cb\u653e CO\u2082\u3002\u6211\u5011\u5be6\u9a57\u5ba4\u91cf\u5230 MEA \u5f9e\u6bcf\u5678 3.5 \u964d\u5230 2.8 GJ\uff1b\u642d\u914d\u54cc\u55ea\uff0c\u524d\u5c0e\u5ee0\u9054\u5230 2.45 GJ/t\u3002\u6797\u80b2\u6b63\u6559\u6388\u535a\u58eb\u73ed\u6642\u5c31\u5728\u524d\u5c0e\u5ee0\u6e2c\u8a66\u904e\u9019\u500b\u6c7d\u63d0\u5854\u3002\u904a\u6232\u88e1\u5b83\u8b93\u6bcf\u7a2e\u6eb6\u5291\u7684\u84b8\u6c7d\u90fd\u6e1b\u5c11\u7d04 20 %\uff0c\u4e00\u5ea7\u4e00\u5ea7\u52a0\u88dd\u3002' } },
     ic: { name: 'Absorber intercooling', short: 'IC', cost: PROCESS.ic.cost, months: PROCESS.ic.months, process: true,
       desc: 'Cool the absorber mid-way: less steam for high-capacity solvents.', more: 'Pump the half-loaded solvent out of the middle of the absorber, cool it to 40 \u00b0C and send it back: it removes the temperature bulge that chokes high-capacity solvents. Best with AMP, AMP/NMP, MDEA/PZ, PZ and 2PE/EG (about \u221210 % steam); almost nothing for MEA (\u22123 %).',
       src: 'Chen, Hsu & Lin, Ind. Eng. Chem. Res. 2025 (AMP: solvent rate \u221239 %); Liu, Lu, Kuo & Lin, Ind. Eng. Chem. Res. 2025 (MEA: \u22123.8 %)',
@@ -258,7 +232,7 @@
       src: 'Lin, Wong, Jang & Ou, AIChE J. 2012 (doi 10.1002/aic.12789): flexible operation of amine capture',
       zh: { name: '\u5f48\u6027\u64cd\u4f5c(\u63a7\u5236\u7cfb\u7d71)', desc: '\u5c16\u5cf0\u6708\u4efd\u6355\u6349\u964d\u8f09:\u591a\u51fa\u96fb\u529b,\u4f46\u591a\u6392\u4e00\u9ede CO\u2082\u3002', more: '\u8b93\u6355\u6349\u8ddf\u8457\u96fb\u7db2\u8d70\u7684\u63a7\u5236\u7cfb\u7d71\uff1a\u5728\u5169\u4e09\u500b\u5c16\u5cf0\u6708\u4efd\uff0c\u6bcf\u5957\u6355\u6349\u5728\u5c16\u5cf0\u6642\u6bb5\u964d\u8f09(\u6574\u6708\u5e73\u5747 75 %)\uff0c\u96fb\u5ee0\u591a\u51fa\u96fb\u529b(\u5c11\u505c\u96fb\u3001\u591a\u8ce3\u96fb)\uff0c\u4f46\u90a3\u5e7e\u500b\u6708\u6703\u591a\u6392\u4e00\u4e9b CO\u2082\u3002\u9069\u7528\u6240\u6709\u6eb6\u5291\uff1b\u9810\u8a2d\u95dc\u9589\uff0c\u8981\u5230\u7814\u7a76\u6240\u6253\u958b\u3002' } },
   };
-  const LAB_ORDER = ['screen', 'afs', 'rpb', 'mcfc', 'ic', 'sf', 'flex'];   // one project at a time, more can queue
+  const LAB_ORDER = ['screen', 'as', 'ic', 'sf', 'flex'];   // one project at a time, more can queue
 
   // ---- names in both languages ----------------------------------------------
   const pName = p => `${PLANT_TYPES[p.type].label} Plant ${p.id}`;
@@ -266,27 +240,28 @@
   const tZh = id => (TECHS[id].zh && TECHS[id].zh.name) || TECHS[id].name;
 
   // ---- technology helpers -----------------------------------------------------
-  function eff(techId, deep, type, ic, sf) {
+  function eff(techId, deep, type, ic, sf, as) {
     const t = TECHS[techId];
     if (!t) return null;
     const pt = PLANT_TYPES[type || 'coal'];
-    const e = { capture: t.capture, duty: t.duty, opex: t.opex, work: t.work || 0, power: t.power || 0 };
+    const e = { capture: t.capture, duty: t.duty, opex: t.opex, work: t.work || 0 };
     if (deep) { e.capture = DEEP.capture; e.duty *= DEEP.dutyMul; e.opex += DEEP.opexAdd; }
     if (t.gasDuty && pt.gas) e.duty = t.gasDuty * (deep ? DEEP.dutyMul : 1);   // e.g. an amino-acid salt suits dilute gas flue gas
     else if (!t.gasOK) e.duty *= pt.dutyMul;   // PZ + advanced stripper performs the same on dilute gas-plant flue gas
-    if (ic && !t.power) e.duty *= t.hiCap ? PROCESS.ic.hiCap : PROCESS.ic.other;   // intercooling pays off for high-capacity solvents
-    if (sf && deep && !t.power) e.duty *= PROCESS.sf.deep;                       // split flow trims the 99 % duty
+    if (as) e.duty *= PROCESS.as.mul;                                            // the advanced stripper recovers waste heat
+    if (ic) e.duty *= t.hiCap ? PROCESS.ic.hiCap : PROCESS.ic.other;             // intercooling pays off for high-capacity solvents
+    if (sf && deep) e.duty *= PROCESS.sf.deep;                                   // split flow trims the 99 % duty
     e.opex *= pt.opexMul;
     return e;
   }
   // energy (MWh_e) lost per tonne CO2 captured
   function workPerTonne(e) { return e.duty * GJ_TO_MWH_E + COMPRESS + (e.work || 0); }
-  // share of gross output lost to capture (negative = the unit adds power, like a fuel cell)
+  // share of gross output lost to capture
   function penalty(plant, techId, deep) {
     if (deep === undefined) deep = !!plant.deep && plant.tech === techId;
-    const e = eff(techId, deep, plant.type, plant.ic, plant.sf);
+    const e = eff(techId, deep, plant.type, plant.ic, plant.sf, plant.as);
     if (!e) return 0;
-    return PLANT_TYPES[plant.type].intensity * e.capture * workPerTonne(e) - e.power;
+    return PLANT_TYPES[plant.type].intensity * e.capture * workPerTonne(e);
   }
   function capexFull(plant, techId) {
     return TECHS[techId].capex * CAPEX_SCALE * plant.gross * PLANT_TYPES[plant.type].capexFactor;
@@ -300,10 +275,7 @@
     c *= RG(state).capexMul || 1;
     return Math.round(c);
   }
-  function installMonths(plant, techId) {
-    const fast = techId && TECHS[techId] && TECHS[techId].fast;
-    return plant.tech ? (fast ? 2 : 4) : (fast ? 6 : 12);
-  }
+  function installMonths(plant) { return plant.tech ? 4 : 12; }
   function upgradeCost(state, plant) {
     let c = DEEP.costFrac * capexFull(plant, plant.tech);
     if (state.subsidy > 0) c *= 0.7;
@@ -415,7 +387,7 @@
 
   function makePlant(id, type) {
     const p = { id, type, gross: PLANT_TYPES[type].size,
-      tech: null, deep: false, build: null, queue: [], outage: 0, down: 0, downWhy: '', washed: false, capMonths: 0, stackAge: 0 };
+      tech: null, deep: false, build: null, queue: [], outage: 0, down: 0, downWhy: '', washed: false, capMonths: 0 };
     p.name = pName(p);
     return p;
   }
@@ -448,9 +420,18 @@
   function monthName(state) {
     return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][state.m % 12];
   }
-  function trendDemand(state) { return RG(state).base * Math.pow(1 + RG(state).growth, state.m / 12); }
+  function trendAt(state, m) {
+    const g = RG(state).growth, y = m / 12, y0 = BOOM_YEAR - START_YEAR;
+    return RG(state).base * Math.pow(1 + g / 2, Math.min(y, y0)) * Math.pow(1 + g, Math.max(0, y - y0));
+  }
+  function trendDemand(state) { return trendAt(state, state.m); }
   function demand(state) { return trendDemand(state) * seasonOf(state) * state.demandMult; }
   function peakDemand(state) { return trendDemand(state) * peakSeason(state); }
+  // net MW your own plants must supply at the peak of year t (fractional years ok)
+  function capacityNeed(state, t) {
+    const m = (t - START_YEAR) * 12;
+    return Math.max(0, trendAt(state, m) * peakSeason(state) * (1 + RESERVE_MARGIN) - (RG(state).imports || 0));
+  }
   function addNews(state, kind, text, zh) {
     state.news.unshift({ m: state.m, kind, text, zh });
     if (state.news.length > 30) state.news.pop();
@@ -465,11 +446,6 @@
 
   // ---- player actions -------------------------------------------------------
   // `paid` = the job was already paid for when it was queued, so skip the funds check and the charge
-  function techFits(plant, techId, deep) {
-    const t = TECHS[techId];
-    if (t.gasOnly && plant.type !== 'gas') return 'Gas (combined-cycle) plants only';
-    return null;
-  }
   // scale-up: a lab-scale solvent goes on ONE plant first and spreads only once it is proven (24 months running)
   function scaleUpBlock(state, plant, techId) {
     const t = TECHS[techId];
@@ -482,7 +458,7 @@
     if (!state.unlocked[techId]) return { ok: false, why: 'Research it first' };
     if (plant.build) return { ok: false, why: 'Construction in progress' };
     if (plant.tech === techId) return { ok: false, why: 'Already installed' };
-    const fit = techFits(plant, techId) || scaleUpBlock(state, plant, techId);
+    const fit = scaleUpBlock(state, plant, techId);
     if (fit) return { ok: false, why: fit };
     const cost = installCost(state, plant, techId);
     if (!paid && state.funds < cost) return { ok: false, why: 'Not enough funds', cost };
@@ -503,7 +479,6 @@
   }
   function canUpgrade(state, plant, paid) {
     if (!plant.tech) return { ok: false, why: 'Add capture first' };
-    if (TECHS[plant.tech].noDeep) return { ok: false, why: 'Fuel cells cannot reach 99 %' };
     if (plant.deep) return { ok: false, why: 'Already at 99 %' };
     if (plant.build) return { ok: false, why: 'Construction in progress' };
     const cost = upgradeCost(state, plant);
@@ -527,7 +502,6 @@
     const c = to && CONVERT[plant.type] && CONVERT[plant.type][to];
     if (!c) return { ok: false, why: 'No conversion for this plant', to };
     if (plant.build) return { ok: false, why: 'Construction in progress', to };
-    if (plant.tech && TECHS[plant.tech].gasOnly && to !== 'gas') return { ok: false, why: 'Remove the fuel cell first', to };
     if (!paid && state.funds < c.cost) return { ok: false, why: 'Not enough funds', to, cost: c.cost };
     return { ok: true, to, cost: c.cost, months: c.months };
   }
@@ -549,14 +523,13 @@
   const QUEUE_MAX = 5;
   const qOf = p => p.queue || (p.queue = []);
   function planned(plant) {
-    const v = { type: plant.type, gross: plant.gross, tech: plant.tech, deep: plant.deep, ic: !!plant.ic, sf: !!plant.sf };
+    const v = { type: plant.type, gross: plant.gross, tech: plant.tech, deep: plant.deep, as: !!plant.as, ic: !!plant.ic, sf: !!plant.sf };
     const apply = job => {
       if (!job) return;
       if (job.kind === 'tech') { v.tech = job.tech; v.deep = false; }
       else if (job.kind === 'deep') v.deep = true;
       else if (job.kind === 'convert') { v.type = job.toType; v.gross = PLANT_TYPES[job.toType].size; }
-      else if (job.kind === 'ic') v.ic = true;
-      else if (job.kind === 'sf') v.sf = true;
+      else if (PROCESS[job.kind]) v[job.kind] = true;
     };
     apply(plant.build);
     qOf(plant).forEach(apply);
@@ -570,25 +543,22 @@
       if (!TECHS[job.tech]) return { ok: false, why: 'Unknown technology' };
       if (!state.unlocked[job.tech]) return { ok: false, why: TECHS[job.tech].solvent ? 'Find it by solvent screening' : 'Develop it in the lab first' };
       if (v.tech === job.tech) return { ok: false, why: plant.tech === job.tech && !plant.build && !qOf(plant).length ? 'Already installed' : 'Already queued' };
-      const fit = techFits(v, job.tech) || scaleUpBlock(state, plant, job.tech);
+      const fit = scaleUpBlock(state, plant, job.tech);
       if (fit) return { ok: false, why: fit };
       cost = installCost(state, v, job.tech); months = installMonths(v, job.tech);
     } else if (job.kind === 'deep') {
       if (!v.tech) return { ok: false, why: 'Add capture first' };
-      if (TECHS[v.tech].noDeep) return { ok: false, why: 'Fuel cells cannot reach 99 %' };
       if (v.deep) return { ok: false, why: plant.deep && !plant.build ? 'Already at 99 %' : 'Already queued' };
       cost = upgradeCost(state, v); months = DEEP.months;
     } else if (job.kind === 'convert') {
       to = job.to || convertOptions(v.type)[0];
       const c = to && CONVERT[v.type] && CONVERT[v.type][to];
       if (!c) return { ok: false, why: 'No conversion for this plant' };
-      if (v.tech && TECHS[v.tech].gasOnly && to !== 'gas') return { ok: false, why: 'Remove the fuel cell first' };
       cost = c.cost; months = c.months;
-    } else if (job.kind === 'ic' || job.kind === 'sf') {
+    } else if (PROCESS[job.kind]) {
       const pr = PROCESS[job.kind];
       if (!state.unlocked[job.kind]) return { ok: false, why: 'Develop it in the lab first' };
       if (!v.tech) return { ok: false, why: 'Add capture first' };
-      if (TECHS[v.tech].power) return { ok: false, why: 'Not for fuel cells' };
       if (v[job.kind]) return { ok: false, why: plant[job.kind] && !plant.build ? 'Already installed' : 'Already queued' };
       if (job.kind === 'sf' && !v.deep) return { ok: false, why: 'Needs the 99 % upgrade first' };
       cost = Math.round(pr.fit * capexFull(v, v.tech) * (state.subsidy > 0 ? 0.7 : 1) * (RG(state).capexMul || 1)); months = pr.build;
@@ -598,11 +568,11 @@
   }
   function jobName(job) {
     return job.kind === 'tech' ? `${TECHS[job.tech].short} capture` : job.kind === 'deep' ? '99 % upgrade' : job.kind === 'ic' ? 'absorber intercooling'
-      : job.kind === 'sf' ? 'split-flow stripper' : `conversion to ${PLANT_TYPES[job.toType].label.toLowerCase()}`;
+      : job.kind === 'sf' ? 'split-flow stripper' : job.kind === 'as' ? 'advanced stripper' : `conversion to ${PLANT_TYPES[job.toType].label.toLowerCase()}`;
   }
   function jobZh(job) {
     return job.kind === 'tech' ? `${TECHS[job.tech].short} \u6355\u6349` : job.kind === 'deep' ? '99 % \u5347\u7d1a' : job.kind === 'ic' ? '\u5438\u6536\u5854\u4e2d\u9593\u51b7\u537b'
-      : job.kind === 'sf' ? '\u5206\u6d41\u6c7d\u63d0' : `\u6539\u5efa\u70ba${PLANT_TYPES[job.toType].zh}`;
+      : job.kind === 'sf' ? '\u5206\u6d41\u6c7d\u63d0' : job.kind === 'as' ? '\u9032\u968e\u6c7d\u63d0' : `\u6539\u5efa\u70ba${PLANT_TYPES[job.toType].zh}`;
   }
   // fit a process upgrade (the capture unit keeps running while it is built)
   function addon(state, p, item) {
@@ -629,7 +599,7 @@
   function startJob(state, p, item) {
     const r = item.kind === 'tech' ? install(state, p.id, item.tech, item.paid)
       : item.kind === 'deep' ? upgrade(state, p.id, item.paid)
-      : item.kind === 'ic' || item.kind === 'sf' ? addon(state, p, item) : convert(state, p.id, item.toType, item.paid);
+      : PROCESS[item.kind] ? addon(state, p, item) : convert(state, p.id, item.toType, item.paid);
     if (!r.ok) {
       state.funds += item.paid;
       addNews(state, 'build', `${p.name}: ${jobName(item)} skipped (${r.why.toLowerCase()}), $${item.paid}M refunded.`,
@@ -1008,6 +978,11 @@
         }
       }
     }
+    if (state.m === (BOOM_YEAR - START_YEAR) * 12) {
+      const g = +(RG(state).growth * 100).toFixed(1);
+      addNews(state, 'policy', `Electric cars, heat pumps and data centres: power demand now grows ${g} % a year. Build ahead.`, `\u96fb\u52d5\u8eca\u3001\u71b1\u6cf5\u8207\u8cc7\u6599\u4e2d\u5fc3:\u7528\u96fb\u9700\u6c42\u73fe\u5728\u6bcf\u5e74\u6210\u9577 ${g} %\u3002\u8981\u63d0\u65e9\u84cb\u96fb\u5ee0\u3002`);
+      flash(state, 'event', `Demand boom: +${g} % a year from now on. Check the grid meter.`, `\u7528\u96fb\u66b4\u589e:\u5f9e\u73fe\u5728\u8d77\u6bcf\u5e74 +${g} %\u3002\u6ce8\u610f\u96fb\u7db2\u8a08\u91cf\u3002`);
+    }
     // construction progress
     for (const p of state.plants) {
       if (!p.build) continue;
@@ -1021,11 +996,11 @@
         p.type = b.toType; p.gross = PLANT_TYPES[b.toType].size;
         p.name = pName(p);
         addNews(state, 'build', `${p.name}: conversion finished (${p.gross} MW).`, `${pZh(p)}\uff1a\u6539\u5efa\u5b8c\u6210(${p.gross} MW)\u3002`);
-      } else if (b.kind === 'ic' || b.kind === 'sf') {
-        p[b.kind] = true;
+      } else if (PROCESS[b.kind]) {
+        p[b.kind] = true; state.techUsed[b.kind] = true;
         addNews(state, 'build', `${p.name}: ${jobName(b)} is running.`, `${pZh(p)}\uff1a${jobZh(b)}\u555f\u7528\u3002`);
       } else {
-        if (p.tech !== b.tech) { p.washed = !!TECHS[b.tech].noEmit; p.stackAge = 0; }
+        if (p.tech !== b.tech) p.washed = !!TECHS[b.tech].noEmit;
         p.tech = b.tech; p.deep = !!b.deep;
         state.techUsed[p.tech] = true;
         addNews(state, 'build', `${p.name}: ${TECHS[p.tech].short}${p.deep ? ' at 99 %' : ''} capture is online.`, `${pZh(p)}\uff1a${TECHS[p.tech].short}${p.deep ? ' 99 %' : ''} \u6355\u6349\u4e0a\u7dda\u3002`);
@@ -1033,27 +1008,21 @@
     }
     // the next queued job starts as soon as a plant (or the lab) is free
     startQueues(state);
-    // start-up failures, precipitation / rotor faults, fuel-cell stack replacement
+    // start-up failures, precipitation and freeze-out faults
     for (const p of state.plants) {
       if (p.outage > 0) { p.outage -= 1; continue; }
       if (!p.tech || !online(p)) continue;
       const t = TECHS[p.tech];
       const tz = t.zh || {};
       const mat = maturity(state, p.tech);
-      if (t.stack && ++p.stackAge >= t.stack) {
-        p.stackAge = 0; p.outage = 2;
-        const c = Math.round(0.15 * capexFull(p, p.tech));
-        state.funds -= c;
-        addNews(state, 'build', `${p.name}: fuel-cell stacks worn out after ${t.stack / 12} years, replaced ($${c}M, capture off 2 months).`, `${pZh(p)}\uff1a\u71c3\u6599\u96fb\u6c60\u5806\u7528\u4e86 ${t.stack / 12} \u5e74\u5df2\u8001\u5316\uff0c\u66f4\u63db($${c}M\uff0c\u6355\u6349\u505c 2 \u500b\u6708)\u3002`);
-        flash(state, 'event', `${p.name}: fuel-cell stacks replaced ($${c}M).`, `${pZh(p)}\uff1a\u66f4\u63db\u71c3\u6599\u96fb\u6c60\u5806($${c}M)\u3002`);
-      } else if (mat.risk > 0 && R() < mat.risk) {
+      if (mat.risk > 0 && R() < mat.risk) {
         p.outage = 3; p.outageWhy = 'start-up failure'; p.down = 1; p.downWhy = 'tripped';
         state.funds -= 15; state.fails += 1;
         addNews(state, 'event', `${p.name}: ${t.short} start-up failure, ${t.fail}. Plant tripped for a month, capture off 3 months, repair $15M (${mat.exp}/${PROVEN_MONTHS} months of experience).`,
           `${pZh(p)}\uff1a${t.short} \u958b\u6a5f\u6545\u969c\uff0c${tz.fail || t.fail}\u3002\u96fb\u5ee0\u8df3\u6a5f 1 \u500b\u6708\u3001\u6355\u6349\u505c 3 \u500b\u6708\u3001\u7dad\u4fee $15M(\u7d2f\u7a4d\u7d93\u9a57 ${mat.exp}/${PROVEN_MONTHS} \u500b\u6708)\u3002`);
         flash(state, 'event', `${p.name}: ${t.short} start-up failure, ${t.fail}.`, `${pZh(p)}\uff1a${t.short} \u958b\u6a5f\u6545\u969c\uff0c${tz.fail || t.fail}\u3002`);
       } else if (t.risk && R() < t.risk) {
-        p.outage = t.rate >= 10 ? 1 : 2; p.outageWhy = 'fault';
+        p.outage = 2; p.outageWhy = 'fault';
         addNews(state, 'event', `${p.name}: ${t.riskText}, capture off for ${p.outage} month${p.outage > 1 ? 's' : ''}.`, `${pZh(p)}\uff1a${tz.riskText || t.riskText}\uff0c\u6355\u6349\u505c ${p.outage} \u500b\u6708\u3002`);
         flash(state, 'event', `${p.name}: ${t.riskText}.`, `${pZh(p)}\uff1a${tz.riskText || t.riskText}\u3002`);
       }
@@ -1068,11 +1037,11 @@
     const units = state.plants.filter(online).map(p => {
       const pt = PLANT_TYPES[p.type];
       const on = p.tech && p.outage <= 0 && state.captureOff <= 0;
-      const e = on ? eff(p.tech, p.deep, p.type, p.ic, p.sf) : null;
+      const e = on ? eff(p.tech, p.deep, p.type, p.ic, p.sf, p.as) : null;
       if (e && state.opexCut > 0) e.opex *= 1.3;   // subsidy cut: suppliers pass on their losses
       const c = e ? e.capture * (flexNow(state) ? FLEX : 1) : 0;
-      const pen = e ? pt.intensity * c * workPerTonne(e) - e.power : 0;
-      const fuel = fuelOf(state, p.type) * (1 + (e ? e.power : 0));   // a fuel cell burns extra gas for its extra power
+      const pen = e ? pt.intensity * c * workPerTonne(e) : 0;
+      const fuel = fuelOf(state, p.type);
       const avail = pt.gas ? gasAvail : 1;
       const credit = rgn.credit && (p.capMonths || 0) < rgn.creditMonths ? rgn.credit : 0;
       const perGross = fuel + (e ? (e.opex + ts - credit) * pt.intensity * c : 0) + tax * pt.intensity * (1 - c);
@@ -1159,7 +1128,7 @@
     state.maxDebt = Math.max(state.maxDebt, state.greenhouse);
 
     // public anger, kept per source so the page can show where it comes from
-    const baseRate = rgn.base * HOURS * 0.95;
+    const baseRate = trendDemand(state) * HOURS * 0.95;   // smog per unit of the city's size, so growth alone does not anger people
     const smog = emitted / baseRate;
     const FAIR = rgn.fair;
     const parts = {
@@ -1226,7 +1195,7 @@
   }
 
   const api = {
-    HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE, START_FUNDS, DIFFS, GAS_CRISIS, diffOf, CAPEX_SCALE, FOAK,
+    HOURS, MONTHS, START_YEAR, END_YEAR, FAIR_PRICE, BANKRUPT, MAX_PLANTS, RESERVE_MARGIN, BOOM_YEAR, capacityNeed, DEMOLISH_COST, LIMIT_POINTS, LIMIT_SCALE, START_FUNDS, DIFFS, GAS_CRISIS, diffOf, CAPEX_SCALE, FOAK,
     BREACH, breachStep, REGIONS, SEASON, SURPLUS_SHARE, SHIP, METHODS, DROPS, PROVEN_MONTHS, DEEP, PLANT_TYPES, CONVERT, TECHS, TECH_ORDER, PROJECTS, LAB_ORDER, CFG,
     newGame, step, choose, offCost, online, isGas, fuelOf, foak, pZh, tZh,
     install, canInstall, installCost, installMonths, upgrade, canUpgrade, upgradeCost, convertOptions,
