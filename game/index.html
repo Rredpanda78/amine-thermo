@@ -279,6 +279,8 @@ details.more summary { font-size: 12.5px; }
 .proj.pilot { grid-template-columns: minmax(0, 1fr) auto; }
 .proj.pilot .rbtn { flex: 0 0 auto; }
 .proj.pilot .d { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* phone portrait: the button goes under the text at full width, so the name, blurb and solvent chips keep the whole card width */
+@media (max-width: 600px) { .proj.pilot { grid-template-columns: minmax(0, 1fr); } .proj.pilot .rbtn { flex: 1 1 auto; } .proj.pilot .acts { display: grid; } }
 .proj.star { border-color: #7A5B1E; background: linear-gradient(180deg, #2A2616, var(--panel-2)); }
 .proj .t { font-weight: 700; }
 .proj .d { font-size: 13.5px; color: var(--muted); }
