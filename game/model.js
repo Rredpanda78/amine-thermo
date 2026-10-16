@@ -426,7 +426,7 @@
         : [makePlant('A', 'coal'), makePlant('B', 'coal'), makePlant('C', 'gas')],
       nextId: four ? 4 : 3, unlocked, research: {}, resMethod: {}, tries: {}, exp: {},
       demandMult: 1, demandMonths: 0, gasMult: 1, gasMonths: 0, gasIndex: 1, coalMult: 1, coalMonths: 0, coalCut: 0,
-      pending: null, flash: null, flashN: 0, seen: {}, fails: 0, blackouts: 0, discovery: null,
+      pending: null, flash: null, flashN: 0, seen: {}, fails: 0, blackouts: 0, discovery: null, procDone: null,
       news: [{ m: 0, kind: 'info', text: 'You run the power utility of Capture City. Keep the lights on until 2050 and stay under the CO\u2082 limit.', zh: '\u4f60\u7d93\u71df\u6355\u6349\u57ce\u7684\u96fb\u529b\u516c\u53f8\u3002\u6490\u5230 2050 \u5e74\u4e0d\u505c\u96fb\uff0c\u800c\u4e14\u6392\u653e\u4e0d\u8d85\u904e CO\u2082 \u9650\u984d\u3002' }],
       last: null, techUsed: {},
     };
@@ -1008,6 +1008,7 @@
         const pr = project(id);
         if (id !== 'screen') {
           state.unlocked[id] = true;
+          state.procDone = { n: (state.procDone ? state.procDone.n : 0) + 1, id };   // the page shows a 'process ready' card
           addNews(state, 'lab', `Breakthrough! ${pr.name} is ready to install.`, `\u7a81\u7834\uff01${pr.zh.name}\u53ef\u4ee5\u5b89\u88dd\u4e86\u3002`);
           flash(state, 'lab', `Research done: ${pr.name}.`, `\u7814\u767c\u5b8c\u6210\uff1a${pr.zh.name}\u3002`);
         } else if (R() < odds && undiscovered(state).length) {

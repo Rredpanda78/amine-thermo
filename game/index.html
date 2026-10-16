@@ -271,6 +271,10 @@ details.more summary { font-size: 12.5px; }
 .find { text-align: center; }
 .find .stars { font-size: 40px; letter-spacing: 6px; color: var(--gold); margin: 6px 0 2px; animation: pop .6s ease-out; }
 .find h3 { font-size: 26px; }
+.find .meth { display: inline-block; margin: 0 0 6px; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); font-size: 13px; font-weight: 600; border: 1px solid var(--line); }
+.find .meth.comp { color: var(--gold); border-color: #7A5B1E; } .find .meth.exp { color: var(--good); border-color: #2F5B3A; }
+.find .fits { justify-content: center; margin: 0 0 6px; }
+.find details.more { text-align: left; font-size: 14px; margin: 4px 0 6px; } .find details.more summary { text-align: center; font-size: 14px; }
 @keyframes pop { 0% { transform: scale(.3); opacity: 0; } 70% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .find .stars { animation: none; } }
 .rbtn { display: grid; gap: 1px; text-align: left; flex: 1 1 140px; }
@@ -823,8 +827,9 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     <button class="xclose" id="findX" aria-label="Close">×</button>
     <h3 id="findName"></h3>
     <p class="lead" id="findPitch"></p>
-    <p class="fact" id="findFact" style="text-align:left"></p>
-    <p class="src" id="findSrc" style="text-align:left"></p>
+    <span class="meth" id="findMeth"></span>
+    <div id="findFits" hidden></div>
+    <details class="more" id="findMore"><summary id="findMoreSum">More</summary><p class="fact" id="findFact"></p><p class="src" id="findSrc"></p></details>
     <div class="btn-row" style="justify-content:center"><button class="btn" id="findOk" data-i18n="findOk">Install it from any plant</button></div>
   </div>
 </div>
@@ -1590,9 +1595,13 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     $('findHow').textContent = (d.method === 'comp' ? L('Computer screening', '電腦篩選') : L('Lab experiments', '實驗')) + L(' found · ', '找到 · ') + rarity;
     $('findStars').textContent = '★'.repeat(st);
     $('findName').textContent = tName(t);
-    $('findPitch').textContent = tPitch(t) + ' ' + (d.method === 'comp'
-      ? L('Found by computer: still a prediction, so start-up failures are 1.5× until it is proven.', '電腦找到的：還只是預測，成熟前開機故障率 1.5 倍。')
-      : L('Lab-tested: start-up failures are halved until it is proven.', '實驗驗證過：成熟前開機故障率減半。'));
+    $('findPitch').textContent = tPitch(t);
+    $('findMeth').hidden = false; $('findFits').hidden = true;
+    $('findOk').textContent = L('Install it from any plant', '到任一座電廠安裝');
+    $('findMeth').className = 'meth ' + (d.method === 'comp' ? 'comp' : 'exp');
+    $('findMeth').textContent = d.method === 'comp' ? L('Prediction · start-up failures ×1.5 until proven', '預測 · 成熟前開機故障 ×1.5') : L('Lab-tested · start-up failures ×0.5 until proven', '實驗驗證 · 成熟前開機故障 ×0.5');
+    $('findMore').open = false;
+    $('findMoreSum').textContent = L('More', '更多');
     $('findFact').textContent = tFact(t);
     $('findSrc').textContent = t.src;
     $('ovFind').hidden = false;
@@ -1600,6 +1609,29 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
     return true;
   }
   $('findOk').onclick = $('findX').onclick = () => { $('ovFind').hidden = true; };
+
+  // ---------- process ready (the lab finished developing a process): same card, process fields ----------
+  let procN = 0;
+  function openProc(force) {
+    const d = S.procDone;
+    if (!d || (d.n === procN && !force)) return false;
+    procN = d.n;
+    const pr = M.project(d.id), z = pr.zh || {};
+    $('findHow').textContent = L('Research done · process', '研發完成 · 製程');
+    $('findStars').textContent = pr.short;
+    $('findName').textContent = zhOf(pr.name, z.name);
+    $('findPitch').textContent = zhOf(pr.desc, z.desc);
+    $('findMeth').hidden = true;
+    $('findFits').innerHTML = fitsHTML(d.id); $('findFits').hidden = false;
+    $('findMore').open = false;
+    $('findMoreSum').textContent = L('More', '更多');
+    $('findFact').textContent = pr.more ? zhOf(pr.more, z.more) : '';
+    $('findSrc').textContent = pr.src || '';
+    $('findOk').textContent = d.id === 'flex' ? L('Switch it on in the lab', '到研究所開啟') : L('Fit it from any plant', '到任一座電廠加裝');
+    $('ovFind').hidden = false;
+    if (!force) SND.play('find', 3);
+    return true;
+  }
 
   // ---------- front page: decisions and big news appear as a newspaper in the middle (the game waits) ----------
   const SKY = 'M0 160V122h18v-16h16v26h14v-38h20v38h12v-20h18v32h14v-48h22v48h12v-24h18v38h14v-10h24V160Z';
@@ -2696,7 +2728,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         if (ticked) { renderAll(); showToast(); soundsSince(top, breach0); }
         if (S.over) showEnd();
         else if (S.pending) { acc = 0; openEvent(); }
-        else if (ticked && (openHeadline() || openFind() || maybeTip())) acc = 0;
+        else if (ticked && (openHeadline() || openFind() || openProc() || maybeTip())) acc = 0;
       }
       drawScene(dt);
     } catch (e) {
@@ -2724,7 +2756,7 @@ html, body, button, canvas { -webkit-tap-highlight-color: transparent; }
         $('ovIntro').hidden = true; playing = true;
         for (let i = 0; i < n && !S.over && !S.pending; i++) M.step(S);
         renderAll(); showToast();
-        if (S.over) showEnd(); else if (S.pending) openEvent(); else if (!openHeadline()) openFind();
+        if (S.over) showEnd(); else if (S.pending) openEvent(); else if (!openHeadline() && !openFind()) openProc();
         return S.m;
       },
       setLang,
