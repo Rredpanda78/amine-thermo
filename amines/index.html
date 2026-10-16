@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amines Studied · Amine Thermo</title>
+<meta name="description" content="The 28 aqueous amines of our GHGT-18 ePoster: 2D structures, 3D conformers you can rotate and measure, and CO2 solubility from experiment, a regressed eNRTL-RK model and a QM + MD prediction.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.0/3Dmol-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0F1A2B; --panel: #16243A; --panel2: #1C2D47; --line: #2B4163; --fg: #E9EFF7; --muted: #9DB0CB;
+  --teal: #2EC4B6; --gold: #E2A93B; --paper: #F5F2FB; --ink: #16325C;
+  --prim: #2EC4B6; --sec: #E2A93B; --cyc: #8FA8FF; --oth: #C8A2E8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif; }
+a { color: var(--teal); }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 28px 16px 48px; }
+.crumbs { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+.crumbs a { color: var(--muted); text-decoration: none; }
+.crumbs a:hover { color: var(--fg); }
+h1 { font-family: 'Bungee', 'Arial Black', sans-serif; font-weight: 400; font-size: clamp(28px, 6vw, 44px); line-height: 1.05; margin: 0 0 10px; }
+.lead { color: var(--muted); max-width: 760px; margin: 0 0 20px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
+.chip { border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--teal); border-color: var(--teal); color: #08121F; font-weight: 700; }
+.search { flex: 1 1 200px; min-width: 0; max-width: 320px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; color: inherit; text-decoration: none; display: grid; grid-template-rows: 130px auto; transition: transform .15s, border-color .15s; }
+.card:hover, .card:focus-visible { transform: translateY(-3px); border-color: var(--teal); outline: none; }
+.card .art { background: var(--paper); display: grid; place-items: center; padding: 10px; position: relative; }
+.card .art img { max-width: 100%; max-height: 100%; }
+.card .body { padding: 10px 12px 12px; display: grid; gap: 2px; }
+.card .code { font-weight: 700; font-size: 18px; }
+.card .name { color: var(--muted); font-size: 13.5px; line-height: 1.3; }
+.card .meta { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 13px; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 2px 9px 2px 6px; border-radius: 999px; color: #08121F; }
+.badge svg { width: 14px; height: 14px; }
+.badge.Primary { background: var(--prim); } .badge.Secondary { background: var(--sec); } .badge.Cyclic { background: var(--cyc); } .badge.Other { background: var(--oth); }
+.art .badge { position: absolute; top: 8px; left: 8px; }
+.empty { color: var(--muted); padding: 30px 0; }
+
+/* detail */
+.detail { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.side { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.side .art { background: var(--paper); display: grid; place-items: center; padding: 18px; aspect-ratio: 4 / 3; position: relative; }
+.side .art img { max-width: 100%; max-height: 100%; }
+.side dl { margin: 0; padding: 12px 16px 16px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; font-size: 14.5px; }
+.side dt { color: var(--muted); }
+.side dd { margin: 0; overflow-wrap: anywhere; }
+.main { min-width: 0; }
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tab { border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 10px; padding: 8px 16px; font: inherit; font-weight: 700; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--teal); color: #08121F; border-color: var(--teal); }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 10px; font-size: 14.5px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel2); color: var(--fg); font: inherit; font-size: 14px; padding: 6px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--gold); color: #08121F; font-weight: 700; }
+select, .btn { border: 1px solid var(--line); background: var(--panel2); color: var(--fg); border-radius: 10px; padding: 6px 10px; font: inherit; font-size: 14px; max-width: 100%; }
+.btn { cursor: pointer; }
+.viewer { position: relative; width: 100%; height: min(62vh, 480px); border-radius: 12px; overflow: hidden; background: #0B1422; border: 1px solid var(--line); touch-action: none; }
+.readout { position: absolute; left: 10px; top: 10px; right: 10px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.readout span { background: rgba(15, 26, 43, .85); border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px; font-size: 14px; }
+.readout b { color: var(--gold); }
+.hint { color: var(--muted); font-size: 13.5px; margin: 8px 2px 0; }
+.note { color: var(--muted); font-size: 13.5px; margin: 10px 2px 0; }
+.todo { border: 1px dashed var(--line); border-radius: 12px; padding: 28px 16px; color: var(--muted); text-align: center; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 14px; }
+.legend label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.legend input { width: 17px; height: 17px; accent-color: var(--teal); }
+.key { display: inline-block; width: 26px; height: 12px; }
+.temps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.temps .chip { padding: 3px 10px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.temps .chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.temps .chip[aria-pressed="false"] { opacity: .45; }
+.temps .chip[aria-pressed="true"] { background: var(--panel2); color: var(--fg); border-color: var(--line); }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 12px; margin-top: 12px; }
+.chartbox { background: #FFFFFF; border-radius: 12px; padding: 10px 10px 6px; color: #16325C; min-width: 0; }
+.chartbox h3 { margin: 0 4px 4px; font-size: 15.5px; color: #16325C; }
+.chartbox .cv { position: relative; height: 300px; }
+footer { margin-top: 32px; color: var(--muted); font-size: 13.5px; border-top: 1px solid var(--line); padding-top: 14px; }
+@media (max-width: 760px) {
+  .detail { grid-template-columns: minmax(0, 1fr); }
+  .side .art { aspect-ratio: 16 / 9; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .card { grid-template-rows: 110px auto; }
+  .chartbox .cv { height: 270px; }
+  .viewer { height: 52vh; }
+}
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+</head>
+<body>
+<main class="wrap" id="app" aria-live="polite"></main>
+<script>
+'use strict';
+const CLS_ICON = {
+  Primary: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><path d="M8 1.5v3.3M8 11.2v3.3" stroke="currentColor" stroke-width="1.8"/></svg>',
+  Secondary: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><path d="M1.5 8h3.3M11.2 8h3.3M8 1.5v3.3" stroke="currentColor" stroke-width="1.8"/></svg>',
+  Cyclic: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l5.4 3.1v6.2L8 14.2l-5.4-3.1V4.9z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
+  Other: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.4" fill="currentColor"/><path d="M8 4.6V1.6M5 9.8L2.4 11.4M11 9.8l2.6 1.6" stroke="currentColor" stroke-width="1.8"/></svg>',
+};
+const SPECIES = { A: 'Amine', P: 'Protonated (AmH⁺)', C: 'Carbamate (AmCOO⁻)' };
+const SERIES = {
+  exp: { label: 'Experiment', color: '#16325C' },
+  model: { label: 'eNRTL-RK model (regressed to data)', dash: [6, 4] },
+  pred: { label: 'Predicted from QM + MD', dash: [] },
+};
+const app = document.getElementById('app');
+let DATA = null, viewer = null, charts = [];
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const sub = (f) => esc(f).replace(/(\d+)/g, '<sub>$1</sub>');
+const badge = (c) => `<span class="badge ${c}">${CLS_ICON[c]}${c}</span>`;
+const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+async function load() {
+  if (!DATA) DATA = await (await fetch('data/amines.json')).json();
+  route();
+}
+window.addEventListener('hashchange', route);
+
+function route() {
+  charts.forEach((c) => c.destroy()); charts = [];
+  if (viewer) { try { viewer.clear(); } catch (e) {} viewer = null; }
+  const id = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  const a = DATA.amines.find((x) => x.id === id);
+  if (a) detail(a); else list();
+  window.scrollTo(0, 0);
+}
+
+function list() {
+  document.title = 'Amines Studied · Amine Thermo';
+  const cls = store.get('am-cls', 'All');
+  app.innerHTML = `
+    <div class="crumbs"><a href="../">Amine Thermo</a> / Amines studied</div>
+    <h1>Amines Studied</h1>
+    <p class="lead">The ${DATA.amines.length} aqueous amines of our GHGT-18 ePoster. Open one to rotate its conformers in 3D, measure bonds and angles, and compare CO₂ solubility from experiment, a regressed eNRTL-RK model and our QM + MD prediction.</p>
+    <div class="bar" role="toolbar" aria-label="Filter">
+      ${['All', 'Primary', 'Secondary', 'Cyclic', 'Other'].map((c) => `<button class="chip" data-c="${c}" aria-pressed="${c === cls}">${c}</button>`).join('')}
+      <input class="search" type="search" placeholder="Search name or abbreviation" aria-label="Search amines">
+    </div>
+    <div class="grid" id="grid"></div>
+    ${foot()}`;
+  const grid = app.querySelector('#grid'), q = app.querySelector('.search');
+  const draw = () => {
+    const c = app.querySelector('.chip[aria-pressed="true"]').dataset.c, s = q.value.trim().toLowerCase();
+    const rows = DATA.amines.filter((a) => (c === 'All' || a.cls === c) && (!s || (a.id + ' ' + a.name + ' ' + a.iupac).toLowerCase().includes(s)));
+    grid.innerHTML = rows.length ? rows.map((a) => `
+      <a class="card" href="#${encodeURIComponent(a.id)}">
+        <div class="art">${badge(a.cls)}<img src="svg/${encodeURIComponent(a.id)}.svg" alt="2D structure of ${esc(a.name)}" loading="lazy"></div>
+        <div class="body"><span class="code">${esc(a.id)}</span><span class="name">${esc(a.name)}</span>
+          <span class="meta"><span>pK<sub>a</sub> ${a.pka25.toFixed(2)}</span><span>${a.co2_points} CO₂ pts</span></span></div>
+      </a>`).join('') : '<p class="empty">No amine matches.</p>';
+  };
+  app.querySelectorAll('.chip').forEach((b) => b.onclick = () => {
+    app.querySelectorAll('.chip').forEach((x) => x.setAttribute('aria-pressed', x === b)); store.set('am-cls', b.dataset.c); draw();
+  });
+  q.oninput = draw; draw();
+}
+
+function detail(a) {
+  document.title = `${a.id} · Amines Studied`;
+  const tab = store.get('am-tab', 'conf');
+  app.innerHTML = `
+    <div class="crumbs"><a href="../">Amine Thermo</a> / <a href="#">Amines studied</a> / ${esc(a.id)}</div>
+    <h1>${esc(a.id)}</h1>
+    <p class="lead">${esc(a.name)}</p>
+    <div class="detail">
+      <aside class="side">
+        <div class="art">${badge(a.cls)}<img src="svg/${encodeURIComponent(a.id)}.svg" alt="2D structure of ${esc(a.name)}"></div>
+        <dl>
+          <dt>IUPAC</dt><dd>${esc(a.iupac)}</dd>
+          <dt>Formula</dt><dd>${sub(a.formula)}</dd>
+          <dt>M</dt><dd>${a.mw.toFixed(2)} g/mol</dd>
+          ${a.cas ? `<dt>CAS</dt><dd>${esc(a.cas)}</dd>` : ''}
+          <dt>PubChem</dt><dd><a href="https://pubchem.ncbi.nlm.nih.gov/compound/${a.cid}" target="_blank" rel="noopener">CID ${a.cid}</a></dd>
+          <dt>SMILES</dt><dd><code>${esc(a.smiles)}</code></dd>
+          <dt>pK<sub>a</sub> (25 °C)</dt><dd>${a.pka25.toFixed(2)}</dd>
+        </dl>
+      </aside>
+      <section class="main">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" data-t="conf" aria-selected="${tab === 'conf'}">3D conformers</button>
+          <button class="tab" role="tab" data-t="co2" aria-selected="${tab === 'co2'}">CO₂ solubility</button>
+        </div>
+        <div class="pane" id="pane"></div>
+      </section>
+    </div>
+    ${foot()}`;
+  const show = (t) => {
+    app.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', x.dataset.t === t)); store.set('am-tab', t);
+    charts.forEach((c) => c.destroy()); charts = []; viewer = null;
+    (t === 'conf' ? confPane : co2Pane)(a, app.querySelector('#pane'));
+  };
+  app.querySelectorAll('.tab').forEach((b) => b.onclick = () => show(b.dataset.t));
+  show(tab);
+}
+
+/* ---------- 3D conformers ---------- */
+function confPane(a, el) {
+  const sps = Object.keys(a.conformers || {}).filter((k) => a.conformers[k].length);
+  if (!sps.length) { el.innerHTML = '<div class="todo">3D conformers for this amine are being added.</div>'; return; }
+  let sp = sps[0];
+  el.innerHTML = `
+    <div class="controls">
+      <span class="seg" role="group" aria-label="Species">${sps.map((k) => `<button data-s="${k}" aria-pressed="${k === sp}">${SPECIES[k]}</button>`).join('')}</span>
+      <label>Conformer <select id="cf" aria-label="Conformer"></select></label>
+      <button class="btn" id="clr">Clear selection</button>
+    </div>
+    <div class="viewer" id="mol"><div class="readout" id="ro"></div></div>
+    <p class="hint">Drag to rotate · pinch or scroll to zoom · tap 2 atoms for a distance, 3 atoms for an angle.</p>
+    <p class="note">Geometries: CREST conformers re-optimised at M06-2X/6-31G(d) with SMD water; conformers with an intramolecular hydrogen bond are excluded. Population = aqueous Boltzmann weight.</p>`;
+  const cf = el.querySelector('#cf'), ro = el.querySelector('#ro');
+  viewer = $3Dmol.createViewer(el.querySelector('#mol'), { backgroundColor: '#0B1422', antialias: true });
+  let picked = [], atoms = [];
+  const fillConf = () => {
+    cf.innerHTML = a.conformers[sp].map((c, i) => `<option value="${c.n}">#${c.n}${c.pop != null ? ` · ${(100 * c.pop).toFixed(c.pop < 0.01 ? 2 : 1)} %` : ''}${i === 0 ? ' (most populated)' : ''}</option>`).join('');
+  };
+  const style = () => {
+    viewer.setStyle({}, { stick: { radius: 0.14, colorscheme: 'Jmol' }, sphere: { scale: 0.26, colorscheme: 'Jmol' } });
+  };
+  const d3 = (p, q) => Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z);
+  const lbl = (at) => `${at.elem}${at.serial + 1}`;
+  const measure = () => {
+    viewer.removeAllShapes(); viewer.removeAllLabels();
+    const P = picked.map((i) => atoms[i]);
+    let txt = '';
+    P.forEach((p) => viewer.addSphere({ center: { x: p.x, y: p.y, z: p.z }, radius: 0.48, color: '#E2A93B', opacity: 0.45 }));
+    for (let k = 0; k + 1 < P.length; k++) viewer.addCylinder({ start: P[k], end: P[k + 1], radius: 0.035, color: '#E2A93B', dashed: true, fromCap: 1, toCap: 1 });
+    if (P.length === 2) txt = `<span>${lbl(P[0])}–${lbl(P[1])}: <b>${d3(P[0], P[1]).toFixed(3)} Å</b></span>`;
+    if (P.length === 3) {
+      const u = [P[0].x - P[1].x, P[0].y - P[1].y, P[0].z - P[1].z], v = [P[2].x - P[1].x, P[2].y - P[1].y, P[2].z - P[1].z];
+      const ang = Math.acos(Math.max(-1, Math.min(1, (u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / (Math.hypot(...u) * Math.hypot(...v))))) * 180 / Math.PI;
+      txt = `<span>${lbl(P[0])}–${lbl(P[1])}: <b>${d3(P[0], P[1]).toFixed(3)} Å</b></span><span>${lbl(P[1])}–${lbl(P[2])}: <b>${d3(P[1], P[2]).toFixed(3)} Å</b></span><span>∠ ${lbl(P[0])}–${lbl(P[1])}–${lbl(P[2])}: <b>${ang.toFixed(1)}°</b></span>`;
+    }
+    if (P.length === 1) txt = `<span>${lbl(P[0])} selected — tap another atom</span>`;
+    ro.innerHTML = txt; style(); viewer.render();
+  };
+  const loadConf = async () => {
+    const r = await fetch(`xyz/${encodeURIComponent(a.id)}/${sp}_${cf.value}.xyz`);
+    const xyz = await r.text();
+    viewer.clear(); picked = [];
+    const m = viewer.addModel(xyz, 'xyz'); atoms = m.selectedAtoms({});
+    style();
+    viewer.setClickable({}, true, (at) => {
+      const i = at.index;
+      if (picked.includes(i)) picked = picked.filter((x) => x !== i);
+      else { if (picked.length === 3) picked = []; picked.push(i); }
+      measure();
+    });
+    viewer.zoomTo(); viewer.zoom(1.15); measure();
+  };
+  el.querySelectorAll('.seg button').forEach((b) => b.onclick = () => {
+    sp = b.dataset.s; el.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', x === b)); fillConf(); loadConf();
+  });
+  cf.onchange = loadConf;
+  el.querySelector('#clr').onclick = () => { picked = []; measure(); };
+  fillConf(); loadConf();
+  new ResizeObserver(() => viewer && viewer.resize()).observe(el.querySelector('#mol'));
+}
+
+/* ---------- CO2 solubility ---------- */
+const tColor = (t, lo, hi) => {
+  const f = hi > lo ? (t - lo) / (hi - lo) : 0.5;           // cool (low T) -> warm (high T)
+  const stops = [[37, 99, 235], [20, 184, 166], [132, 204, 22], [234, 179, 8], [239, 68, 68], [159, 18, 57]];
+  const x = f * (stops.length - 1), k = Math.min(stops.length - 2, Math.floor(x)), w = x - k;
+  const c = stops[k].map((v, j) => Math.round(v + (stops[k + 1][j] - v) * w));
+  return `rgb(${c.join(',')})`;
+};
+async function co2Pane(a, el) {
+  if (!a.co2_points) { el.innerHTML = '<div class="todo">No CO₂ solubility data for this amine yet.</div>'; return; }
+  el.innerHTML = '<p class="hint">Loading…</p>';
+  const d = await (await fetch(`data/co2/${encodeURIComponent(a.id)}.json`)).json();
+  const allT = [...new Set(d.groups.flatMap((g) => [...g.exp.map((e) => e[0]), ...Object.keys(g.curves).map(Number)]))].sort((p, q) => p - q);
+  const lo = allT[0], hi = allT[allT.length - 1];
+  const on = { exp: true, model: true, pred: true };
+  const tOn = new Set(allT);
+  el.innerHTML = `
+    <div class="legend">
+      ${Object.entries(SERIES).map(([k, s]) => `<label><input type="checkbox" data-k="${k}" checked>${k === 'exp'
+        ? '<svg class="key" viewBox="0 0 26 12"><circle cx="13" cy="6" r="4.5" fill="#888" stroke="#000" stroke-width="1"/></svg>'
+        : `<svg class="key" viewBox="0 0 26 12"><line x1="1" y1="6" x2="25" y2="6" stroke="#ccc" stroke-width="2.4" ${k === 'model' ? 'stroke-dasharray="5 3"' : ''}/></svg>`}${s.label}</label>`).join('')}
+    </div>
+    <div class="temps" role="group" aria-label="Temperatures">${allT.map((t) => `<button class="chip" data-t="${t}" aria-pressed="true"><i style="background:${tColor(t, lo, hi)}"></i>${+t.toFixed(1)} °C</button>`).join('')}</div>
+    <div class="charts" id="charts"></div>
+    <p class="note">One chart per amine concentration (mol amine per kg water). Tap or hover a point or line for its value. <b>Model</b>: eNRTL-RK with reaction parameters regressed to the experimental pK<sub>a</sub> and CO₂ data. <b>Predicted</b>: the same model with the reaction free energies and enthalpies taken from QM + MD instead, so no CO₂ data are used. Predictions are preliminary.</p>`;
+  const box = el.querySelector('#charts');
+  const build = () => {
+    charts.forEach((c) => c.destroy()); charts = []; box.innerHTML = '';
+    d.groups.forEach((g, gi) => {
+      const ds = [];
+      const temps = [...new Set([...g.exp.map((e) => e[0]), ...Object.keys(g.curves).map(Number)])].sort((p, q) => p - q).filter((t) => tOn.has(t));
+      const hasCurve = Object.keys(g.curves).length > 0;
+      temps.forEach((t) => {
+        const col = tColor(t, lo, hi), key = Object.keys(g.curves).find((k) => Math.abs(+k - t) < 0.05);
+        if (on.exp) {
+          const pts = g.exp.filter((e) => Math.abs(e[0] - t) < 0.05).map((e) => ({ x: e[1], y: e[2] }));
+          if (pts.length) ds.push({ type: 'scatter', label: `Experiment, ${+t.toFixed(1)} °C`, data: pts, backgroundColor: col, borderColor: '#000', borderWidth: 1, pointRadius: 4.5, pointHoverRadius: 7, order: 0 });
+        }
+        ['model', 'pred'].forEach((k) => {
+          if (!on[k]) return;
+          if (key && g.curves[key][k].length) {
+            ds.push({ type: 'line', label: `${k === 'model' ? 'Model' : 'Predicted'}, ${+t.toFixed(1)} °C`, data: g.curves[key][k].map(([x, y]) => ({ x, y })),
+              borderColor: col, borderWidth: 2.2, borderDash: SERIES[k].dash, pointRadius: 0, pointHitRadius: 6, pointHoverRadius: 4, tension: 0.25, fill: false, order: 1 });
+          } else if (!hasCurve || !key) {
+            const pts = g[k].filter((e) => Math.abs(e[0] - t) < 0.05).map((e) => ({ x: e[1], y: e[2] }));
+            if (pts.length) ds.push({ type: 'scatter', label: `${k === 'model' ? 'Model' : 'Predicted'}, ${+t.toFixed(1)} °C`, data: pts,
+              backgroundColor: '#FFFFFF', borderColor: col, borderWidth: 2, pointStyle: k === 'model' ? 'rect' : 'triangle', pointRadius: 5, order: 1 });
+          }
+        });
+      });
+      const ex = g.exp.map((e) => e[2]).filter((v) => v > 0);
+      const xs = g.exp.map((e) => e[1]);
+      const yMin = ex.length ? Math.pow(10, Math.floor(Math.log10(Math.min(...ex))) - 1) : 1e-3;
+      const yMax = ex.length ? Math.pow(10, Math.ceil(Math.log10(Math.max(...ex))) + 1) : 1e4;
+      const xMax = xs.length ? Math.min(1.6, Math.ceil((Math.max(...xs) * 1.08) * 10) / 10) : 1;
+      const wrap = document.createElement('div'); wrap.className = 'chartbox';
+      wrap.innerHTML = `<h3>${+g.m.toFixed(2)} mol/kg  (${g.wt} wt %) · ${g.exp.length} exp. points</h3><div class="cv"><canvas aria-label="CO2 partial pressure versus loading at ${+g.m.toFixed(2)} mol/kg"></canvas></div>`;
+      box.appendChild(wrap);
+      charts.push(new Chart(wrap.querySelector('canvas'), {
+        data: { datasets: ds },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false, parsing: false,
+          interaction: { mode: 'nearest', intersect: false, axis: 'xy' },
+          events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'],
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (c) => `${c.dataset.label}: α ${c.parsed.x.toFixed(3)}, P ${c.parsed.y.toPrecision(3)} kPa` } },
+          },
+          scales: {
+            x: { type: 'linear', min: 0, max: xMax, title: { display: true, text: 'CO₂ loading (mol CO₂ / mol amine)', color: '#16325C', font: { size: 13, weight: 'bold' } }, ticks: { color: '#16325C' }, grid: { color: '#E3E8EF' } },
+            y: { type: 'logarithmic', min: yMin, max: yMax, title: { display: true, text: 'CO₂ partial pressure (kPa)', color: '#16325C', font: { size: 13, weight: 'bold' } },
+              ticks: { color: '#16325C', callback: (v) => { const l = Math.log10(v); return Math.abs(l - Math.round(l)) < 1e-9 ? (v >= 1e-2 && v <= 1e3 ? +v.toPrecision(1) : `1e${Math.round(l)}`) : ''; } }, grid: { color: '#E3E8EF' } },
+          },
+        },
+      }));
+    });
+  };
+  el.querySelectorAll('.legend input').forEach((c) => c.onchange = () => { on[c.dataset.k] = c.checked; build(); });
+  el.querySelectorAll('.temps .chip').forEach((b) => b.onclick = () => {
+    const t = +b.dataset.t, s = tOn.has(t); if (s) tOn.delete(t); else tOn.add(t); b.setAttribute('aria-pressed', !s); build();
+  });
+  build();
+}
+
+function foot() {
+  return `<footer>Lin Research Group, Department of Chemical Engineering, National Tsing Hua University · <a href="../">Home</a> · <a href="../game/">Capture City 2050</a> · structures via <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank" rel="noopener">PubChem</a>; 3D viewer <a href="https://3dmol.csb.pitt.edu/" target="_blank" rel="noopener">3Dmol.js</a>.</footer>`;
+}
+
+load().catch((e) => { app.innerHTML = `<p class="empty">Could not load the data (${esc(e.message)}).</p>`; });
+</script>
+</body>
+</html>

@@ -14,6 +14,8 @@ https://rredpanda78.github.io/amine-thermo/ 。主角是瀏覽器遊戲 **Captur
 ## 公開原則(不可違反)
 
 1. **不放未發表的研究數據**:例如本實驗室計算的 ΔG / ΔH。只放已發表的文獻值;遊戲自己估的數字標 `est.`。
+   例外(repo 擁有者 2026-10-16 核准):`amines/` 可以放 CO₂ 溶解度(實驗、迴歸模型、QM + MD 預測)與 3D 構型;
+   **反應 ΔG / ΔH 的數值仍然不放**(包括 JSON 裡不能出現)。
 2. **不寫任何商用製程模擬軟體的品牌名**(遊戲、註解、commit 訊息都一樣)。製程研發的按鈕一律寫「研發製程 / Develop process」,也不寫 pilot。
 3. **引用要正確**:作者、期刊、年份、doi 對得上才寫;不確定就不寫。
 4. **不放個人資料**(email、電話等)。這是公開 repo,推上去就收不回(git 歷史、fork)。
@@ -27,6 +29,7 @@ https://rredpanda78.github.io/amine-thermo/ 。主角是瀏覽器遊戲 **Captur
 | `game/model.js` | 遊戲模型(數值、事件、每月結算),沒有 DOM,Node 也能跑;**存成純 ASCII** |
 | `game/full/` | 舊網址,只剩轉址 |
 | `tools/` | 編碼轉換與模擬腳本(下面) |
+| `amines/` | 胺網站:`index.html`(列表 + 單顆頁,hash 路由 `#MEA`)、`data/`(amines.json、co2/*.json)、`xyz/`、`svg/`。**data/xyz/svg 由 repo 外的本機腳本產生,不要手改**;3Dmol.js 與 Chart.js 走 cdnjs |
 
 ## 改 `game/model.js` 一定要照這個順序
 
