@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Amines Studied · Amine Thermo</title>
-<meta name="description" content="The 28 aqueous amines of our GHGT-18 ePoster: 2D structures, 3D conformers you can rotate, label and measure, and CO2 solubility from experiment, a regressed eNRTL-RK model and a QM + MD prediction.">
+<meta name="description" content="The 28 aqueous amines of our GHGT-18 ePoster: 2D structures, 3D conformers you can rotate, label and measure, and pKa and CO2 solubility from experiment, a regressed eNRTL-RK model and a QM + MD prediction.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.0/3Dmol-min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="core.js"></script>
+<script src="core.js?v=42"></script>
 <style>
 :root { --navy: #16325C; --teal: #2A9D8F; --amber: #D98E04; --ink: #1E2B3C; --muted: #5C6B80; --line: #DCE3EC; --tint: #F4F7FB;
   --Primary: #2A9D8F; --Secondary: #D98E04; --Cyclic: #2E75B6; --Other: #8E5BB0; color-scheme: light; }
@@ -29,8 +29,18 @@ h1 { font-family: 'Source Serif 4', serif; color: var(--navy); font-size: 32px; 
 h2 { font-family: 'Source Serif 4', serif; color: var(--navy); font-size: 22px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 2px solid var(--navy); }
 h2 span { color: var(--teal); margin-right: 8px; }
 .lead { color: var(--muted); margin: 0 0 16px; }
-.over { width: 100%; border-collapse: collapse; font-size: 15px; } .over th { text-align: left; border-bottom: 2px solid var(--navy); padding: 6px 8px; } .over td { border-bottom: 1px solid var(--line); padding: 4px 8px; }
-.over tr:hover td { background: var(--tint); cursor: pointer; } .over img { height: 38px; max-width: 90px; }
+/* overview: one tile per amine, grouped by class; the 2D structure is the main thing */
+.cls h3 { margin: 24px 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.cls h3 i { width: 10px; height: 10px; border-radius: 2px; background: var(--c); } .cls h3 small { font-size: 13px; letter-spacing: 0; font-weight: 400; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px; }
+.tile { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 4px; background: #fff; color: var(--ink); text-decoration: none; overflow: hidden; transition: box-shadow .15s, transform .15s, border-color .15s; }
+.tile:hover, .tile:focus-visible { border-color: var(--navy); border-top-color: var(--c); box-shadow: 0 4px 14px rgba(22, 50, 92, .16); transform: translateY(-2px); outline: none; }
+.tile .pic { position: relative; height: 164px; padding: 14px 10px 10px; display: flex; align-items: center; justify-content: center; background: #fff; }
+.tile .pic img { width: calc(var(--nw, 150) * 1.2px); max-width: 100%; max-height: 100%; height: auto; object-fit: contain; }
+.tile .no { position: absolute; top: 4px; left: 8px; font-size: 12px; color: var(--muted); }
+.tile .txt { flex: 1; display: flex; flex-direction: column; gap: 1px; padding: 8px 11px 9px; border-top: 1px solid var(--line); background: var(--tint); }
+.tile .txt > b { font-size: 17px; line-height: 1.25; color: var(--navy); overflow-wrap: anywhere; } .tile .nm { font-size: 13.5px; line-height: 1.3; color: var(--muted); }
+.tile .meta { margin-top: auto; padding-top: 5px; display: flex; flex-wrap: wrap; gap: 0 10px; font-size: 13px; } .tile .meta span { white-space: nowrap; } .tile .meta b { color: var(--ink); }
 .top { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
 table.facts { border-collapse: collapse; width: 100%; font-size: 15px; } table.facts th { text-align: left; width: 120px; color: var(--muted); font-weight: 600; padding: 4px 0; vertical-align: top; } table.facts td { padding: 4px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 figure { margin: 0; border: 1px solid var(--line); padding: 12px; } figure img { width: 100%; max-height: 180px; object-fit: contain; }
@@ -45,7 +55,20 @@ figcaption { font-size: 13.5px; color: var(--muted); margin-top: 6px; } figcapti
 .am-readout { position: absolute; z-index: 2; top: 8px; left: 8px; right: 8px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
 .am-readout span { background: var(--navy); color: #fff; border-radius: 3px; padding: 2px 8px; font-size: 14px; } .am-readout b { color: #FFD27A; }
 .am-hint, .am-note { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; }
-.am-co2 { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 18px; align-items: start; }
+.am-panel { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 18px; align-items: start; }
+.am-variant { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 14px; }
+.am-variant > b { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--navy); }
+.am-vseg { display: inline-flex; border: 2px solid var(--navy); border-radius: 6px; overflow: hidden; max-width: 100%; }
+.am-vseg button { border: 0; background: #fff; color: var(--navy); padding: 7px 16px; font-family: inherit; font-size: 15.5px; font-weight: 700; line-height: 1.25; text-align: left; cursor: pointer; }
+.am-vseg button small { display: block; font-size: 12.5px; font-weight: 400; opacity: .85; } .am-vseg button + button { border-left: 2px solid var(--navy); }
+.am-vseg button[aria-pressed="true"] { background: var(--navy); color: #fff; } .am-vseg button:not([aria-pressed="true"]):hover { background: var(--tint); }
+.am-off .am-vseg { opacity: .5; border-style: dashed; } .am-off .am-vseg button { cursor: not-allowed; } .am-off .am-vseg button:not([aria-pressed="true"]):hover { background: #fff; }
+.am-soon { font-size: 13.5px; color: var(--muted); font-style: italic; }
+.am-statwrap { overflow-x: auto; margin: 2px 0 10px; }
+.am-stats { border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.am-stats th, .am-stats td { padding: 2px 14px 2px 0; text-align: right; vertical-align: bottom; } .am-stats td { white-space: nowrap; } .am-stats td small { color: var(--muted); }
+.am-stats thead th { color: var(--muted); font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--navy); } .am-stats thead th:first-child, .am-stats tbody th { text-align: left; }
+.am-stats tbody th { font-weight: 600; color: var(--ink); } .am-stats tbody tr + tr > * { border-top: 1px solid var(--line); }
 .am-ptitle { margin: 0 0 4px; font-size: 15px; color: var(--navy); }
 .am-side { display: grid; gap: 14px; font-size: 14.5px; } .am-group h5 { margin: 0 0 6px; font-size: 13px; color: var(--navy); text-transform: uppercase; letter-spacing: 1px; display: flex; gap: 6px; align-items: center; }
 .am-mini { font-size: 11.5px; padding: 0 6px; text-transform: none; letter-spacing: 0; }
@@ -60,12 +83,19 @@ footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5
 @media (max-width: 900px) {
   .layout { grid-template-columns: minmax(0, 1fr); } nav { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); display: none; } nav.open { display: block; }
   .menu { display: inline-block; margin-left: auto; background: transparent; border: 1px solid rgba(255, 255, 255, .6); color: #fff; border-radius: 4px; padding: 3px 10px; font: inherit; }
-  main { padding: 18px 16px 48px; } .top, .am-co2 { grid-template-columns: minmax(0, 1fr); } .am-viewer { height: 340px; }
+  main { padding: 18px 16px 48px; } .top, .am-panel { grid-template-columns: minmax(0, 1fr); } .am-viewer { height: 340px; }
   /* phone: compact controls above the chart: concentrations scroll sideways, Show and sources side by side */
   .am-side { order: -1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; font-size: 14px; }
   .am-side .am-group:nth-child(-n+2) { grid-column: 1 / -1; } .am-group h5 { margin-bottom: 4px; }
   .am-concs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; } .am-conc { flex: none; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; }
   .am-conc:has(input:checked) { border-color: var(--teal); }
+  .am-one { grid-template-columns: minmax(0, 1fr); } .am-one .am-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .am-vseg { width: 100%; } .am-vseg button { flex: 1 1 0; padding: 7px 10px; font-size: 14.5px; } .am-variant > b { width: 100%; }
+}
+@media (max-width: 560px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .tile .pic { height: 150px; padding: 14px 6px 8px; }
+  .tile .txt { padding: 7px 9px 8px; } .tile .txt > b { font-size: 16px; } .tile .nm { font-size: 13px; } .tile .meta { flex-direction: column; }
+  .am-stats { font-size: 13.5px; } .am-stats th, .am-stats td { padding-right: 10px; } .am-vseg button small { display: none; }
 }
 </style>
 </head>
@@ -77,13 +107,19 @@ footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5
 const app = document.getElementById('app'); let A = [];
 const COLORS = { Primary: 'var(--Primary)', Secondary: 'var(--Secondary)', Cyclic: 'var(--Cyclic)', Other: 'var(--Other)' };
 function nav(cur) {
-  document.getElementById('nav').innerHTML = AM.CLASSES.map((c) => `<h4><i style="background:${COLORS[c]}"></i>${c === 'Other' ? 'Ammonia' : c + ' amines'}</h4>` +
+  document.getElementById('nav').innerHTML = AM.CLASSES.map((c) => `<h4><i style="background:${COLORS[c]}"></i>${CLS_TITLE(c)}</h4>` +
     A.filter((a) => a.cls === c).map((a) => `<a href="#${encodeURIComponent(a.id)}" aria-current="${cur === a.id}">${AM.esc(a.id)} <small style="opacity:.65">${AM.esc(a.name)}</small></a>`).join('')).join('');
 }
+const CLS_TITLE = (c) => (c === 'Other' ? 'Ammonia' : c + ' amines');
+function tile(a) {
+  return `<a class="tile" href="#${encodeURIComponent(a.id)}" style="--c:${COLORS[a.cls]}"><span class="pic"><span class="no">${A.indexOf(a) + 1}</span><img src="${AM.svg(a.id)}" alt="2D structure of ${AM.esc(a.id)}"></span>
+    <span class="txt"><b>${AM.esc(a.id)}</b><span class="nm">${AM.esc(a.name)}</span><span class="meta"><span>pK<sub>a</sub> 25 °C <b>${a.pka25.toFixed(2)}</b></span><span><b>${a.co2_points}</b> CO₂ pts</span></span></span></a>`;
+}
 function overview() {
-  app.innerHTML = `<h1>The 28 aqueous amines</h1><p class="lead">Structures, 3D conformers and CO₂ solubility for every amine in the GHGT-18 ePoster. Select an amine on the left or in the table.</p>
-    <table class="over"><thead><tr><th>Structure</th><th>Amine</th><th>Class</th><th>pK<sub>a</sub> 25 °C</th><th>CO₂ points</th></tr></thead><tbody>${A.map((a) => `<tr data-id="${AM.esc(a.id)}"><td><img src="${AM.svg(a.id)}" alt=""></td><td><b>${AM.esc(a.id)}</b> · ${AM.esc(a.name)}</td><td>${a.cls}</td><td>${a.pka25.toFixed(2)}</td><td>${a.co2_points}</td></tr>`).join('')}</tbody></table>`;
-  app.querySelectorAll('tbody tr').forEach((r) => r.onclick = () => { location.hash = encodeURIComponent(r.dataset.id); });
+  app.innerHTML = `<h1>The ${A.length} aqueous amines</h1><p class="lead">Structures, 3D conformers, pK<sub>a</sub> and CO₂ solubility for every amine in the GHGT-18 ePoster. Select an amine below or in the index.</p>` +
+    AM.CLASSES.map((c) => { const L = A.filter((a) => a.cls === c); return L.length ? `<section class="cls"><h3 style="--c:${COLORS[c]}"><i></i>${CLS_TITLE(c)} <small>· ${L.length}</small></h3><div class="tiles">${L.map(tile).join('')}</div></section>` : ''; }).join('');
+  // structures keep their drawn scale (same bond length in every tile), enlarged a little, shrunk only when too big for the tile
+  app.querySelectorAll('.pic img').forEach((im) => { const f = () => im.naturalWidth && im.style.setProperty('--nw', im.naturalWidth); im.complete ? f() : im.addEventListener('load', f); });
 }
 function detail(a) {
   const n = A.indexOf(a) + 1;
@@ -91,8 +127,10 @@ function detail(a) {
     <div class="top"><table class="facts">${AM.facts(a).map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>
       <figure><img src="${AM.svg(a.id)}" alt="2D structure"><figcaption><b>Figure ${n}a.</b> 2D structure of ${AM.esc(a.id)}.</figcaption></figure></div>
     <h2><span>${n}.1</span>3D conformers</h2><div id="conf"></div>
-    <h2><span>${n}.2</span>CO₂ solubility</h2><div id="co2"></div>`;
+    <h2><span>${n}.2</span>pK<sub>a</sub></h2><div id="pka"></div>
+    <h2><span>${n}.3</span>CO₂ solubility</h2><div id="co2"></div>`;
   AM.confPanel(app.querySelector('#conf'), a, { bg: '#FBFCFE', pick: '#D98E04', labelBg: '#16325C', labelFg: '#FFFFFF' });
+  AM.pkaPanel(app.querySelector('#pka'), a, { fg: '#16325C', grid: '#E6ECF3', font: 'Source Sans 3', h: 360, exp: '#D98E04', model: '#16325C', pred: '#2A9D8F' });
   AM.co2Panel(app.querySelector('#co2'), a, { fg: '#16325C', grid: '#E6ECF3', font: 'Source Sans 3', h: 440 });
 }
 function route() {

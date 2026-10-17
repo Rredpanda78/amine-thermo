@@ -95,7 +95,8 @@
      }
     ]
    },
-   "co2_points": 293
+   "co2_points": 293,
+   "pka_points": 11
   },
   {
    "id": "MPA",
@@ -211,7 +212,8 @@
      }
     ]
    },
-   "co2_points": 132
+   "co2_points": 132,
+   "pka_points": 5
   },
   {
    "id": "MIPA",
@@ -297,7 +299,8 @@
      }
     ]
    },
-   "co2_points": 82
+   "co2_points": 82,
+   "pka_points": 24
   },
   {
    "id": "4A1B",
@@ -423,7 +426,8 @@
      }
     ]
    },
-   "co2_points": 16
+   "co2_points": 16,
+   "pka_points": 6
   },
   {
    "id": "2A1B",
@@ -564,7 +568,8 @@
      }
     ]
    },
-   "co2_points": 41
+   "co2_points": 41,
+   "pka_points": 5
   },
   {
    "id": "DGA",
@@ -745,7 +750,8 @@
      }
     ]
    },
-   "co2_points": 15
+   "co2_points": 15,
+   "pka_points": 4
   },
   {
    "id": "Butylamine",
@@ -831,7 +837,8 @@
      }
     ]
    },
-   "co2_points": 9
+   "co2_points": 9,
+   "pka_points": 6
   },
   {
    "id": "secButylamine",
@@ -917,7 +924,8 @@
      }
     ]
    },
-   "co2_points": 9
+   "co2_points": 9,
+   "pka_points": 6
   },
   {
    "id": "isoButylamine",
@@ -988,7 +996,8 @@
      }
     ]
    },
-   "co2_points": 9
+   "co2_points": 9,
+   "pka_points": 6
   },
   {
    "id": "AMP",
@@ -1059,7 +1068,8 @@
      }
     ]
    },
-   "co2_points": 97
+   "co2_points": 97,
+   "pka_points": 24
   },
   {
    "id": "AHPD",
@@ -1130,7 +1140,8 @@
      }
     ]
    },
-   "co2_points": 108
+   "co2_points": 108,
+   "pka_points": 25
   },
   {
    "id": "AEPD",
@@ -1256,7 +1267,8 @@
      }
     ]
    },
-   "co2_points": 32
+   "co2_points": 32,
+   "pka_points": 24
   },
   {
    "id": "AMPD",
@@ -1357,7 +1369,8 @@
      }
     ]
    },
-   "co2_points": 29
+   "co2_points": 29,
+   "pka_points": 19
   },
   {
    "id": "2AP",
@@ -1453,7 +1466,8 @@
      }
     ]
    },
-   "co2_points": 35
+   "co2_points": 35,
+   "pka_points": 5
   },
   {
    "id": "MMEA",
@@ -1564,7 +1578,8 @@
      }
     ]
    },
-   "co2_points": 21
+   "co2_points": 21,
+   "pka_points": 5
   },
   {
    "id": "DEA",
@@ -1705,7 +1720,8 @@
      }
     ]
    },
-   "co2_points": 19
+   "co2_points": 19,
+   "pka_points": 5
   },
   {
    "id": "EAE",
@@ -1841,7 +1857,8 @@
      }
     ]
    },
-   "co2_points": 78
+   "co2_points": 78,
+   "pka_points": 5
   },
   {
    "id": "BAE",
@@ -2052,7 +2069,8 @@
      }
     ]
    },
-   "co2_points": 57
+   "co2_points": 57,
+   "pka_points": 7
   },
   {
    "id": "DIPA",
@@ -2228,7 +2246,8 @@
      }
     ]
    },
-   "co2_points": 11
+   "co2_points": 11,
+   "pka_points": 5
   },
   {
    "id": "TBAE",
@@ -2354,7 +2373,8 @@
      }
     ]
    },
-   "co2_points": 47
+   "co2_points": 47,
+   "pka_points": 4
   },
   {
    "id": "IPAE",
@@ -2505,7 +2525,8 @@
      }
     ]
    },
-   "co2_points": 103
+   "co2_points": 103,
+   "pka_points": 5
   },
   {
    "id": "PAE",
@@ -2666,7 +2687,8 @@
      }
     ]
    },
-   "co2_points": 18
+   "co2_points": 18,
+   "pka_points": 5
   },
   {
    "id": "2PE",
@@ -2832,7 +2854,8 @@
      }
     ]
    },
-   "co2_points": 127
+   "co2_points": 127,
+   "pka_points": 5
   },
   {
    "id": "Morpholine",
@@ -2846,7 +2869,8 @@
    "cas": "110-91-8",
    "pka25": 8.49,
    "conformers": {},
-   "co2_points": 60
+   "co2_points": 60,
+   "pka_points": 15
   },
   {
    "id": "1MPZ",
@@ -2922,7 +2946,8 @@
      }
     ]
    },
-   "co2_points": 181
+   "co2_points": 181,
+   "pka_points": 4
   },
   {
    "id": "PZ1E",
@@ -3093,7 +3118,8 @@
      }
     ]
    },
-   "co2_points": 36
+   "co2_points": 36,
+   "pka_points": 24
   },
   {
    "id": "1EPZ",
@@ -3107,7 +3133,8 @@
    "cas": "5308-25-8",
    "pka25": 9.2,
    "conformers": {},
-   "co2_points": 21
+   "co2_points": 21,
+   "pka_points": 4
   },
   {
    "id": "NH3",
@@ -3143,7 +3170,8 @@
      }
     ]
    },
-   "co2_points": 63
+   "co2_points": 63,
+   "pka_points": 11
   }
  ]
 }
