@@ -29,7 +29,7 @@ https://rredpanda78.github.io/amine-thermo/ 。主角是瀏覽器遊戲 **Captur
 | `game/model.js` | 遊戲模型(數值、事件、每月結算),沒有 DOM,Node 也能跑;**存成純 ASCII** |
 | `game/full/` | 舊網址,只剩轉址 |
 | `tools/` | 編碼轉換與模擬腳本(下面) |
-| `amines/` | 胺網站:`index.html`(列表 + 單顆頁,hash 路由 `#MEA`)、`data/`(amines.json、co2/*.json)、`xyz/`、`svg/`。**data/xyz/svg 由 repo 外的本機腳本產生,不要手改**;3Dmol.js 與 Chart.js 走 cdnjs |
+| `amines/` | 胺網站(期刊附錄風格):`index.html`(版面 + CSS,hash 路由 `#MEA`)、`core.js`(3D 構型面板含原子編號/量測、CO₂ 單圖面板:濃度/溫度/數據/文獻形狀)、`data/`(amines.json、co2/*.json,每個實驗點帶文獻索引)、`xyz/`、`svg/`。**data/xyz/svg 由 repo 外的本機腳本產生,不要手改**;3Dmol.js 與 Chart.js 走 cdnjs |
 
 ## 改 `game/model.js` 一定要照這個順序
 
